@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../../../convex/_generated/dataModel";
+import { addUserToOrganization, removeUserFromOrganization } from "../../../../actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ChevronRight, Users, Loader2, ArrowLeft, Eye, Mail, Shield, Phone,
-  Plus, MoreHorizontal, Pencil, Trash2, UserPlus, AlertCircle
+  Plus, MoreHorizontal, Pencil, Trash2, UserPlus, AlertCircle, CheckCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -59,8 +60,7 @@ export default function TenantUsersSettingsPage() {
     tenant?._id ? { organizationId: tenant._id } : "skip"
   );
 
-  // Mutations
-  const createUser = useMutation(api.users.createUser);
+  // Mutations (createUser not used - we use Clerk server action instead)
   const updateUser = useMutation(api.users.updateUser);
   const deleteUser = useMutation(api.users.deleteUser);
   const toggleStatus = useMutation(api.users.toggleStatus);
@@ -70,6 +70,7 @@ export default function TenantUsersSettingsPage() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -87,6 +88,7 @@ export default function TenantUsersSettingsPage() {
       extension: "",
     });
     setError(null);
+    setSuccessMessage(null);
   };
 
   const openEditDialog = (u: any) => {
@@ -101,23 +103,35 @@ export default function TenantUsersSettingsPage() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenant?._id) return;
+    if (!tenant?.clerkOrgId) {
+      setError("Organization not properly configured");
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
+    setSuccessMessage(null);
     try {
-      await createUser({
-        organizationId: tenant._id,
-        name: formData.name,
+      // Use Clerk-based server action to ensure real Clerk IDs
+      const result = await addUserToOrganization({
+        clerkOrgId: tenant.clerkOrgId,
         email: formData.email,
+        name: formData.name,
         role: formData.role,
-        extension: formData.extension || undefined,
       });
+
+      if (!result.success) {
+        setError(result.error || "Failed to add user");
+        return;
+      }
+
+      // Show success message and close dialog
+      setSuccessMessage(result.message || "User added successfully");
       setIsAddDialogOpen(false);
       resetForm();
     } catch (err: any) {
-      console.error("Failed to create user:", err);
-      setError(err.message || "Failed to create user");
+      console.error("Failed to add user:", err);
+      setError(err.message || "Failed to add user");
     } finally {
       setIsSubmitting(false);
     }
@@ -147,11 +161,20 @@ export default function TenantUsersSettingsPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: Id<"users">) => {
+  const handleDeleteUser = async (userToDelete: any) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await deleteUser({ userId });
+      // If user has a real Clerk ID (not manual_), remove from Clerk org first
+      if (tenant?.clerkOrgId && userToDelete.clerkUserId && !userToDelete.clerkUserId.startsWith("manual_")) {
+        const result = await removeUserFromOrganization(tenant.clerkOrgId, userToDelete.clerkUserId);
+        if (!result.success) {
+          console.error("Failed to remove from Clerk:", result.error);
+          // Continue to delete from Convex anyway
+        }
+      }
+      // Delete from Convex
+      await deleteUser({ userId: userToDelete._id });
     } catch (err) {
       console.error("Failed to delete user:", err);
     }
@@ -308,6 +331,16 @@ export default function TenantUsersSettingsPage() {
           </div>
         </div>
 
+        {/* Success Message */}
+        {successMessage && (
+          <Alert className="bg-green-500/10 border-green-500/20">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-700 dark:text-green-400">
+              {successMessage}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Users Table */}
         <Card>
           <CardHeader>
@@ -402,7 +435,7 @@ export default function TenantUsersSettingsPage() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-red-600"
-                              onClick={() => handleDeleteUser(u._id)}
+                              onClick={() => handleDeleteUser(u)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
