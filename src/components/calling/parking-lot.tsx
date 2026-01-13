@@ -8,13 +8,13 @@ import { cn } from "@/lib/utils";
 import { Phone, ParkingSquare, Loader2 } from "lucide-react";
 
 interface ParkingLotProps {
-  organizationId: string;
+  organizationId: Id<"organizations">;
 }
 
 export function ParkingLot({ organizationId }: ParkingLotProps) {
   // Query parking slots from Convex
   const slots = useQuery(api.parkingLot.getSlots, {
-    organizationId: organizationId as Id<"organizations">,
+    organizationId,
   });
 
   // If no slots exist yet, show placeholder slots
@@ -27,7 +27,7 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
           slotNumber: i + 1,
           isOccupied: false,
           call: null,
-          organizationId: organizationId as Id<"organizations">,
+          organizationId,
         }));
 
   return (

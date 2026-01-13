@@ -190,7 +190,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
           {/* Parking lot sidebar */}
           <aside className="w-64 border-l bg-muted/30 overflow-auto">
-            <ParkingLot organizationId={organizationId} />
+            {convexOrg?._id && <ParkingLot organizationId={convexOrg._id} />}
           </aside>
         </div>
       </div>
