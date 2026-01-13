@@ -264,10 +264,18 @@ function IncomingCallsArea({
   // If no ringing calls but there's a Twilio incoming call, show it
   const incomingCalls = ringingCalls ?? [];
 
-  // Also check for Twilio SDK incoming call that might not be in Convex yet
-  const hasUnregisteredTwilioCall = twilioActiveCall &&
+  // Check for Twilio SDK incoming call that might not be in Convex yet
+  // Only show the Twilio fallback if:
+  // 1. There's an active Twilio call
+  // 2. It's an INCOMING call that hasn't been answered yet (status check)
+  // 3. It's not already in the Convex ringing calls list
+  const twilioCallSid = twilioActiveCall?.parameters?.CallSid;
+  const isTwilioCallRinging = twilioActiveCall &&
     twilioActiveCall.direction === "INCOMING" &&
-    !incomingCalls.some(c => c.twilioCallSid === twilioActiveCall.parameters?.CallSid);
+    twilioActiveCall.status && twilioActiveCall.status() === "pending";
+
+  const isInConvex = twilioCallSid && incomingCalls.some(c => c.twilioCallSid === twilioCallSid);
+  const hasUnregisteredTwilioCall = isTwilioCallRinging && !isInConvex;
 
   if (incomingCalls.length === 0 && !hasUnregisteredTwilioCall) return null;
 

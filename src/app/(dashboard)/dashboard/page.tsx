@@ -44,12 +44,13 @@ export default function DashboardPage() {
   // Check if the CURRENTLY SELECTED org is the platform org
   const isCurrentOrgPlatformOrg = platformOrg && organization && platformOrg.clerkOrgId === organization.id;
 
-  // Redirect platform users to admin dashboard ONLY if they're viewing the platform org
+  // Redirect platform users to admin dashboard when they sign in
+  // Platform users should use the TenantSwitcher to view tenant dashboards, not direct navigation
   useEffect(() => {
-    if (isPlatformUser === true && isCurrentOrgPlatformOrg) {
+    if (isPlatformUser === true) {
       router.push("/admin");
     }
-  }, [isPlatformUser, isCurrentOrgPlatformOrg, router]);
+  }, [isPlatformUser, router]);
 
   // Show loading while checking platform user status
   if (isPlatformUser === undefined || platformOrg === undefined) {
@@ -60,8 +61,8 @@ export default function DashboardPage() {
     );
   }
 
-  // If platform user viewing platform org, show redirecting message
-  if (isPlatformUser === true && isCurrentOrgPlatformOrg) {
+  // If platform user, show redirecting message (they should use /admin)
+  if (isPlatformUser === true) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
         <div className="text-center">
