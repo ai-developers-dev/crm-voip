@@ -322,13 +322,9 @@ export async function addUserToOrganization(data: AddUserToOrgData) {
 
     console.log(`Added user ${clerkUserId} to organization ${data.clerkOrgId}`);
 
-    // Also create the user in Convex directly (don't wait for webhook)
-    // Get the Convex organization ID
-    const org = await convex.query(api.organizations.getByClerkId, {
-      clerkOrgId: data.clerkOrgId,
-    });
-
-    if (org) {
+    // Create the user in Convex directly (don't wait for webhook)
+    // syncFromClerk handles the org lookup internally
+    try {
       await convex.mutation(api.users.syncFromClerk, {
         clerkUserId: clerkUserId,
         clerkOrgId: data.clerkOrgId,
@@ -337,6 +333,9 @@ export async function addUserToOrganization(data: AddUserToOrgData) {
         role: data.role,
       });
       console.log(`Created user in Convex with real Clerk ID`);
+    } catch (convexErr) {
+      // Log but don't fail - the Clerk webhook should also create the user
+      console.error("Failed to create user in Convex:", convexErr);
     }
 
     return {
