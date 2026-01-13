@@ -253,13 +253,14 @@ export interface AddUserToOrgData {
 
 /**
  * Add a user to an organization via Clerk.
- * If user exists in Clerk, adds them directly.
- * If not, sends an invitation.
+ * If user exists in Clerk, adds them directly to the org.
+ * If not, creates the user in Clerk first, then adds them to the org.
  * The Clerk webhook will create/update the user in Convex with the real Clerk ID.
  */
 export async function addUserToOrganization(data: AddUserToOrgData) {
   try {
     const clerk = await clerkClient();
+    const convex = await getConvexClient();
 
     // Map our roles to Clerk roles
     const clerkRole = data.role === "tenant_admin" ? "org:admin"
@@ -271,17 +272,20 @@ export async function addUserToOrganization(data: AddUserToOrgData) {
       emailAddress: [data.email],
     });
 
-    if (existingUsers.data.length > 0) {
-      // User exists - add them directly to the organization
-      const user = existingUsers.data[0];
+    let clerkUserId: string;
 
-      // Check if already a member
+    if (existingUsers.data.length > 0) {
+      // User exists in Clerk
+      clerkUserId = existingUsers.data[0].id;
+      console.log(`Found existing Clerk user: ${clerkUserId}`);
+
+      // Check if already a member of this org
       const memberships = await clerk.organizations.getOrganizationMembershipList({
         organizationId: data.clerkOrgId,
       });
 
       const existingMembership = memberships.data.find(
-        (m) => m.publicUserData?.userId === user.id
+        (m) => m.publicUserData?.userId === clerkUserId
       );
 
       if (existingMembership) {
@@ -290,60 +294,56 @@ export async function addUserToOrganization(data: AddUserToOrgData) {
           error: "User is already a member of this organization",
         };
       }
-
-      await clerk.organizations.createOrganizationMembership({
-        organizationId: data.clerkOrgId,
-        userId: user.id,
-        role: clerkRole,
-      });
-
-      console.log(`Added existing user ${data.email} to organization`);
-      return {
-        success: true,
-        message: `${data.name} has been added to the organization`,
-        userId: user.id,
-      };
     } else {
-      // User doesn't exist - create an invitation
-      const { userId } = await auth();
-      if (!userId) {
-        return { success: false, error: "Not authenticated" };
-      }
+      // User doesn't exist in Clerk - create them directly
+      console.log(`Creating new Clerk user for ${data.email}`);
 
-      // Check if there's already a pending invitation
-      const invitations = await clerk.organizations.getOrganizationInvitationList({
-        organizationId: data.clerkOrgId,
+      // Generate a temporary password (user will need to reset)
+      const tempPassword = `Temp${Date.now()}!${Math.random().toString(36).slice(2, 10)}`;
+
+      const newUser = await clerk.users.createUser({
+        emailAddress: [data.email],
+        firstName: data.name.split(" ")[0] || data.name,
+        lastName: data.name.split(" ").slice(1).join(" ") || undefined,
+        password: tempPassword,
+        skipPasswordChecks: true,
       });
 
-      const existingInvite = invitations.data.find(
-        (inv) => inv.emailAddress === data.email && inv.status === "pending"
-      );
-
-      if (existingInvite) {
-        // Invitation already exists - just return success
-        // The user can still accept the original invitation
-        console.log(`Invitation already pending for ${data.email}`);
-        return {
-          success: true,
-          message: `Invitation already pending for ${data.email}. They will appear here once they accept.`,
-          invited: true,
-        };
-      }
-
-      await clerk.organizations.createOrganizationInvitation({
-        organizationId: data.clerkOrgId,
-        emailAddress: data.email,
-        role: clerkRole,
-        inviterUserId: userId,
-      });
-
-      console.log(`Sent invitation to ${data.email}`);
-      return {
-        success: true,
-        message: `Invitation sent to ${data.email}. They will appear here once they accept.`,
-        invited: true,
-      };
+      clerkUserId = newUser.id;
+      console.log(`Created new Clerk user: ${clerkUserId}`);
     }
+
+    // Add user to the organization
+    await clerk.organizations.createOrganizationMembership({
+      organizationId: data.clerkOrgId,
+      userId: clerkUserId,
+      role: clerkRole,
+    });
+
+    console.log(`Added user ${clerkUserId} to organization ${data.clerkOrgId}`);
+
+    // Also create the user in Convex directly (don't wait for webhook)
+    // Get the Convex organization ID
+    const org = await convex.query(api.organizations.getByClerkId, {
+      clerkOrgId: data.clerkOrgId,
+    });
+
+    if (org) {
+      await convex.mutation(api.users.syncFromClerk, {
+        clerkUserId: clerkUserId,
+        clerkOrgId: data.clerkOrgId,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+      });
+      console.log(`Created user in Convex with real Clerk ID`);
+    }
+
+    return {
+      success: true,
+      message: `${data.name} has been added to the organization`,
+      userId: clerkUserId,
+    };
   } catch (error: any) {
     console.error("Failed to add user to organization:", error);
 
