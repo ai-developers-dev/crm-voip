@@ -121,41 +121,39 @@ export function useTwilioDevice() {
         }));
 
         // Set up call event handlers
-        call.on("accept", async () => {
-          console.log("Call accepted, attempting to claim...");
+        call.on("accept", () => {
+          console.log("Call accepted, audio connected");
 
-          // Get the Twilio Call SID from call parameters
+          // Claim the call in the background - don't block audio
           const callSid = call.parameters.CallSid;
           if (callSid) {
-            try {
-              const response = await fetch("/api/twilio/claim-call", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ twilioCallSid: callSid }),
-              });
-
-              const result = await response.json();
-
-              if (!result.success) {
-                console.warn(`Failed to claim call: ${result.reason}`);
-                // If another agent already claimed this call, disconnect
-                if (result.reason === "already_claimed") {
-                  console.log("Call already claimed by another agent, disconnecting...");
-                  call.disconnect();
-                  setState((prev) => ({
-                    ...prev,
-                    activeCall: null,
-                    error: "Call was already answered by another agent",
-                  }));
-                  return;
+            // Fire and forget - don't await
+            fetch("/api/twilio/claim-call", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ twilioCallSid: callSid }),
+            })
+              .then((response) => response.json())
+              .then((result) => {
+                if (!result.success) {
+                  console.warn(`Failed to claim call: ${result.reason}`);
+                  // If another agent already claimed, disconnect
+                  if (result.reason === "already_claimed") {
+                    console.log("Call already claimed by another agent, disconnecting...");
+                    call.disconnect();
+                    setState((prev) => ({
+                      ...prev,
+                      activeCall: null,
+                      error: "Call was already answered by another agent",
+                    }));
+                  }
+                } else {
+                  console.log("Call claimed successfully:", result.callId);
                 }
-              } else {
-                console.log("Call claimed successfully:", result.callId);
-              }
-            } catch (error) {
-              console.error("Error claiming call:", error);
-              // Continue with the call even if claim fails (better UX)
-            }
+              })
+              .catch((error) => {
+                console.error("Error claiming call:", error);
+              });
           }
         });
 

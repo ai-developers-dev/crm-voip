@@ -261,36 +261,31 @@ function IncomingCallsArea({
     }
   }, [onRejectTwilio]);
 
-  // If no ringing calls but there's a Twilio incoming call, show it
+  // Show incoming calls - prefer Convex data, fallback to Twilio SDK
   const incomingCalls = ringingCalls ?? [];
 
-  // Check for Twilio SDK incoming call that might not be in Convex yet
-  // Only show the Twilio fallback if:
-  // 1. There's an active Twilio call
-  // 2. It's an INCOMING call that hasn't been answered yet (status check)
-  // 3. It's not already in the Convex ringing calls list
-  const twilioCallSid = twilioActiveCall?.parameters?.CallSid;
-  const isTwilioCallRinging = twilioActiveCall &&
-    twilioActiveCall.direction === "INCOMING" &&
-    twilioActiveCall.status && twilioActiveCall.status() === "pending";
+  // Only show Twilio fallback if Convex has NO ringing calls yet
+  // This prevents duplicates - once Convex has the call, we use that source
+  const showTwilioFallback = incomingCalls.length === 0 &&
+    twilioActiveCall &&
+    twilioActiveCall.direction === "INCOMING";
 
-  const isInConvex = twilioCallSid && incomingCalls.some(c => c.twilioCallSid === twilioCallSid);
-  const hasUnregisteredTwilioCall = isTwilioCallRinging && !isInConvex;
-
-  if (incomingCalls.length === 0 && !hasUnregisteredTwilioCall) return null;
+  if (incomingCalls.length === 0 && !showTwilioFallback) return null;
 
   return (
     <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 space-y-2">
-      {incomingCalls.map((call) => (
-        <IncomingCallPopup
-          key={call._id}
-          call={call}
-          onAnswer={() => handleAnswer(call._id)}
-          onDecline={handleDecline}
-        />
-      ))}
-      {/* Show Twilio call that's not yet in Convex */}
-      {hasUnregisteredTwilioCall && (
+      {/* Show Convex ringing calls if we have them */}
+      {incomingCalls.length > 0 ? (
+        incomingCalls.map((call) => (
+          <IncomingCallPopup
+            key={call._id}
+            call={call}
+            onAnswer={() => handleAnswer(call._id)}
+            onDecline={handleDecline}
+          />
+        ))
+      ) : showTwilioFallback ? (
+        /* Fallback: Show Twilio call while Convex catches up */
         <IncomingCallPopup
           call={{
             _id: twilioActiveCall.parameters?.CallSid || "unknown",
@@ -301,7 +296,7 @@ function IncomingCallsArea({
           onAnswer={onAnswerTwilio}
           onDecline={onRejectTwilio}
         />
-      )}
+      ) : null}
     </div>
   );
 }
