@@ -60,9 +60,13 @@ export async function POST(request: NextRequest) {
     const twiml = new VoiceResponse();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
-    // Check if this is an outbound call from browser
-    if (to && !to.startsWith("client:")) {
-      // Outbound call to PSTN
+    // Check if this is an outbound call from browser client
+    // Outbound: from="client:org_xxx-user_xxx" to="+1234567890"
+    // Incoming: from="+1234567890" (caller) to="+18556966105" (our number)
+    const isOutboundFromBrowser = from && from.startsWith("client:");
+
+    if (isOutboundFromBrowser && to && !to.startsWith("client:")) {
+      // Outbound call from browser to PSTN
       const dial = twiml.dial({
         callerId: process.env.TWILIO_PHONE_NUMBER || from,
         timeout: 30,
