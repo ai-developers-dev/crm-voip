@@ -72,6 +72,17 @@ export const getById = query({
   },
 });
 
+// Query to get organization by Clerk ID (alias for getCurrent)
+export const getByClerkId = query({
+  args: { clerkOrgId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("organizations")
+      .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .first();
+  },
+});
+
 // Mutation to create organization with full business and billing details
 // Called by admin when creating a new tenant
 export const createWithDetails = mutation({

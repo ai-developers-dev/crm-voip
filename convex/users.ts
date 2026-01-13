@@ -373,3 +373,61 @@ export const createUser = mutation({
     });
   },
 });
+
+// Mutation to sync current user from Clerk (creates with real Clerk ID)
+export const syncFromClerk = mutation({
+  args: {
+    clerkUserId: v.string(),
+    clerkOrgId: v.string(),
+    name: v.string(),
+    email: v.string(),
+    role: v.union(
+      v.literal("tenant_admin"),
+      v.literal("supervisor"),
+      v.literal("agent")
+    ),
+  },
+  handler: async (ctx, args) => {
+    // Get the organization by Clerk ID
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .first();
+
+    if (!org) {
+      throw new Error(`Organization not found: ${args.clerkOrgId}`);
+    }
+
+    // Check if user already exists in this org
+    const existingUsers = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.clerkUserId))
+      .collect();
+
+    const existingInOrg = existingUsers.find((u) => u.organizationId === org._id);
+
+    if (existingInOrg) {
+      // Update existing user
+      await ctx.db.patch(existingInOrg._id, {
+        name: args.name,
+        email: args.email,
+        role: args.role,
+        updatedAt: Date.now(),
+      });
+      return existingInOrg._id;
+    }
+
+    // Create new user with real Clerk ID
+    const now = Date.now();
+    return await ctx.db.insert("users", {
+      clerkUserId: args.clerkUserId, // Real Clerk ID!
+      organizationId: org._id,
+      email: args.email,
+      name: args.name,
+      role: args.role,
+      status: "available", // Start as available so they can receive calls
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
