@@ -39,6 +39,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   const {
     isReady: twilioReady,
     activeCall: twilioActiveCall,
+    callStatus: twilioCallStatus,
     error: twilioError,
     answerCall,
     rejectCall,
@@ -176,6 +177,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             convexOrgId={convexOrg?._id}
             currentUserId={currentUser?._id}
             twilioActiveCall={twilioActiveCall}
+            twilioCallStatus={twilioCallStatus}
             onAnswerTwilio={answerCall}
             onRejectTwilio={rejectCall}
           />
@@ -335,6 +337,7 @@ interface IncomingCallsAreaProps {
   convexOrgId?: Id<"organizations">;
   currentUserId?: Id<"users">;
   twilioActiveCall: any;
+  twilioCallStatus: "pending" | "connecting" | "open" | "closed" | null;
   onAnswerTwilio: () => void;
   onRejectTwilio: () => void;
 }
@@ -344,6 +347,7 @@ function IncomingCallsArea({
   convexOrgId,
   currentUserId,
   twilioActiveCall,
+  twilioCallStatus,
   onAnswerTwilio,
   onRejectTwilio,
 }: IncomingCallsAreaProps) {
@@ -359,19 +363,15 @@ function IncomingCallsArea({
   }, [onAnswerTwilio]);
 
   const handleDecline = useCallback(() => {
-    console.log("Decline button clicked, twilioActiveCall:", twilioActiveCall ? "exists" : "null");
-    if (twilioActiveCall) {
-      console.log("Call status:", twilioActiveCall.status?.());
-      console.log("Call direction:", twilioActiveCall.direction);
-    }
+    console.log("Decline button clicked, twilioCallStatus:", twilioCallStatus);
     onRejectTwilio();
-  }, [onRejectTwilio, twilioActiveCall]);
+  }, [onRejectTwilio, twilioCallStatus]);
 
-  // Only show if Twilio SDK has an incoming call that's still ringing
+  // Only show if call status is "pending" (ringing) - this is reactive state
+  // When call is accepted, callStatus changes to "open" and this will hide
   const isIncomingCall = twilioActiveCall &&
     twilioActiveCall.direction === "INCOMING" &&
-    twilioActiveCall.status &&
-    twilioActiveCall.status() === "pending";
+    twilioCallStatus === "pending";
 
   if (!isIncomingCall) return null;
 

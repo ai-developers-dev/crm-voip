@@ -9,6 +9,7 @@ export interface TwilioDeviceState {
   isReady: boolean;
   isConnecting: boolean;
   activeCall: Call | null;
+  callStatus: "pending" | "connecting" | "open" | "closed" | null;
   error: string | null;
 }
 
@@ -20,6 +21,7 @@ export function useTwilioDevice() {
     isReady: false,
     isConnecting: false,
     activeCall: null,
+    callStatus: null,
     error: null,
   });
   const deviceRef = useRef<Device | null>(null);
@@ -118,11 +120,17 @@ export function useTwilioDevice() {
         setState((prev) => ({
           ...prev,
           activeCall: call,
+          callStatus: "pending",
         }));
 
         // Set up call event handlers
         call.on("accept", () => {
           console.log("Call accepted, audio connected");
+          // Update call status to open - this will hide the incoming call popup
+          setState((prev) => ({
+            ...prev,
+            callStatus: "open",
+          }));
 
           // Claim the call in the background - don't block audio
           // This is just for database tracking, NOT for call control
@@ -155,6 +163,7 @@ export function useTwilioDevice() {
           setState((prev) => ({
             ...prev,
             activeCall: null,
+            callStatus: null,
           }));
 
           // Clean up the call in Convex database
@@ -180,6 +189,7 @@ export function useTwilioDevice() {
           setState((prev) => ({
             ...prev,
             activeCall: null,
+            callStatus: null,
           }));
         });
 
@@ -188,6 +198,7 @@ export function useTwilioDevice() {
           setState((prev) => ({
             ...prev,
             activeCall: null,
+            callStatus: null,
           }));
         });
       });
@@ -309,7 +320,7 @@ export function useTwilioDevice() {
         }
       }
 
-      setState((prev) => ({ ...prev, activeCall: null }));
+      setState((prev) => ({ ...prev, activeCall: null, callStatus: null }));
     } else {
       console.warn("rejectCall called but no activeCall in state");
     }
@@ -319,7 +330,7 @@ export function useTwilioDevice() {
   const hangUp = useCallback(() => {
     if (state.activeCall) {
       state.activeCall.disconnect();
-      setState((prev) => ({ ...prev, activeCall: null }));
+      setState((prev) => ({ ...prev, activeCall: null, callStatus: null }));
     }
   }, [state.activeCall]);
 
