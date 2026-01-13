@@ -240,6 +240,144 @@ export async function updateTenant(data: UpdateTenantData) {
   }
 }
 
+// ============================================================================
+// User Management Actions
+// ============================================================================
+
+export interface AddUserToOrgData {
+  clerkOrgId: string;
+  email: string;
+  name: string;
+  role: "tenant_admin" | "supervisor" | "agent";
+}
+
+/**
+ * Add a user to an organization via Clerk.
+ * If user exists in Clerk, adds them directly.
+ * If not, sends an invitation.
+ * The Clerk webhook will create/update the user in Convex with the real Clerk ID.
+ */
+export async function addUserToOrganization(data: AddUserToOrgData) {
+  try {
+    const clerk = await clerkClient();
+
+    // Map our roles to Clerk roles
+    const clerkRole = data.role === "tenant_admin" ? "org:admin"
+      : data.role === "supervisor" ? "org:supervisor"
+      : "org:member";
+
+    // Check if user already exists in Clerk
+    const existingUsers = await clerk.users.getUserList({
+      emailAddress: [data.email],
+    });
+
+    if (existingUsers.data.length > 0) {
+      // User exists - add them directly to the organization
+      const user = existingUsers.data[0];
+
+      // Check if already a member
+      const memberships = await clerk.organizations.getOrganizationMembershipList({
+        organizationId: data.clerkOrgId,
+      });
+
+      const existingMembership = memberships.data.find(
+        (m) => m.publicUserData?.userId === user.id
+      );
+
+      if (existingMembership) {
+        return {
+          success: false,
+          error: "User is already a member of this organization",
+        };
+      }
+
+      await clerk.organizations.createOrganizationMembership({
+        organizationId: data.clerkOrgId,
+        userId: user.id,
+        role: clerkRole,
+      });
+
+      console.log(`Added existing user ${data.email} to organization`);
+      return {
+        success: true,
+        message: `${data.name} has been added to the organization`,
+        userId: user.id,
+      };
+    } else {
+      // User doesn't exist - create an invitation
+      const { userId } = await auth();
+      if (!userId) {
+        return { success: false, error: "Not authenticated" };
+      }
+
+      // Check if there's already a pending invitation
+      const invitations = await clerk.organizations.getOrganizationInvitationList({
+        organizationId: data.clerkOrgId,
+      });
+
+      const existingInvite = invitations.data.find(
+        (inv) => inv.emailAddress === data.email && inv.status === "pending"
+      );
+
+      if (existingInvite) {
+        return {
+          success: false,
+          error: "An invitation has already been sent to this email",
+        };
+      }
+
+      await clerk.organizations.createOrganizationInvitation({
+        organizationId: data.clerkOrgId,
+        emailAddress: data.email,
+        role: clerkRole,
+        inviterUserId: userId,
+      });
+
+      console.log(`Sent invitation to ${data.email}`);
+      return {
+        success: true,
+        message: `Invitation sent to ${data.email}. They will appear here once they accept.`,
+        invited: true,
+      };
+    }
+  } catch (error: any) {
+    console.error("Failed to add user to organization:", error);
+
+    let errorMessage = error.message || "Failed to add user";
+    if (error.errors && Array.isArray(error.errors)) {
+      const clerkErrors = error.errors.map((e: any) => e.message || e.longMessage || e.code).join(", ");
+      if (clerkErrors) {
+        errorMessage = clerkErrors;
+      }
+    }
+
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Remove a user from an organization via Clerk.
+ */
+export async function removeUserFromOrganization(clerkOrgId: string, clerkUserId: string) {
+  try {
+    const clerk = await clerkClient();
+
+    await clerk.organizations.deleteOrganizationMembership({
+      organizationId: clerkOrgId,
+      userId: clerkUserId,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to remove user from organization:", error);
+    return { success: false, error: error.message || "Failed to remove user" };
+  }
+}
+
+// ============================================================================
+// Tenant Management Actions
+// ============================================================================
+
 export async function deleteTenantFromClerk(organizationId: Id<"organizations">) {
   try {
     const convex = await getConvexClient();

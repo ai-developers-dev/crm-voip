@@ -33,9 +33,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronRight, Users, Loader2, Plus, MoreHorizontal, Pencil, Trash2, UserPlus, AlertCircle } from "lucide-react";
+import { ChevronRight, Users, Loader2, Plus, MoreHorizontal, Pencil, Trash2, UserPlus, AlertCircle, Mail } from "lucide-react";
 import Link from "next/link";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { addUserToOrganization, removeUserFromOrganization } from "../../admin/actions";
 
 export default function UsersSettingsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
@@ -65,15 +66,17 @@ export default function UsersSettingsPage() {
   );
 
   // Mutations
-  const createUser = useMutation(api.users.createUser);
   const updateUser = useMutation(api.users.updateUser);
-  const deleteUser = useMutation(api.users.deleteUser);
+  const deleteUserMutation = useMutation(api.users.deleteUser);
   const toggleStatus = useMutation(api.users.toggleStatus);
-  const ensureOrganization = useMutation(api.organizations.ensureOrganization);
+
+  // State for success messages
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
 
     if (!organization?.id) {
       setError("No organization selected. Please select an organization first.");
@@ -82,23 +85,21 @@ export default function UsersSettingsPage() {
 
     setIsSubmitting(true);
     try {
-      // First, ensure the organization exists in Convex
-      let orgId = convexOrg?._id;
-      if (!orgId) {
-        orgId = await ensureOrganization({
-          clerkOrgId: organization.id,
-          name: organization.name || "Unnamed Organization",
-          slug: organization.slug || organization.id,
-        });
+      // Use server action to add user via Clerk
+      // This ensures they get a real Clerk ID and can receive calls
+      const result = await addUserToOrganization({
+        clerkOrgId: organization.id,
+        email: formData.email,
+        name: formData.name,
+        role: formData.role,
+      });
+
+      if (!result.success) {
+        setError(result.error || "Failed to add user");
+        return;
       }
 
-      await createUser({
-        organizationId: orgId,
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        extension: formData.extension || undefined,
-      });
+      setSuccessMessage(result.message || "User added successfully");
       setIsAddDialogOpen(false);
       resetForm();
     } catch (err: any) {
@@ -131,11 +132,21 @@ export default function UsersSettingsPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: Id<"users">) => {
+  const handleDeleteUser = async (user: any) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await deleteUser({ userId });
+      // If it's a real Clerk user (not manual_), remove from Clerk first
+      if (organization?.id && user.clerkUserId && !user.clerkUserId.startsWith("manual_")) {
+        const result = await removeUserFromOrganization(organization.id, user.clerkUserId);
+        if (!result.success) {
+          console.error("Failed to remove from Clerk:", result.error);
+          // Still try to delete from Convex
+        }
+      }
+
+      // Delete from Convex
+      await deleteUserMutation({ userId: user._id });
     } catch (error) {
       console.error("Failed to delete user:", error);
     }
@@ -242,7 +253,7 @@ export default function UsersSettingsPage() {
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
               <DialogDescription>
-                Add a new team member to your organization
+                Add a new team member to your organization. They will receive an email invitation if they don't have an account yet.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddUser}>
@@ -384,7 +395,7 @@ export default function UsersSettingsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-600"
-                            onClick={() => handleDeleteUser(user._id)}
+                            onClick={() => handleDeleteUser(user)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
@@ -464,26 +475,30 @@ export default function UsersSettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Invite via Clerk Info */}
+      {/* Success Message */}
+      {successMessage && (
+        <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
+          <Mail className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700 dark:text-green-400">
+            {successMessage}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Info Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Invite Users via Clerk</CardTitle>
+          <CardTitle className="text-base">How User Invitations Work</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p>
-            For users who need to log in and use the calling features, invite them through{" "}
-            <a
-              href="https://dashboard.clerk.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline"
-            >
-              Clerk Dashboard
-            </a>{" "}
-            → Organizations → {organization.name} → Members → Invite.
+            When you add a user, they will receive an email invitation to join your organization.
+            Once they accept and create their account, they will automatically appear in the list above
+            and can start receiving calls.
           </p>
           <p className="mt-2">
-            Users invited via Clerk will automatically appear here when they accept the invitation.
+            <strong>Note:</strong> Users must accept their invitation and log in for the calling features to work.
+            Their browser will ring when calls come in.
           </p>
         </CardContent>
       </Card>
