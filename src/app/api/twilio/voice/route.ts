@@ -145,9 +145,10 @@ export async function POST(request: NextRequest) {
       });
 
       // Add each agent as a Client element - Twilio rings all simultaneously
+      // IMPORTANT: Client identity must match the token identity format: ${clerkOrgId}-${clerkUserId}
       for (const agent of agents) {
-        console.log(`Adding agent to dial: ${agent.name} (${agent.clerkUserId})`);
-        dial.client(agent.clerkUserId);
+        console.log(`Adding agent to dial: ${agent.name} (${agent.twilioIdentity})`);
+        dial.client(agent.twilioIdentity);
       }
     }
 

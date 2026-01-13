@@ -266,6 +266,12 @@ export const updateUser = mutation({
 export const getAvailableAgents = query({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
+    // Get the organization to retrieve the Clerk org ID (needed for Twilio client identity)
+    const organization = await ctx.db.get(args.organizationId);
+    if (!organization) {
+      return [];
+    }
+
     // Get presence records for this org that are recent (within 30s) and available
     const now = Date.now();
     const presenceRecords = await ctx.db
@@ -288,9 +294,12 @@ export const getAvailableAgents = query({
         return {
           _id: user._id,
           clerkUserId: user.clerkUserId,
+          clerkOrgId: organization.clerkOrgId, // Include Clerk org ID for Twilio client identity
           name: user.name,
           role: user.role,
           status: presence.status,
+          // Twilio client identity must match what's used in token generation
+          twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
         };
       })
     );
