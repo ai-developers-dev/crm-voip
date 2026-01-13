@@ -20,6 +20,8 @@ interface UserStatusCardProps {
     avatarUrl?: string | null;
   };
   activeCalls: any[];
+  twilioActiveCall?: any;
+  onHangUp?: () => void;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -50,7 +52,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   },
 };
 
-export function UserStatusCard({ user, activeCalls }: UserStatusCardProps) {
+export function UserStatusCard({ user, activeCalls, twilioActiveCall, onHangUp }: UserStatusCardProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: user.id,
     data: { type: "user", user },
@@ -130,7 +132,13 @@ export function UserStatusCard({ user, activeCalls }: UserStatusCardProps) {
         {activeCalls.length > 0 && (
           <div className="mt-3 space-y-2">
             {activeCalls.map((call) => (
-              <ActiveCallCard key={call._id} call={call} compact />
+              <ActiveCallCard
+                key={call._id}
+                call={call}
+                activeCall={twilioActiveCall}
+                onEndCall={onHangUp}
+                compact
+              />
             ))}
           </div>
         )}
