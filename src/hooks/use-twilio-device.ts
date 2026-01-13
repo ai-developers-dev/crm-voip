@@ -286,8 +286,32 @@ export function useTwilioDevice() {
   // Reject incoming call
   const rejectCall = useCallback(() => {
     if (state.activeCall) {
-      state.activeCall.reject();
+      const callStatus = state.activeCall.status?.();
+      console.log("Rejecting call, current status:", callStatus);
+
+      try {
+        // Only use reject() if call is still pending (ringing)
+        if (callStatus === "pending") {
+          state.activeCall.reject();
+          console.log("Call rejected via reject()");
+        } else {
+          // If call is in any other state, use disconnect()
+          state.activeCall.disconnect();
+          console.log("Call disconnected via disconnect()");
+        }
+      } catch (error) {
+        console.error("Error rejecting call, trying disconnect:", error);
+        // Fallback to disconnect if reject fails
+        try {
+          state.activeCall.disconnect();
+        } catch (e) {
+          console.error("Disconnect also failed:", e);
+        }
+      }
+
       setState((prev) => ({ ...prev, activeCall: null }));
+    } else {
+      console.warn("rejectCall called but no activeCall in state");
     }
   }, [state.activeCall]);
 

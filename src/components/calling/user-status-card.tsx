@@ -8,9 +8,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Phone, PhoneOff, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Phone, PhoneOff, Clock, Mic, MicOff } from "lucide-react";
 import { ActiveCallCard } from "./active-call-card";
 import { Id } from "../../../convex/_generated/dataModel";
+import { useState, useEffect, useCallback } from "react";
 
 interface UserStatusCardProps {
   user: {
@@ -22,6 +24,7 @@ interface UserStatusCardProps {
   activeCalls: any[];
   twilioActiveCall?: any;
   onHangUp?: () => void;
+  onToggleMute?: () => boolean;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -52,16 +55,65 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   },
 };
 
-export function UserStatusCard({ user, activeCalls, twilioActiveCall, onHangUp }: UserStatusCardProps) {
+export function UserStatusCard({ user, activeCalls, twilioActiveCall, onHangUp, onToggleMute }: UserStatusCardProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: user.id,
     data: { type: "user", user },
   });
 
   const toggleStatus = useMutation(api.users.toggleStatus);
+  const [isMuted, setIsMuted] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+  const [callStartTime, setCallStartTime] = useState<number | null>(null);
+
+  // Check if the Twilio call is connected (not pending/ringing)
+  const twilioCallConnected = twilioActiveCall &&
+    twilioActiveCall.status &&
+    (twilioActiveCall.status() === "open" || twilioActiveCall.status() === "connecting");
+
+  // Track call start time when call connects
+  useEffect(() => {
+    if (twilioCallConnected && !callStartTime) {
+      setCallStartTime(Date.now());
+    } else if (!twilioCallConnected) {
+      setCallStartTime(null);
+      setCallDuration(0);
+    }
+  }, [twilioCallConnected, callStartTime]);
+
+  // Update duration every second when connected
+  useEffect(() => {
+    if (!twilioCallConnected || !callStartTime) return;
+
+    const interval = setInterval(() => {
+      setCallDuration(Math.floor((Date.now() - callStartTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [twilioCallConnected, callStartTime]);
+
+  // Sync mute state with Twilio call
+  useEffect(() => {
+    if (twilioActiveCall) {
+      setIsMuted(twilioActiveCall.isMuted?.() || false);
+    }
+  }, [twilioActiveCall]);
+
+  const handleMuteToggle = useCallback(() => {
+    if (onToggleMute) {
+      const newMuted = onToggleMute();
+      setIsMuted(newMuted);
+    }
+  }, [onToggleMute]);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   const status = statusConfig[user.status] || statusConfig.offline;
-  const hasActiveCalls = activeCalls.length > 0;
+  const hasActiveCalls = activeCalls.length > 0 || twilioCallConnected;
 
   const handleToggleStatus = async () => {
     try {
@@ -128,8 +180,56 @@ export function UserStatusCard({ user, activeCalls, twilioActiveCall, onHangUp }
           </div>
         </div>
 
-        {/* Active calls for this user */}
-        {activeCalls.length > 0 && (
+        {/* Active Twilio call - shows immediately when call is connected */}
+        {twilioCallConnected && (
+          <div className="mt-3 p-3 rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-900/20">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                <Phone className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">
+                  {twilioActiveCall.parameters?.From || "Unknown"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Connected • {formatDuration(callDuration)}
+                </p>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <Button
+                variant={isMuted ? "destructive" : "secondary"}
+                size="sm"
+                onClick={handleMuteToggle}
+                className="flex-1"
+              >
+                {isMuted ? (
+                  <>
+                    <MicOff className="h-4 w-4 mr-1" />
+                    Unmute
+                  </>
+                ) : (
+                  <>
+                    <Mic className="h-4 w-4 mr-1" />
+                    Mute
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={onHangUp}
+                className="flex-1"
+              >
+                <PhoneOff className="h-4 w-4 mr-1" />
+                End
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Active calls from database for this user */}
+        {activeCalls.length > 0 && !twilioCallConnected && (
           <div className="mt-3 space-y-2">
             {activeCalls.map((call) => (
               <ActiveCallCard

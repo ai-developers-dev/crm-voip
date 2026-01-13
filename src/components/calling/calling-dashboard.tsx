@@ -195,6 +195,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               currentUserId={currentUser?._id}
               twilioActiveCall={twilioActiveCall}
               onHangUp={hangUp}
+              onToggleMute={toggleMute}
             />
           </div>
 
@@ -351,14 +352,20 @@ function IncomingCallsArea({
   // Convex is only used for call history/claiming, not for UI display
 
   const handleAnswer = useCallback(() => {
+    console.log("Answer button clicked");
     // Answer in Twilio SDK - this is all we need
     // The claim happens in the background via use-twilio-device hook
     onAnswerTwilio();
   }, [onAnswerTwilio]);
 
   const handleDecline = useCallback(() => {
+    console.log("Decline button clicked, twilioActiveCall:", twilioActiveCall ? "exists" : "null");
+    if (twilioActiveCall) {
+      console.log("Call status:", twilioActiveCall.status?.());
+      console.log("Call direction:", twilioActiveCall.direction);
+    }
     onRejectTwilio();
-  }, [onRejectTwilio]);
+  }, [onRejectTwilio, twilioActiveCall]);
 
   // Only show if Twilio SDK has an incoming call that's still ringing
   const isIncomingCall = twilioActiveCall &&
@@ -390,9 +397,10 @@ interface AgentGridProps {
   currentUserId?: Id<"users">;
   twilioActiveCall?: any;
   onHangUp?: () => void;
+  onToggleMute?: () => boolean;
 }
 
-function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCall, onHangUp }: AgentGridProps) {
+function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCall, onHangUp, onToggleMute }: AgentGridProps) {
   // Fetch real users from Convex
   const users = useQuery(
     api.users.getByOrganization,
@@ -464,6 +472,7 @@ function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCal
             activeCalls={callsByUser.get(user._id) || []}
             twilioActiveCall={isCurrentUser ? twilioActiveCall : undefined}
             onHangUp={isCurrentUser ? onHangUp : undefined}
+            onToggleMute={isCurrentUser ? onToggleMute : undefined}
           />
         );
       })}
