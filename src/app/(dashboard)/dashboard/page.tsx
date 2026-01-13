@@ -9,7 +9,7 @@ import { CallingDashboard } from "@/components/calling/calling-dashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Users, Clock, PhoneIncoming, Shield, Settings, Loader2, Eye, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Phone, Users, Clock, PhoneIncoming, Shield, Settings, Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { useState } from "react";
@@ -40,9 +40,6 @@ export default function DashboardPage() {
     api.organizations.getOnboardingStatus,
     organization?.id ? { clerkOrgId: organization.id } : "skip"
   );
-
-  // Check if the CURRENTLY SELECTED org is the platform org
-  const isCurrentOrgPlatformOrg = platformOrg && organization && platformOrg.clerkOrgId === organization.id;
 
   // Redirect platform users to admin dashboard when they sign in
   // Platform users should use the TenantSwitcher to view tenant dashboards, not direct navigation
@@ -134,29 +131,8 @@ export default function DashboardPage() {
     );
   }
 
-  // Check if platform user is viewing a tenant org (not the platform org)
-  const isPlatformUserViewingTenant = isPlatformUser === true && !isCurrentOrgPlatformOrg;
-
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {/* Admin banner for platform users viewing tenant orgs */}
-      {isPlatformUserViewingTenant && (
-        <Alert className="rounded-none border-x-0 border-t-0 bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
-          <Eye className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-blue-800 dark:text-blue-200">
-              <strong>Platform Admin View:</strong> Viewing {organization?.name}&apos;s dashboard
-            </span>
-            <Link href="/admin">
-              <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-100 dark:border-blue-700 dark:hover:bg-blue-900/50">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Admin
-              </Button>
-            </Link>
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Warning banner for skipped onboarding / unconfigured Twilio */}
       {showSetupBanner &&
         onboardingStatus?.reason === "skipped" &&
