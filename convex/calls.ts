@@ -497,3 +497,69 @@ export const end = mutation({
     return { success: true };
   },
 });
+
+// Mutation to end a call by Twilio CallSid (for cleanup from frontend)
+export const endByCallSid = mutation({
+  args: { twilioCallSid: v.string() },
+  handler: async (ctx, args) => {
+    const call = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+
+    if (!call) {
+      console.log(`Call ${args.twilioCallSid} not found - may already be cleaned up`);
+      return { success: true, alreadyCleaned: true };
+    }
+
+    // Move to history
+    await ctx.db.insert("callHistory", {
+      organizationId: call.organizationId,
+      twilioCallSid: call.twilioCallSid,
+      direction: call.direction,
+      from: call.from,
+      fromName: call.fromName,
+      to: call.to,
+      toName: call.toName,
+      outcome: "answered",
+      handledByUserId: call.assignedUserId,
+      startedAt: call.startedAt,
+      answeredAt: call.answeredAt,
+      endedAt: Date.now(),
+      duration: call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0,
+      notes: call.notes,
+    });
+
+    // Update user status
+    if (call.assignedUserId) {
+      await ctx.db.patch(call.assignedUserId, {
+        status: "available",
+        updatedAt: Date.now(),
+      });
+    }
+
+    // Delete active call
+    await ctx.db.delete(call._id);
+
+    console.log(`Call ${args.twilioCallSid} ended and moved to history`);
+    return { success: true };
+  },
+});
+
+// Mutation to clear all active calls (admin cleanup)
+export const clearAllActiveCalls = mutation({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const calls = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    for (const call of calls) {
+      await ctx.db.delete(call._id);
+    }
+
+    console.log(`Cleared ${calls.length} active calls`);
+    return { success: true, clearedCount: calls.length };
+  },
+});

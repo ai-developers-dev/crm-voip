@@ -156,6 +156,23 @@ export function useTwilioDevice() {
             ...prev,
             activeCall: null,
           }));
+
+          // Clean up the call in Convex database
+          const callSid = call.parameters.CallSid;
+          if (callSid) {
+            fetch("/api/twilio/end-call", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ twilioCallSid: callSid }),
+            })
+              .then((response) => response.json())
+              .then((result) => {
+                console.log("Call cleanup result:", result);
+              })
+              .catch((error) => {
+                console.error("Error cleaning up call:", error);
+              });
+          }
         });
 
         call.on("cancel", () => {
