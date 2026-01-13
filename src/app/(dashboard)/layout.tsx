@@ -30,6 +30,8 @@ function TenantSwitcher() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const tenants = useQuery(api.organizations.getAllTenants);
+  const { setActive } = useClerk();
+  const router = useRouter();
 
   // Edit dialog state
   const [editingTenant, setEditingTenant] = useState<any>(null);
@@ -200,10 +202,17 @@ function TenantSwitcher() {
                     key={tenant._id}
                     className="flex items-center justify-between px-3 py-2 mx-2 hover:bg-muted rounded-lg group"
                   >
-                    <Link
-                      href={`/admin/tenants/${tenant._id}`}
-                      onClick={() => setOpen(false)}
-                      className="flex items-center gap-3 flex-1 min-w-0"
+                    <button
+                      onClick={async () => {
+                        setOpen(false);
+                        // Switch Clerk org session to this tenant
+                        if (tenant.clerkOrgId) {
+                          await setActive({ organization: tenant.clerkOrgId });
+                        }
+                        // Then navigate
+                        router.push(`/admin/tenants/${tenant._id}`);
+                      }}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left"
                     >
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-medium shrink-0">
                         {tenant.name.charAt(0).toUpperCase()}
@@ -212,7 +221,7 @@ function TenantSwitcher() {
                         <p className="text-sm font-medium truncate">{tenant.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{tenant.plan}</p>
                       </div>
-                    </Link>
+                    </button>
                     <button
                       onClick={() => openEditDialog(tenant)}
                       className="p-2 hover:bg-background rounded-md transition-colors border border-border/60"
