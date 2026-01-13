@@ -262,7 +262,8 @@ export const updateUser = mutation({
   },
 });
 
-// Query to get available agents for incoming calls (checks presence heartbeat)
+// Query to get available agents for incoming calls
+// First checks presence heartbeats, falls back to user status if no presence records
 export const getAvailableAgents = query({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
@@ -286,25 +287,44 @@ export const getAvailableAgents = query({
         (p.status === "available" || p.status === "on_break")
     );
 
-    // Get user details for each available presence
-    const agents = await Promise.all(
-      availablePresence.map(async (presence) => {
-        const user = await ctx.db.get(presence.userId);
-        if (!user) return null;
-        return {
-          _id: user._id,
-          clerkUserId: user.clerkUserId,
-          clerkOrgId: organization.clerkOrgId, // Include Clerk org ID for Twilio client identity
-          name: user.name,
-          role: user.role,
-          status: presence.status,
-          // Twilio client identity must match what's used in token generation
-          twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
-        };
-      })
-    );
+    // If we have presence records, use those
+    if (availablePresence.length > 0) {
+      const agents = await Promise.all(
+        availablePresence.map(async (presence) => {
+          const user = await ctx.db.get(presence.userId);
+          if (!user) return null;
+          return {
+            _id: user._id,
+            clerkUserId: user.clerkUserId,
+            clerkOrgId: organization.clerkOrgId,
+            name: user.name,
+            role: user.role,
+            status: presence.status,
+            twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
+          };
+        })
+      );
+      return agents.filter((a): a is NonNullable<typeof a> => a !== null);
+    }
 
-    return agents.filter((a): a is NonNullable<typeof a> => a !== null);
+    // Fallback: If no presence records, check users with status "available"
+    // This matches the simpler Supabase implementation approach
+    const availableUsers = await ctx.db
+      .query("users")
+      .withIndex("by_organization_status", (q) =>
+        q.eq("organizationId", args.organizationId).eq("status", "available")
+      )
+      .collect();
+
+    return availableUsers.map((user) => ({
+      _id: user._id,
+      clerkUserId: user.clerkUserId,
+      clerkOrgId: organization.clerkOrgId,
+      name: user.name,
+      role: user.role,
+      status: user.status,
+      twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
+    }));
   },
 });
 
