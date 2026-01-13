@@ -84,6 +84,41 @@ export const createIncoming = internalMutation({
   },
 });
 
+// Public mutation to create outgoing call
+export const createOutgoing = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    twilioCallSid: v.string(),
+    from: v.string(),
+    to: v.string(),
+    toName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Check if call already exists
+    const existing = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+
+    if (existing) {
+      return existing._id;
+    }
+
+    // Create new outgoing call
+    return await ctx.db.insert("activeCalls", {
+      organizationId: args.organizationId,
+      twilioCallSid: args.twilioCallSid,
+      direction: "outbound",
+      from: args.from,
+      to: args.to,
+      toName: args.toName,
+      state: "connecting",
+      startedAt: Date.now(),
+      isRecording: false,
+    });
+  },
+});
+
 // Public mutation to create or get incoming call (for client-side Twilio SDK)
 export const createOrGetIncoming = mutation({
   args: {
@@ -362,6 +397,64 @@ export const transfer = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// Mutation to claim a call (prevents race condition when multiple agents answer)
+export const claimCall = mutation({
+  args: {
+    twilioCallSid: v.string(),
+    agentClerkId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find the call by Twilio SID
+    const call = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+
+    if (!call) {
+      return { success: false, reason: "call_not_found" };
+    }
+
+    // Find the user by Clerk ID
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.agentClerkId))
+      .first();
+
+    if (!user) {
+      return { success: false, reason: "agent_not_found" };
+    }
+
+    // Check if already claimed by another agent
+    if (call.assignedUserId && call.assignedUserId !== user._id) {
+      return { success: false, reason: "already_claimed" };
+    }
+
+    // Check if call is still in a claimable state
+    if (call.state !== "ringing" && call.state !== "connecting") {
+      // If already claimed by this agent, return success
+      if (call.assignedUserId === user._id) {
+        return { success: true, callId: call._id };
+      }
+      return { success: false, reason: "call_not_claimable" };
+    }
+
+    // Claim the call atomically
+    await ctx.db.patch(call._id, {
+      assignedUserId: user._id,
+      state: "connected",
+      answeredAt: Date.now(),
+    });
+
+    // Update user status to on_call
+    await ctx.db.patch(user._id, {
+      status: "on_call",
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, callId: call._id };
   },
 });
 

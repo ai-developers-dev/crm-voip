@@ -1,21 +1,34 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Phone, ParkingSquare } from "lucide-react";
+import { Phone, ParkingSquare, Loader2 } from "lucide-react";
 
 interface ParkingLotProps {
   organizationId: string;
 }
 
 export function ParkingLot({ organizationId }: ParkingLotProps) {
-  // Placeholder slots - in production, query from Convex
-  const slots = Array.from({ length: 10 }, (_, i) => ({
-    slotNumber: i + 1,
-    isOccupied: false,
-    call: null,
-  }));
+  // Query parking slots from Convex
+  const slots = useQuery(api.parkingLot.getSlots, {
+    organizationId: organizationId as Id<"organizations">,
+  });
+
+  // If no slots exist yet, show placeholder slots
+  // These will be created when first call is parked or admin initializes them
+  const displaySlots =
+    slots && slots.length > 0
+      ? slots
+      : Array.from({ length: 10 }, (_, i) => ({
+          _id: `placeholder-${i}` as Id<"parkingLots">,
+          slotNumber: i + 1,
+          isOccupied: false,
+          call: null,
+          organizationId: organizationId as Id<"organizations">,
+        }));
 
   return (
     <div className="p-4">
@@ -24,16 +37,22 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
         <h2 className="font-semibold">Parking Lot</h2>
       </div>
 
-      <div className="space-y-2">
-        {slots.map((slot) => (
-          <ParkingSlot
-            key={slot.slotNumber}
-            slotNumber={slot.slotNumber}
-            isOccupied={slot.isOccupied}
-            call={slot.call}
-          />
-        ))}
-      </div>
+      {slots === undefined ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {displaySlots.map((slot) => (
+            <ParkingSlot
+              key={slot.slotNumber}
+              slotNumber={slot.slotNumber}
+              isOccupied={slot.isOccupied}
+              call={slot.call}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -46,7 +65,7 @@ interface ParkingSlotProps {
 
 function ParkingSlot({ slotNumber, isOccupied, call }: ParkingSlotProps) {
   const { setNodeRef, isOver } = useDroppable({
-    id: slotNumber.toString(),
+    id: `parking-${slotNumber}`,
     data: { type: "parking-slot", slotNumber },
   });
 

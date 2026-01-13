@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       // Use environment variables as fallback
       const token = new AccessToken(accountSid, apiKey, apiSecret, {
         identity: identity || `${orgId}-${userId}`,
-        ttl: 3600,
+        ttl: 14400, // 4 hours
       });
 
       const voiceGrant = new VoiceGrant({
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Create access token with per-tenant credentials
     const token = new AccessToken(accountSid, apiKey, apiSecret, {
       identity: identity || `${orgId}-${userId}`,
-      ttl: 3600, // 1 hour
+      ttl: 14400, // 4 hours // 1 hour
     });
 
     // Create Voice grant

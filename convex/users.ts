@@ -262,6 +262,43 @@ export const updateUser = mutation({
   },
 });
 
+// Query to get available agents for incoming calls (checks presence heartbeat)
+export const getAvailableAgents = query({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    // Get presence records for this org that are recent (within 30s) and available
+    const now = Date.now();
+    const presenceRecords = await ctx.db
+      .query("presence")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    // Filter to only available, recent heartbeats
+    const availablePresence = presenceRecords.filter(
+      (p) =>
+        now - p.lastHeartbeat < 30000 &&
+        (p.status === "available" || p.status === "on_break")
+    );
+
+    // Get user details for each available presence
+    const agents = await Promise.all(
+      availablePresence.map(async (presence) => {
+        const user = await ctx.db.get(presence.userId);
+        if (!user) return null;
+        return {
+          _id: user._id,
+          clerkUserId: user.clerkUserId,
+          name: user.name,
+          role: user.role,
+          status: presence.status,
+        };
+      })
+    );
+
+    return agents.filter((a): a is NonNullable<typeof a> => a !== null);
+  },
+});
+
 // Mutation to delete a user
 export const deleteUser = mutation({
   args: { userId: v.id("users") },

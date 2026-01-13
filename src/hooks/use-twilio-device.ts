@@ -121,8 +121,42 @@ export function useTwilioDevice() {
         }));
 
         // Set up call event handlers
-        call.on("accept", () => {
-          console.log("Call accepted");
+        call.on("accept", async () => {
+          console.log("Call accepted, attempting to claim...");
+
+          // Get the Twilio Call SID from call parameters
+          const callSid = call.parameters.CallSid;
+          if (callSid) {
+            try {
+              const response = await fetch("/api/twilio/claim-call", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ twilioCallSid: callSid }),
+              });
+
+              const result = await response.json();
+
+              if (!result.success) {
+                console.warn(`Failed to claim call: ${result.reason}`);
+                // If another agent already claimed this call, disconnect
+                if (result.reason === "already_claimed") {
+                  console.log("Call already claimed by another agent, disconnecting...");
+                  call.disconnect();
+                  setState((prev) => ({
+                    ...prev,
+                    activeCall: null,
+                    error: "Call was already answered by another agent",
+                  }));
+                  return;
+                }
+              } else {
+                console.log("Call claimed successfully:", result.callId);
+              }
+            } catch (error) {
+              console.error("Error claiming call:", error);
+              // Continue with the call even if claim fails (better UX)
+            }
+          }
         });
 
         call.on("disconnect", () => {

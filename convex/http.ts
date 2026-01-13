@@ -6,59 +6,9 @@ import { Webhook } from "svix";
 const http = httpRouter();
 
 // ============================================================================
-// TwiML Helper Functions (for safe XML generation without twilio npm package)
+// Twilio webhooks are handled by Next.js API routes at /api/twilio/*
+// This allows using the full twilio npm package for VoiceResponse/validation
 // ============================================================================
-
-/**
- * Escape special XML characters to prevent injection
- */
-function escapeXml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-/**
- * Generate TwiML for rejecting a call with a message
- */
-function rejectCallTwiml(message: string): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say>${escapeXml(message)}</Say>
-  <Hangup/>
-</Response>`;
-}
-
-/**
- * Generate TwiML for putting caller in a conference
- */
-function conferenceCallTwiml(options: {
-  conferenceName: string;
-  callerId: string;
-  waitUrl?: string;
-}): string {
-  const waitUrl = options.waitUrl || "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${escapeXml(options.callerId)}" timeout="30">
-    <Conference beep="false" startConferenceOnEnter="false" endConferenceOnExit="false" waitUrl="${escapeXml(waitUrl)}">
-      ${escapeXml(options.conferenceName)}
-    </Conference>
-  </Dial>
-</Response>`;
-}
-
-/**
- * Return a TwiML Response
- */
-function twimlResponse(twiml: string): Response {
-  return new Response(twiml, {
-    headers: { "Content-Type": "text/xml" },
-  });
-}
 
 // Clerk webhook handler - syncs users and organizations to Convex
 http.route({
@@ -214,88 +164,6 @@ http.route({
       console.error("Error processing webhook:", error);
       return new Response("Internal server error", { status: 500 });
     }
-  }),
-});
-
-// Twilio voice webhook handler
-http.route({
-  path: "/twilio/voice",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const formData = await request.formData();
-    const callSid = formData.get("CallSid") as string;
-    const from = formData.get("From") as string;
-    const to = formData.get("To") as string;
-
-    console.log(`Incoming call: ${callSid} from ${from} to ${to}`);
-
-    // Look up phone number to get organization
-    const phoneNumber = await ctx.runQuery(internal.phoneNumbers.getByNumber, {
-      phoneNumber: to,
-    });
-
-    if (!phoneNumber) {
-      // Return TwiML to reject unknown numbers
-      return twimlResponse(rejectCallTwiml("Sorry, this number is not configured."));
-    }
-
-    // Create active call record
-    await ctx.runMutation(internal.calls.createIncoming, {
-      organizationId: phoneNumber.organizationId,
-      twilioCallSid: callSid,
-      from,
-      to,
-    });
-
-    // Return TwiML to put caller in conference (waiting for agent)
-    const conferenceName = `call-${callSid}`;
-    return twimlResponse(conferenceCallTwiml({
-      conferenceName,
-      callerId: to,
-    }));
-  }),
-});
-
-// Twilio status callback handler
-http.route({
-  path: "/twilio/status",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const formData = await request.formData();
-    const callSid = formData.get("CallSid") as string;
-    const callStatus = formData.get("CallStatus") as string;
-    const callDuration = formData.get("CallDuration") as string;
-
-    console.log(`Call status update: ${callSid} -> ${callStatus}`);
-
-    // Map Twilio status to our call states
-    const stateMap: Record<string, string> = {
-      initiated: "ringing",
-      ringing: "ringing",
-      "in-progress": "connected",
-      completed: "ended",
-      busy: "ended",
-      failed: "ended",
-      "no-answer": "ended",
-      canceled: "ended",
-    };
-
-    const outcomeMap: Record<string, string> = {
-      completed: "answered",
-      busy: "busy",
-      failed: "failed",
-      "no-answer": "missed",
-      canceled: "cancelled",
-    };
-
-    await ctx.runMutation(internal.calls.updateStatus, {
-      twilioCallSid: callSid,
-      state: stateMap[callStatus] || "ended",
-      outcome: outcomeMap[callStatus],
-      duration: parseInt(callDuration) || 0,
-    });
-
-    return new Response("OK", { status: 200 });
   }),
 });
 

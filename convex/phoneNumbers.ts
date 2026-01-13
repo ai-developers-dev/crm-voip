@@ -23,6 +23,17 @@ export const getByNumber = internalQuery({
   },
 });
 
+// Public query to look up phone number (for Next.js API webhooks)
+export const lookupByNumber = query({
+  args: { phoneNumber: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("phoneNumbers")
+      .withIndex("by_phone_number", (q) => q.eq("phoneNumber", args.phoneNumber))
+      .first();
+  },
+});
+
 // Mutation to add a phone number
 export const add = mutation({
   args: {

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
+
+// Convex HTTP client for database operations
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // Validate Twilio webhook signature
 async function validateTwilioRequest(
@@ -52,6 +58,7 @@ export async function POST(request: NextRequest) {
     console.log(`Voice webhook: ${callSid} from ${from} to ${to} (${direction})`);
 
     const twiml = new VoiceResponse();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
     // Check if this is an outbound call from browser
     if (to && !to.startsWith("client:")) {
@@ -59,34 +66,95 @@ export async function POST(request: NextRequest) {
       const dial = twiml.dial({
         callerId: process.env.TWILIO_PHONE_NUMBER || from,
         timeout: 30,
+        action: `${appUrl}/api/twilio/dial-status`,
         record: "record-from-answer-dual",
-        recordingStatusCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/twilio/recording`,
+        recordingStatusCallback: `${appUrl}/api/twilio/recording`,
       });
 
-      dial.number(to);
-    } else {
-      // Incoming call - put in conference for agent to join
-      const conferenceName = `call-${callSid}`;
-
-      const dial = twiml.dial({
-        callerId: from,
-        timeout: 30,
-      });
-
-      dial.conference(
+      dial.number(
         {
-          beep: "false" as const,
-          startConferenceOnEnter: false, // Wait for agent
-          endConferenceOnExit: false,
-          waitUrl: "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical",
-          statusCallback: `${process.env.NEXT_PUBLIC_APP_URL}/api/twilio/conference`,
-          statusCallbackEvent: ["start", "end", "join", "leave", "mute", "hold"],
+          statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
+          statusCallback: `${appUrl}/api/twilio/status`,
         },
-        conferenceName
+        to
       );
+    } else {
+      // Incoming call - look up organization by phone number
+      console.log(`Looking up phone number: ${to}`);
+      const phoneNumber = await convex.query(api.phoneNumbers.lookupByNumber, {
+        phoneNumber: to,
+      });
+
+      if (!phoneNumber) {
+        console.error(`Phone number not configured: ${to}`);
+        twiml.say(
+          { voice: "alice" },
+          "Sorry, this number is not configured. Please try again later."
+        );
+        twiml.hangup();
+        return new NextResponse(twiml.toString(), {
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+
+      console.log(`Found organization: ${phoneNumber.organizationId}`);
+
+      // Get available agents in this organization
+      const agents = await convex.query(api.users.getAvailableAgents, {
+        organizationId: phoneNumber.organizationId as Id<"organizations">,
+      });
+
+      console.log(`Found ${agents.length} available agents`);
+
+      if (agents.length === 0) {
+        // No agents available - go to voicemail
+        console.log("No agents available - sending to voicemail");
+        twiml.say(
+          { voice: "alice" },
+          "We are sorry, but all of our agents are currently busy. Please leave a message after the beep."
+        );
+        twiml.record({
+          timeout: 3,
+          transcribe: true,
+          maxLength: 120,
+          transcribeCallback: `${appUrl}/api/twilio/transcription`,
+        });
+        twiml.say({ voice: "alice" }, "Thank you for your message. Goodbye.");
+        twiml.hangup();
+
+        return new NextResponse(twiml.toString(), {
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+
+      // Create call record in Convex
+      console.log("Creating call record in Convex...");
+      await convex.mutation(api.calls.createOrGetIncoming, {
+        organizationId: phoneNumber.organizationId as Id<"organizations">,
+        twilioCallSid: callSid,
+        from,
+        to,
+      });
+
+      // Dial ALL available agents simultaneously
+      // First to answer wins, others stop ringing
+      const dial = twiml.dial({
+        timeout: 30,
+        callerId: from,
+        action: `${appUrl}/api/twilio/dial-status`,
+      });
+
+      // Add each agent as a Client element - Twilio rings all simultaneously
+      for (const agent of agents) {
+        console.log(`Adding agent to dial: ${agent.name} (${agent.clerkUserId})`);
+        dial.client(agent.clerkUserId);
+      }
     }
 
-    return new NextResponse(twiml.toString(), {
+    const twimlString = twiml.toString();
+    console.log("Returning TwiML:", twimlString.substring(0, 200) + "...");
+
+    return new NextResponse(twimlString, {
       headers: { "Content-Type": "text/xml" },
     });
   } catch (error) {
@@ -94,6 +162,7 @@ export async function POST(request: NextRequest) {
     console.error(`[${errorId}] Voice webhook error:`, {
       callSid,
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       timestamp: new Date().toISOString(),
     });
 

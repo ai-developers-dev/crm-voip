@@ -2,6 +2,9 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +17,8 @@ import {
   MicOff,
   GripVertical,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import type { Call } from "@twilio/voice-sdk";
 
 interface ActiveCallCardProps {
   call: {
@@ -25,13 +29,23 @@ interface ActiveCallCardProps {
     startedAt: number;
     answeredAt?: number;
   };
+  activeCall?: Call | null; // Twilio SDK Call object
+  onEndCall?: () => void;
   compact?: boolean;
 }
 
-export function ActiveCallCard({ call, compact = false }: ActiveCallCardProps) {
+export function ActiveCallCard({
+  call,
+  activeCall,
+  onEndCall,
+  compact = false,
+}: ActiveCallCardProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isHeld, setIsHeld] = useState(call.state === "on_hold");
   const [duration, setDuration] = useState(0);
+
+  // Convex mutation to end call
+  const endCallMutation = useMutation(api.calls.end);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -55,11 +69,67 @@ export function ActiveCallCard({ call, compact = false }: ActiveCallCardProps) {
     return () => clearInterval(interval);
   }, [call.answeredAt]);
 
+  // Sync mute state with Twilio call
+  useEffect(() => {
+    if (activeCall) {
+      setIsMuted(activeCall.isMuted());
+    }
+  }, [activeCall]);
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  const handleMuteToggle = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (activeCall) {
+        const newMuted = !activeCall.isMuted();
+        activeCall.mute(newMuted);
+        setIsMuted(newMuted);
+        console.log(`Call ${newMuted ? "muted" : "unmuted"}`);
+      }
+    },
+    [activeCall]
+  );
+
+  const handleHoldToggle = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      // Hold functionality requires Twilio REST API to update call
+      // For now, toggle local state - full implementation needs API route
+      setIsHeld(!isHeld);
+      console.log(`Call ${!isHeld ? "held" : "resumed"}`);
+    },
+    [isHeld]
+  );
+
+  const handleEndCall = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      console.log("Ending call:", call._id);
+
+      // Disconnect Twilio SDK call
+      if (activeCall) {
+        activeCall.disconnect();
+      }
+
+      // Update database
+      try {
+        await endCallMutation({ callId: call._id as Id<"activeCalls"> });
+      } catch (error) {
+        console.error("Failed to end call in database:", error);
+      }
+
+      // Call parent handler
+      if (onEndCall) {
+        onEndCall();
+      }
+    },
+    [activeCall, call._id, endCallMutation, onEndCall]
+  );
 
   if (compact) {
     return (
@@ -105,8 +175,7 @@ export function ActiveCallCard({ call, compact = false }: ActiveCallCardProps) {
             <div>
               <p className="font-medium">{call.fromName || call.from}</p>
               <p className="text-sm text-muted-foreground">
-                {call.state === "on_hold" ? "On Hold" : "Connected"} •{" "}
-                {formatDuration(duration)}
+                {isHeld ? "On Hold" : "Connected"} • {formatDuration(duration)}
               </p>
             </div>
           </div>
@@ -118,10 +187,8 @@ export function ActiveCallCard({ call, compact = false }: ActiveCallCardProps) {
           <Button
             variant={isMuted ? "destructive" : "secondary"}
             size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMuted(!isMuted);
-            }}
+            onClick={handleMuteToggle}
+            title={isMuted ? "Unmute" : "Mute"}
           >
             {isMuted ? (
               <MicOff className="h-4 w-4" />
@@ -133,25 +200,17 @@ export function ActiveCallCard({ call, compact = false }: ActiveCallCardProps) {
           <Button
             variant={isHeld ? "default" : "secondary"}
             size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsHeld(!isHeld);
-            }}
+            onClick={handleHoldToggle}
+            title={isHeld ? "Resume" : "Hold"}
           >
-            {isHeld ? (
-              <Play className="h-4 w-4" />
-            ) : (
-              <Pause className="h-4 w-4" />
-            )}
+            {isHeld ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
           </Button>
 
           <Button
             variant="destructive"
             size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              console.log("End call:", call._id);
-            }}
+            onClick={handleEndCall}
+            title="End Call"
           >
             <PhoneOff className="h-4 w-4" />
           </Button>
