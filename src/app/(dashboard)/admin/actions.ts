@@ -320,10 +320,18 @@ export async function addUserToOrganization(data: AddUserToOrgData) {
       );
 
       if (existingInvite) {
-        return {
-          success: false,
-          error: "An invitation has already been sent to this email",
-        };
+        // Revoke the existing invitation and send a new one
+        try {
+          await clerk.organizations.revokeOrganizationInvitation({
+            organizationId: data.clerkOrgId,
+            invitationId: existingInvite.id,
+            requestingUserId: userId,
+          });
+          console.log(`Revoked existing invitation for ${data.email}`);
+        } catch (revokeErr) {
+          console.error("Failed to revoke invitation:", revokeErr);
+          // Continue anyway - we'll try to create a new one
+        }
       }
 
       await clerk.organizations.createOrganizationInvitation({
