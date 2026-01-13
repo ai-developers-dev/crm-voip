@@ -125,9 +125,10 @@ export function useTwilioDevice() {
           console.log("Call accepted, audio connected");
 
           // Claim the call in the background - don't block audio
+          // This is just for database tracking, NOT for call control
           const callSid = call.parameters.CallSid;
           if (callSid) {
-            // Fire and forget - don't await
+            // Fire and forget - don't await, don't disconnect on failure
             fetch("/api/twilio/claim-call", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -136,23 +137,15 @@ export function useTwilioDevice() {
               .then((response) => response.json())
               .then((result) => {
                 if (!result.success) {
-                  console.warn(`Failed to claim call: ${result.reason}`);
-                  // If another agent already claimed, disconnect
-                  if (result.reason === "already_claimed") {
-                    console.log("Call already claimed by another agent, disconnecting...");
-                    call.disconnect();
-                    setState((prev) => ({
-                      ...prev,
-                      activeCall: null,
-                      error: "Call was already answered by another agent",
-                    }));
-                  }
+                  // Just log - don't disconnect. The audio is already connected.
+                  // Twilio handles the actual call routing - we're just tracking in DB.
+                  console.warn(`Claim call result: ${result.reason} (call continues)`);
                 } else {
-                  console.log("Call claimed successfully:", result.callId);
+                  console.log("Call claimed in database:", result.callId);
                 }
               })
               .catch((error) => {
-                console.error("Error claiming call:", error);
+                console.error("Error claiming call (call continues):", error);
               });
           }
         });

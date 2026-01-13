@@ -47,7 +47,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
   // Convex mutations
   const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
-  const answerCallMutation = useMutation(api.calls.answer);
   const endCallMutation = useMutation(api.calls.end);
   const parkCallMutation = useMutation(api.calls.park);
   const transferCallMutation = useMutation(api.calls.transfer);
@@ -227,76 +226,40 @@ function IncomingCallsArea({
   onAnswerTwilio,
   onRejectTwilio,
 }: IncomingCallsAreaProps) {
-  // Query ringing calls from Convex
-  const ringingCalls = useQuery(
-    api.calls.getRinging,
-    convexOrgId ? { organizationId: convexOrgId } : "skip"
-  );
+  // SIMPLIFIED: Only use Twilio SDK for incoming call display
+  // This prevents duplicates - Twilio SDK is the single source of truth
+  // Convex is only used for call history/claiming, not for UI display
 
-  const answerCallMutation = useMutation(api.calls.answer);
+  const handleAnswer = useCallback(() => {
+    // Answer in Twilio SDK - this is all we need
+    // The claim happens in the background via use-twilio-device hook
+    onAnswerTwilio();
+  }, [onAnswerTwilio]);
 
-  const handleAnswer = useCallback(async (callId: Id<"activeCalls">) => {
-    if (!currentUserId) return;
-
-    try {
-      // Answer in Twilio SDK
-      onAnswerTwilio();
-
-      // Update Convex
-      await answerCallMutation({
-        callId,
-        userId: currentUserId,
-      });
-    } catch (error) {
-      console.error("Failed to answer call:", error);
-    }
-  }, [currentUserId, onAnswerTwilio, answerCallMutation]);
-
-  const handleDecline = useCallback(async () => {
-    try {
-      // Reject in Twilio SDK
-      onRejectTwilio();
-    } catch (error) {
-      console.error("Failed to decline call:", error);
-    }
+  const handleDecline = useCallback(() => {
+    onRejectTwilio();
   }, [onRejectTwilio]);
 
-  // Show incoming calls - prefer Convex data, fallback to Twilio SDK
-  const incomingCalls = ringingCalls ?? [];
+  // Only show if Twilio SDK has an incoming call that's still ringing
+  const isIncomingCall = twilioActiveCall &&
+    twilioActiveCall.direction === "INCOMING" &&
+    twilioActiveCall.status &&
+    twilioActiveCall.status() === "pending";
 
-  // Only show Twilio fallback if Convex has NO ringing calls yet
-  // This prevents duplicates - once Convex has the call, we use that source
-  const showTwilioFallback = incomingCalls.length === 0 &&
-    twilioActiveCall &&
-    twilioActiveCall.direction === "INCOMING";
-
-  if (incomingCalls.length === 0 && !showTwilioFallback) return null;
+  if (!isIncomingCall) return null;
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 space-y-2">
-      {/* Show Convex ringing calls if we have them */}
-      {incomingCalls.length > 0 ? (
-        incomingCalls.map((call) => (
-          <IncomingCallPopup
-            key={call._id}
-            call={call}
-            onAnswer={() => handleAnswer(call._id)}
-            onDecline={handleDecline}
-          />
-        ))
-      ) : showTwilioFallback ? (
-        /* Fallback: Show Twilio call while Convex catches up */
-        <IncomingCallPopup
-          call={{
-            _id: twilioActiveCall.parameters?.CallSid || "unknown",
-            from: twilioActiveCall.parameters?.From || "Unknown",
-            fromName: undefined,
-            startedAt: Date.now(),
-          }}
-          onAnswer={onAnswerTwilio}
-          onDecline={onRejectTwilio}
-        />
-      ) : null}
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50">
+      <IncomingCallPopup
+        call={{
+          _id: twilioActiveCall.parameters?.CallSid || "unknown",
+          from: twilioActiveCall.parameters?.From || "Unknown",
+          fromName: undefined,
+          startedAt: Date.now(),
+        }}
+        onAnswer={handleAnswer}
+        onDecline={handleDecline}
+      />
     </div>
   );
 }
