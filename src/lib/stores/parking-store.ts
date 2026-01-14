@@ -25,7 +25,8 @@ export interface OptimisticParkedCall {
 
 interface ParkingState {
   // Optimistic parked calls (temp entries before DB confirms)
-  optimisticCalls: Map<string, OptimisticParkedCall>;
+  // Using Record instead of Map to avoid SSR hydration issues
+  optimisticCalls: Record<string, OptimisticParkedCall>;
 
   // Track which call is being parked (for loading state)
   parkingInProgress: string | null;
@@ -44,32 +45,29 @@ interface ParkingState {
 export const useParkingStore = create<ParkingState>()(
   devtools(
     (set, get) => ({
-      optimisticCalls: new Map(),
+      optimisticCalls: {},
       parkingInProgress: null,
 
       addOptimisticCall: (call) =>
-        set((state) => {
-          const newMap = new Map(state.optimisticCalls);
-          newMap.set(call.id, call);
-          return { optimisticCalls: newMap };
-        }, false, "addOptimisticCall"),
+        set((state) => ({
+          optimisticCalls: { ...state.optimisticCalls, [call.id]: call },
+        }), false, "addOptimisticCall"),
 
       removeOptimisticCall: (callId) =>
         set((state) => {
-          const newMap = new Map(state.optimisticCalls);
-          newMap.delete(callId);
-          return { optimisticCalls: newMap };
+          const { [callId]: _, ...rest } = state.optimisticCalls;
+          return { optimisticCalls: rest };
         }, false, "removeOptimisticCall"),
 
       setParkingInProgress: (callSid) =>
         set({ parkingInProgress: callSid }, false, "setParkingInProgress"),
 
       clearAll: () =>
-        set({ optimisticCalls: new Map(), parkingInProgress: null }, false, "clearAll"),
+        set({ optimisticCalls: {}, parkingInProgress: null }, false, "clearAll"),
 
-      getOptimisticCall: (callId) => get().optimisticCalls.get(callId),
+      getOptimisticCall: (callId) => get().optimisticCalls[callId],
 
-      getAllOptimisticCalls: () => Array.from(get().optimisticCalls.values()),
+      getAllOptimisticCalls: () => Object.values(get().optimisticCalls),
     }),
     { name: "ParkingStore" }
   )
