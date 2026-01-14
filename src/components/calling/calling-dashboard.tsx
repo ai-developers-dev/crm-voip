@@ -171,17 +171,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Incoming calls overlay */}
-          <IncomingCallsArea
-            organizationId={organizationId}
-            convexOrgId={convexOrg?._id}
-            currentUserId={currentUser?._id}
-            twilioActiveCall={twilioActiveCall}
-            twilioCallStatus={twilioCallStatus}
-            onAnswerTwilio={answerCall}
-            onRejectTwilio={rejectCall}
-          />
-
           {/* My Active Call - shows immediately when call is connected */}
           <MyActiveCallArea
             twilioActiveCall={twilioActiveCall}
@@ -189,16 +178,30 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             onToggleMute={toggleMute}
           />
 
-          {/* Main agent grid */}
-          <div className="flex-1 overflow-auto p-4">
-            <AgentGrid
+          {/* Main content area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Incoming call banner - above agent grid */}
+            <IncomingCallsArea
               organizationId={organizationId}
               convexOrgId={convexOrg?._id}
               currentUserId={currentUser?._id}
               twilioActiveCall={twilioActiveCall}
-              onHangUp={hangUp}
-              onToggleMute={toggleMute}
+              twilioCallStatus={twilioCallStatus}
+              onAnswerTwilio={answerCall}
+              onRejectTwilio={rejectCall}
             />
+
+            {/* Main agent grid */}
+            <div className="flex-1 overflow-auto p-4">
+              <AgentGrid
+                organizationId={organizationId}
+                convexOrgId={convexOrg?._id}
+                currentUserId={currentUser?._id}
+                twilioActiveCall={twilioActiveCall}
+                onHangUp={hangUp}
+                onToggleMute={toggleMute}
+              />
+            </div>
           </div>
 
           {/* Parking lot sidebar */}
@@ -376,18 +379,16 @@ function IncomingCallsArea({
   if (!isIncomingCall) return null;
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50">
-      <IncomingCallPopup
-        call={{
-          _id: twilioActiveCall.parameters?.CallSid || "unknown",
-          from: twilioActiveCall.parameters?.From || "Unknown",
-          fromName: undefined,
-          startedAt: Date.now(),
-        }}
-        onAnswer={handleAnswer}
-        onDecline={handleDecline}
-      />
-    </div>
+    <IncomingCallPopup
+      call={{
+        _id: twilioActiveCall.parameters?.CallSid || "unknown",
+        from: twilioActiveCall.parameters?.From || "Unknown",
+        fromName: undefined,
+        startedAt: Date.now(),
+      }}
+      onAnswer={handleAnswer}
+      onDecline={handleDecline}
+    />
   );
 }
 

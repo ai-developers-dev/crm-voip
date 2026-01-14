@@ -1,8 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Phone, PhoneOff, User } from "lucide-react";
+import { Phone, PhoneOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface IncomingCallPopupProps {
@@ -32,50 +31,45 @@ export function IncomingCallPopup({
   }, [call.startedAt]);
 
   return (
-    <Card className="min-w-[320px] animate-in slide-in-from-top-5 shadow-lg border-2 border-yellow-500">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-4">
-          {/* Caller avatar */}
-          <div className="relative">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-              <User className="h-7 w-7 text-yellow-600" />
-            </div>
-            <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-500 animate-pulse">
-              <Phone className="h-3 w-3 text-white" />
-            </div>
+    <div className="w-full bg-yellow-500 text-white px-4 py-2 animate-in slide-in-from-top-2 shadow-md">
+      <div className="flex items-center justify-between gap-4">
+        {/* Pulsing phone icon + Caller info */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 animate-pulse">
+            <Phone className="h-4 w-4" />
           </div>
-
-          {/* Caller info */}
-          <div className="flex-1">
-            <p className="text-sm text-muted-foreground">Incoming Call</p>
-            <p className="text-lg font-semibold">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Incoming Call:</span>
+            <span className="font-medium">
               {call.fromName || call.from}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Ringing for {ringTime}s
-            </p>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-2">
-            <Button
-              variant="destructive"
-              size="icon"
-              className="h-12 w-12 rounded-full"
-              onClick={onDecline}
-            >
-              <PhoneOff className="h-5 w-5" />
-            </Button>
-            <Button
-              size="icon"
-              className="h-12 w-12 rounded-full bg-green-500 hover:bg-green-600"
-              onClick={onAnswer}
-            >
-              <Phone className="h-5 w-5" />
-            </Button>
+            </span>
+            <span className="text-yellow-100 text-sm">
+              ({ringTime}s)
+            </span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 bg-red-600 hover:bg-red-700 text-white"
+            onClick={onDecline}
+          >
+            <PhoneOff className="h-4 w-4 mr-1" />
+            Decline
+          </Button>
+          <Button
+            size="sm"
+            className="h-8 bg-green-600 hover:bg-green-700 text-white"
+            onClick={onAnswer}
+          >
+            <Phone className="h-4 w-4 mr-1" />
+            Answer
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

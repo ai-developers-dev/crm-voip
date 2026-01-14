@@ -19,10 +19,21 @@ Multi-tenant SaaS VoIP CRM with real-time calling dashboard, drag-and-drop call 
 - `/convex/` - Database schema and functions
 
 ## Sub-Agents Available
-- **twilio-expert**: Twilio Voice SDK, TwiML, webhooks
-- **convex-expert**: Schema design, queries, mutations
-- **clerk-expert**: Multi-tenant auth, organizations
-- **ui-designer**: shadcn/ui, Tailwind, drag-and-drop
+
+### Core Platform Agents
+- **twilio-expert**: Twilio Voice SDK, TwiML, webhooks, token generation
+- **convex-expert**: Schema design, queries, mutations, real-time subscriptions
+- **clerk-expert**: Multi-tenant auth, organizations, roles, webhooks
+- **ui-designer**: shadcn/ui, Tailwind, component design, accessibility
+- **saas-expert**: Multi-tenant architecture, tenant isolation, billing
+
+### VoIP Specialized Agents
+- **incoming-call-expert**: Device incoming events, multi-agent ring, call claiming, accept-first pattern
+- **outbound-call-expert**: Device.connect(), TwiML App, E.164 formatting, status callbacks
+- **parking-lot-expert**: Conference-based parking, URL-based TwiML redirects, hold music
+- **call-transfer-expert**: Cold/warm transfers, PSTN redirection, transfer state machine
+- **drag-drop-expert**: @dnd-kit integration, draggable calls, droppable zones, DragOverlay
+- **sms-expert**: Twilio Messaging API, inbound/outbound SMS, conversation threading, MMS
 
 ## Setup Instructions
 
