@@ -147,7 +147,7 @@ export function ActiveCallCard({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-900 border shadow-sm touch-none select-none",
+          "flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-900 border shadow-sm touch-none select-none max-w-sm",
           isDragging && "opacity-50 shadow-lg ring-2 ring-primary"
         )}
       >
