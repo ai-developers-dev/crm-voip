@@ -577,14 +577,21 @@ export const claimCall = mutation({
       answeredAt: Date.now(),
     });
 
-    // Update user status to on_call
+    // Update user status to on_call AND increment inbound call count
+    const today = new Date().toISOString().split("T")[0];
+    const isNewDay = user.lastCallCountReset !== today;
+    const currentInbound = isNewDay ? 0 : (user.todayInboundCalls || 0);
+    const currentOutbound = isNewDay ? 0 : (user.todayOutboundCalls || 0);
+
     await ctx.db.patch(user._id, {
       status: "on_call",
+      todayInboundCalls: currentInbound + 1,
+      todayOutboundCalls: currentOutbound, // Preserve outbound count
+      lastCallCountReset: today,
       updatedAt: Date.now(),
     });
 
-    // Note: Call count increment is now handled in the API route
-    // using api.users.incrementCallCount for direct user storage
+    console.log(`📞 Claimed call and incremented inbound count for ${user.name}`);
 
     return { success: true, callId: call._id, userId: user._id };
   },
