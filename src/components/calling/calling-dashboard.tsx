@@ -10,7 +10,7 @@ import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff, Users, Wifi, WifiOff, Loader2, Mic, MicOff } from "lucide-react";
+import { Phone, Users, Wifi, WifiOff, Loader2 } from "lucide-react";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
@@ -171,13 +171,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* My Active Call - shows immediately when call is connected */}
-          <MyActiveCallArea
-            twilioActiveCall={twilioActiveCall}
-            onHangUp={hangUp}
-            onToggleMute={toggleMute}
-          />
-
           {/* Main content area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Incoming call banner - above agent grid */}
@@ -223,115 +216,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         ) : null}
       </DragOverlay>
     </DndContext>
-  );
-}
-
-interface MyActiveCallAreaProps {
-  twilioActiveCall: any;
-  onHangUp: () => void;
-  onToggleMute: () => boolean;
-}
-
-function MyActiveCallArea({ twilioActiveCall, onHangUp, onToggleMute }: MyActiveCallAreaProps) {
-  const [duration, setDuration] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [callStartTime] = useState(() => Date.now());
-
-  // Check if there's an active connected call (not pending/ringing)
-  const isConnectedCall = twilioActiveCall &&
-    twilioActiveCall.status &&
-    (twilioActiveCall.status() === "open" || twilioActiveCall.status() === "connecting");
-
-  // Update duration every second when connected
-  useEffect(() => {
-    if (!isConnectedCall) {
-      setDuration(0);
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setDuration(Math.floor((Date.now() - callStartTime) / 1000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isConnectedCall, callStartTime]);
-
-  // Sync mute state
-  useEffect(() => {
-    if (twilioActiveCall) {
-      setIsMuted(twilioActiveCall.isMuted?.() || false);
-    }
-  }, [twilioActiveCall]);
-
-  const handleMuteToggle = useCallback(() => {
-    const newMuted = onToggleMute();
-    setIsMuted(newMuted);
-  }, [onToggleMute]);
-
-  const handleEndCall = useCallback(() => {
-    console.log("Ending call via MyActiveCallArea");
-    onHangUp();
-  }, [onHangUp]);
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  if (!isConnectedCall) return null;
-
-  const callerNumber = twilioActiveCall.parameters?.From || "Unknown";
-
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <Card className="w-72 shadow-lg border-primary">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <Phone className="h-5 w-5 text-green-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{callerNumber}</p>
-              <p className="text-sm text-muted-foreground">
-                Connected • {formatDuration(duration)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant={isMuted ? "destructive" : "secondary"}
-              size="sm"
-              onClick={handleMuteToggle}
-              className="flex-1"
-            >
-              {isMuted ? (
-                <>
-                  <MicOff className="h-4 w-4 mr-1" />
-                  Unmute
-                </>
-              ) : (
-                <>
-                  <Mic className="h-4 w-4 mr-1" />
-                  Mute
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleEndCall}
-              className="flex-1"
-            >
-              <PhoneOff className="h-4 w-4 mr-1" />
-              End
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
   );
 }
 
