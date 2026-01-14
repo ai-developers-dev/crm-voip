@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
 
       parkResult = await convex.mutation(api.calls.parkByCallSid, {
         twilioCallSid: twilioCallSid,
+        pstnCallSid: pstnCallSid, // Store the PSTN call SID for unparking
         conferenceName,
         callerNumber: callerNumber || parentCall.from || "Unknown",
         callerName: callerName,

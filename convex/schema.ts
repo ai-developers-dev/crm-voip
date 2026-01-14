@@ -262,6 +262,7 @@ export default defineSchema({
     parkedAt: v.optional(v.number()),
     holdMusicUrl: v.optional(v.string()),
     conferenceName: v.optional(v.string()), // Twilio conference name for parking
+    pstnCallSid: v.optional(v.string()), // The PSTN caller's call SID (needed for unparking)
     callerNumber: v.optional(v.string()),
     callerName: v.optional(v.string()),
   })

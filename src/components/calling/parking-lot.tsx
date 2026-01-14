@@ -62,6 +62,7 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
               from: dbSlot.callerNumber,
               fromName: dbSlot.callerName,
               conferenceName: dbSlot.conferenceName,
+              pstnCallSid: dbSlot.pstnCallSid, // The PSTN call SID needed for unparking
             },
           };
           slots[idx] = slotData;
@@ -173,6 +174,7 @@ function ParkingSlot({ slotNumber, isOccupied, call, isOptimistic }: ParkingSlot
       call,
       slotNumber,
       twilioCallSid: call?.twilioCallSid,
+      pstnCallSid: call?.pstnCallSid, // The PSTN call SID needed for unparking
       conferenceName: call?.conferenceName,
     },
     disabled: !isOccupied || isOptimistic, // Can't drag optimistic (still saving)

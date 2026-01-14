@@ -328,6 +328,7 @@ export const park = mutation({
 export const parkByCallSid = mutation({
   args: {
     twilioCallSid: v.string(),
+    pstnCallSid: v.optional(v.string()), // The PSTN caller's call SID (for unparking)
     conferenceName: v.string(),
     callerNumber: v.string(),
     callerName: v.optional(v.string()),
@@ -337,6 +338,7 @@ export const parkByCallSid = mutation({
   handler: async (ctx, args) => {
     console.log("🅿️ parkByCallSid called with:", {
       twilioCallSid: args.twilioCallSid,
+      pstnCallSid: args.pstnCallSid,
       conferenceName: args.conferenceName,
       callerNumber: args.callerNumber,
       organizationId: args.organizationId,
@@ -381,6 +383,7 @@ export const parkByCallSid = mutation({
         parkedByUserId: args.parkedByUserId,
         parkedAt: Date.now(),
         conferenceName: args.conferenceName,
+        pstnCallSid: args.pstnCallSid,
         callerNumber: args.callerNumber,
         callerName: args.callerName,
       });
@@ -393,6 +396,7 @@ export const parkByCallSid = mutation({
         parkedByUserId: args.parkedByUserId,
         parkedAt: Date.now(),
         conferenceName: args.conferenceName,
+        pstnCallSid: args.pstnCallSid,
         callerNumber: args.callerNumber,
         callerName: args.callerName,
       });

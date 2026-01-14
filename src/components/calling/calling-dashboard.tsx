@@ -226,53 +226,83 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         //   twilioActiveCall.disconnect();
         // }
       } else if (targetId.startsWith("user-")) {
-        // Transfer the call to another user with ringing
+        // Handle dropping a call on a user
         const targetUser = over.data.current?.user;
         const sourceType = active.data.current?.type;
         const isFromParking = sourceType === "parked-call";
-        const parkingSlot = active.data.current?.slotNumber;
-
-        // Get call SID from Twilio SDK or drag data (for parked calls)
-        const callSid = isFromParking
-          ? dragData?.twilioCallSid
-          : twilioActiveCall?.parameters?.CallSid;
 
         if (!targetUser?.clerkUserId) {
           console.error("Target user clerkUserId not found");
           return;
         }
 
-        if (!callSid) {
-          console.error("Twilio call SID not found for transfer");
-          return;
-        }
+        if (isFromParking) {
+          // UNPARK: Resume call from parking lot to target agent
+          const pstnCallSid = dragData?.pstnCallSid;
+          const conferenceName = dragData?.conferenceName;
 
-        console.log(`Initiating transfer: ${callSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
+          if (!pstnCallSid) {
+            console.error("PSTN call SID not found for unpark - call may have been parked before this update");
+            alert("Cannot unpark this call - missing call information. The call was parked before this feature was updated.");
+            return;
+          }
 
-        const transferResponse = await fetch("/api/twilio/transfer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            twilioCallSid: callSid,
-            targetUserId: targetId,
-            targetIdentity: targetUser.clerkUserId,
-            type: isFromParking ? "from_park" : "direct",
-            returnToParkSlot: isFromParking ? parkingSlot : undefined,
-            sourceUserId: currentUser?._id,
-          }),
-        });
+          console.log(`📞 UNPARKING: ${pstnCallSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
 
-        if (!transferResponse.ok) {
-          const error = await transferResponse.json();
-          console.error("Transfer failed:", error);
+          const resumeResponse = await fetch("/api/twilio/resume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              twilioCallSid: pstnCallSid,
+              targetIdentity: targetUser.clerkUserId,
+              conferenceName: conferenceName,
+            }),
+          });
+
+          if (!resumeResponse.ok) {
+            const error = await resumeResponse.json();
+            console.error("Unpark failed:", error);
+            alert(`Failed to unpark call: ${error.error || "Unknown error"}`);
+          } else {
+            const result = await resumeResponse.json();
+            console.log("✅ Call unparked successfully:", result);
+            // The parking slot will be cleared when the conference ends (participant-leave event)
+          }
         } else {
-          const result = await transferResponse.json();
-          console.log("Transfer initiated:", result);
+          // TRANSFER: Transfer active call to another user
+          const callSid = twilioActiveCall?.parameters?.CallSid;
 
-          // Disconnect local Twilio SDK call - caller is now on hold music
-          // The target agent will receive a new incoming call
-          if (twilioActiveCall && !isFromParking) {
-            twilioActiveCall.disconnect();
+          if (!callSid) {
+            console.error("Twilio call SID not found for transfer");
+            return;
+          }
+
+          console.log(`Initiating transfer: ${callSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
+
+          const transferResponse = await fetch("/api/twilio/transfer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              twilioCallSid: callSid,
+              targetUserId: targetId,
+              targetIdentity: targetUser.clerkUserId,
+              type: "direct",
+              sourceUserId: currentUser?._id,
+            }),
+          });
+
+          if (!transferResponse.ok) {
+            const error = await transferResponse.json();
+            console.error("Transfer failed:", error);
+          } else {
+            const result = await transferResponse.json();
+            console.log("Transfer initiated:", result);
+
+            // Disconnect local Twilio SDK call - caller is now on hold music
+            // The target agent will receive a new incoming call
+            if (twilioActiveCall) {
+              twilioActiveCall.disconnect();
+            }
           }
         }
       }

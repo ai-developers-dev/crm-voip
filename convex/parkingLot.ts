@@ -141,6 +141,7 @@ export const clearByConference = mutation({
       parkedByUserId: undefined,
       parkedAt: undefined,
       conferenceName: undefined,
+      pstnCallSid: undefined,
       callerNumber: undefined,
       callerName: undefined,
     });

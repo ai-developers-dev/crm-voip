@@ -73,7 +73,7 @@ export function UserStatusCard({
   onToggleMute
 }: UserStatusCardProps) {
   const { setNodeRef, isOver } = useDroppable({
-    id: user.id,
+    id: `user-${user.id}`,
     data: { type: "user", user },
   });
 

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { twilioCallSid, targetIdentity } = await request.json();
+    const { twilioCallSid, targetIdentity, conferenceName } = await request.json();
 
     if (!twilioCallSid) {
       return NextResponse.json(
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Resuming call ${twilioCallSid} to ${targetIdentity}`);
+    console.log(`📞 UNPARKING call ${twilioCallSid} to ${targetIdentity} (conference: ${conferenceName})`);
 
     // Get Twilio credentials
     const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
@@ -79,11 +79,24 @@ export async function POST(request: NextRequest) {
       method: "POST",
     });
 
-    console.log(`Call ${twilioCallSid} resumed and routing to ${targetIdentity}`);
+    console.log(`✅ Call ${twilioCallSid} resumed and routing to ${targetIdentity}`);
+
+    // Clear the parking slot immediately (don't wait for conference callback)
+    if (conferenceName) {
+      try {
+        await convex.mutation(api.parkingLot.clearByConference, {
+          conferenceName,
+        });
+        console.log(`✅ Parking slot cleared for conference: ${conferenceName}`);
+      } catch (clearError) {
+        // Non-fatal - the conference callback will also try to clear it
+        console.warn("Could not clear parking slot immediately:", clearError);
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Call resumed"
+      message: "Call resumed and parking slot cleared"
     });
   } catch (error) {
     console.error("Error resuming call:", error);
