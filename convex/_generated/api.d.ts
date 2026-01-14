@@ -9,6 +9,7 @@
  */
 
 import type * as calls from "../calls.js";
+import type * as debug from "../debug.js";
 import type * as http from "../http.js";
 import type * as organizations from "../organizations.js";
 import type * as parkingLot from "../parkingLot.js";
@@ -28,6 +29,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   calls: typeof calls;
+  debug: typeof debug;
   http: typeof http;
   organizations: typeof organizations;
   parkingLot: typeof parkingLot;

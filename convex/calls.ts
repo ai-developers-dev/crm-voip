@@ -546,13 +546,17 @@ export const claimCall = mutation({
       return { success: false, reason: "call_not_found" };
     }
 
-    // Find the user by Clerk ID
-    const user = await ctx.db
+    // Find the user by Clerk ID AND organization
+    // Important: Same Clerk user can exist in multiple orgs, so we must match the org
+    const usersWithClerkId = await ctx.db
       .query("users")
       .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.agentClerkId))
-      .first();
+      .collect();
+
+    const user = usersWithClerkId.find(u => u.organizationId === call.organizationId);
 
     if (!user) {
+      console.log(`User ${args.agentClerkId} not found in org ${call.organizationId}`);
       return { success: false, reason: "agent_not_found" };
     }
 
