@@ -157,13 +157,20 @@ export async function POST(request: NextRequest) {
     // STEP 3: NOW redirect the PSTN call to conference
     try {
       console.log(`Step 3: Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
+
+      // Get the base URL for status callbacks
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "";
+      const statusCallbackUrl = `${baseUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`;
+
       const twiml = `
         <Response>
           <Dial>
             <Conference
               waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical"
               startConferenceOnEnter="true"
-              endConferenceOnExit="false"
+              endConferenceOnExit="true"
+              statusCallback="${statusCallbackUrl}"
+              statusCallbackEvent="end leave"
             >${conferenceName}</Conference>
           </Dial>
         </Response>
