@@ -17,7 +17,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, Users, Wifi, WifiOff, Loader2 } from "lucide-react";
+import { Phone, Users, Wifi, WifiOff, Loader2, GripVertical } from "lucide-react";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
@@ -285,13 +285,19 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         </div>
       </div>
 
-      {/* Drag overlay */}
+      {/* Drag overlay - matches parking slot dimensions */}
       <DragOverlay>
         {dragActiveCall ? (
-          <div className="rounded-lg border bg-background p-3 shadow-lg">
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-primary" />
-              <span className="font-medium">{dragActiveCall.from}</span>
+          <div className="w-56 flex items-center gap-3 rounded-md border p-3 shadow-lg bg-primary/10 dark:bg-primary/20 cursor-grabbing">
+            <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold flex-shrink-0">
+              <Phone className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium truncate block">
+                {dragActiveCall.fromName || dragActiveCall.from}
+              </span>
+              <p className="text-xs text-muted-foreground">Drop to park</p>
             </div>
           </div>
         ) : null}

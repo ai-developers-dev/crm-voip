@@ -188,24 +188,30 @@ export function UserStatusCard({
         </div>
 
         {/* Active Twilio call - draggable card when connected */}
-        {twilioCallConnected && (
-          <div className="mt-3">
-            <ActiveCallCard
-              call={{
-                _id: twilioActiveCall.parameters?.CallSid || "unknown",
-                twilioCallSid: twilioActiveCall.parameters?.CallSid,
-                from: twilioActiveCall.parameters?.From || "Unknown",
-                fromName: undefined,
-                state: "connected",
-                startedAt: callStartTime || Date.now(),
-                answeredAt: callStartTime || Date.now(),
-              }}
-              activeCall={twilioActiveCall}
-              onEndCall={onHangUp}
-              compact
-            />
-          </div>
-        )}
+        {twilioCallConnected && (() => {
+          // Find the matching Convex call by twilioCallSid to get the real _id
+          const twilioCallSid = twilioActiveCall.parameters?.CallSid;
+          const matchingCall = activeCalls.find(c => c.twilioCallSid === twilioCallSid);
+
+          return (
+            <div className="mt-3">
+              <ActiveCallCard
+                call={{
+                  _id: matchingCall?._id || twilioCallSid || "unknown",
+                  twilioCallSid: twilioCallSid,
+                  from: twilioActiveCall.parameters?.From || "Unknown",
+                  fromName: matchingCall?.fromName,
+                  state: "connected",
+                  startedAt: matchingCall?.startedAt || callStartTime || Date.now(),
+                  answeredAt: matchingCall?.answeredAt || callStartTime || Date.now(),
+                }}
+                activeCall={twilioActiveCall}
+                onEndCall={onHangUp}
+                compact
+              />
+            </div>
+          );
+        })()}
 
         {/* Active calls from database for this user */}
         {activeCalls.length > 0 && !twilioCallConnected && (
