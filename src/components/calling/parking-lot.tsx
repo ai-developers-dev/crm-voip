@@ -91,7 +91,7 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "p-4 transition-all rounded-lg",
+        "p-4 transition-all min-h-full",
         isOver && "ring-2 ring-primary ring-offset-2 bg-primary/5"
       )}
     >
