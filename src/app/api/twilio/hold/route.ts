@@ -3,17 +3,19 @@ import { auth } from "@clerk/nextjs/server";
 import twilio from "twilio";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * Park a call using conference-based parking
  *
- * This redirects the call to join a Twilio Conference with hold music.
- * The conference persists even after the agent disconnects (endConferenceOnExit=false).
- * This is the Twilio-recommended approach for call parking.
+ * Flow (same as working app):
+ * 1. Get parent call SID (PSTN caller)
+ * 2. Save to database FIRST (ensures UI updates immediately)
+ * 3. THEN redirect the call to conference
  *
- * See: https://www.twilio.com/docs/voice/twiml/conference
+ * This ensures the parking lot entry exists before any status callbacks arrive.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { twilioCallSid, callerNumber, callerName } = await request.json();
+    const { twilioCallSid, callerNumber, callerName, organizationId, parkedByUserId } = await request.json();
 
     if (!twilioCallSid) {
       return NextResponse.json(
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Parking call ${twilioCallSid} using conference`);
+    console.log(`🚗 PARKING CALL - Starting park flow for ${twilioCallSid}`);
 
     // Get Twilio credentials (check org settings first, then env vars)
     const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
@@ -53,7 +55,6 @@ export async function POST(request: NextRequest) {
       accountSid = twilioCredentials.accountSid;
       authToken = twilioCredentials.authToken;
     } else {
-      // Fall back to environment variables
       accountSid = process.env.TWILIO_ACCOUNT_SID || "";
       authToken = process.env.TWILIO_AUTH_TOKEN || "";
     }
@@ -68,9 +69,8 @@ export async function POST(request: NextRequest) {
     // Create Twilio REST client
     const client = twilio(accountSid, authToken);
 
-    // Fetch the browser SDK call to get the parent call SID
-    // The browser call is a CHILD call - the PSTN caller is the PARENT
-    console.log(`Fetching browser client call: ${twilioCallSid}`);
+    // STEP 1: Fetch the browser SDK call to get the parent call SID
+    console.log(`Step 1: Fetching browser client call: ${twilioCallSid}`);
     const browserCall = await client.calls(twilioCallSid).fetch();
     console.log(`Browser call details:`, {
       sid: browserCall.sid,
@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
       status: browserCall.status,
     });
 
-    // The parent call is the PSTN caller we want to park
     if (!browserCall.parentCallSid) {
       console.error("No parent call found - this may not be a browser client call");
       return NextResponse.json(
@@ -91,13 +90,37 @@ export async function POST(request: NextRequest) {
     const pstnCallSid = browserCall.parentCallSid;
     console.log(`PSTN parent call SID: ${pstnCallSid}`);
 
-    // Create unique conference name for this parked call
+    // Verify parent call is still active
+    const parentCall = await client.calls(pstnCallSid).fetch();
+    console.log(`Parent call status: ${parentCall.status}`);
+    if (parentCall.status === "completed" || parentCall.status === "canceled") {
+      return NextResponse.json(
+        { error: `Parent call is already ${parentCall.status}` },
+        { status: 400 }
+      );
+    }
+
+    // Create unique conference name
     const conferenceName = `park-${pstnCallSid}-${Date.now()}`;
 
-    // Conference-based parking with hold music
-    // - waitUrl: Plays hold music from Twilio's free twimlet
-    // - startConferenceOnEnter: Conference starts immediately
-    // - endConferenceOnExit: false = call stays in conference after agent disconnects
+    // STEP 2: Save to database FIRST (like working app)
+    // This ensures UI updates immediately via Convex subscription
+    console.log(`Step 2: Saving to database FIRST...`);
+    const convexOrgId = organizationId || org._id;
+
+    const parkResult = await convex.mutation(api.calls.parkByCallSid, {
+      twilioCallSid: twilioCallSid, // Browser CallSid for activeCall lookup
+      conferenceName,
+      callerNumber: callerNumber || parentCall.from || "Unknown",
+      callerName: callerName,
+      organizationId: convexOrgId as Id<"organizations">,
+      parkedByUserId: parkedByUserId as Id<"users"> | undefined,
+    });
+
+    console.log(`✅ Database updated - slot ${parkResult.slotNumber}`, parkResult);
+
+    // STEP 3: NOW redirect the PSTN call to conference
+    console.log(`Step 3: Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
     const twiml = `
       <Response>
         <Dial>
@@ -110,8 +133,6 @@ export async function POST(request: NextRequest) {
       </Response>
     `.trim();
 
-    // Redirect the PARENT call (PSTN caller) to the conference
-    console.log(`Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
     await client.calls(pstnCallSid).update({
       twiml: twiml,
     });
@@ -123,10 +144,11 @@ export async function POST(request: NextRequest) {
       conferenceName,
       pstnCallSid,
       browserCallSid: twilioCallSid,
+      slotNumber: parkResult.slotNumber,
       message: "Call parked in conference with hold music"
     });
   } catch (error) {
-    console.error("Error parking call:", error);
+    console.error("❌ Error parking call:", error);
     return NextResponse.json(
       { error: "Failed to park call", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
