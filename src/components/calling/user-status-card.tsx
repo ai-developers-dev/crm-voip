@@ -1,17 +1,18 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Phone, Clock } from "lucide-react";
+import { Phone, Clock, PhoneCall, PhoneOff } from "lucide-react";
 import { ActiveCallCard } from "./active-call-card";
 import { Id } from "../../../convex/_generated/dataModel";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface UserStatusCardProps {
   user: {
@@ -29,6 +30,8 @@ interface UserStatusCardProps {
   twilioActiveCall?: any;
   onHangUp?: () => void;
   onToggleMute?: () => boolean;
+  onAnswerTwilio?: () => void;
+  onRejectTwilio?: () => void;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; dotColor: string }> = {
@@ -70,7 +73,9 @@ export function UserStatusCard({
   activeCalls,
   twilioActiveCall,
   onHangUp,
-  onToggleMute
+  onToggleMute,
+  onAnswerTwilio,
+  onRejectTwilio,
 }: UserStatusCardProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `user-${user.id}`,
@@ -78,12 +83,68 @@ export function UserStatusCard({
   });
 
   const toggleStatus = useMutation(api.users.toggleStatus);
+  const acceptTargetedCall = useMutation(api.targetedRinging.accept);
+  const declineTargetedCall = useMutation(api.targetedRinging.decline);
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
+  const [ringTime, setRingTime] = useState(0);
+
+  // Query for targeted ringing for THIS user specifically
+  const targetedRinging = useQuery(
+    api.targetedRinging.getForUser,
+    { userId: user.id as Id<"users"> }
+  );
 
   // Check if the Twilio call is connected (not pending/ringing)
   const twilioCallConnected = twilioActiveCall &&
     twilioActiveCall.status &&
     (twilioActiveCall.status() === "open" || twilioActiveCall.status() === "connecting");
+
+  // Check if Twilio call is pending (ringing) for this user
+  const twilioCallPending = twilioActiveCall &&
+    twilioActiveCall.direction === "INCOMING" &&
+    twilioActiveCall.status &&
+    twilioActiveCall.status() === "pending";
+
+  // Update ring time counter for targeted calls
+  useEffect(() => {
+    if (!targetedRinging) {
+      setRingTime(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - targetedRinging.createdAt) / 1000);
+      setRingTime(elapsed);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [targetedRinging]);
+
+  // Handle accepting targeted call
+  const handleAcceptTargeted = useCallback(async () => {
+    if (!targetedRinging || !onAnswerTwilio) return;
+
+    console.log("Accepting targeted call:", targetedRinging.callerNumber);
+
+    // Mark as accepted in database
+    await acceptTargetedCall({ id: targetedRinging._id });
+
+    // Answer the Twilio call
+    onAnswerTwilio();
+  }, [targetedRinging, onAnswerTwilio, acceptTargetedCall]);
+
+  // Handle declining targeted call
+  const handleDeclineTargeted = useCallback(async () => {
+    if (!targetedRinging || !onRejectTwilio) return;
+
+    console.log("Declining targeted call:", targetedRinging.callerNumber);
+
+    // Mark as declined in database
+    await declineTargetedCall({ id: targetedRinging._id });
+
+    // Reject the Twilio call
+    onRejectTwilio();
+  }, [targetedRinging, onRejectTwilio, declineTargetedCall]);
 
   // Track call start time when call connects
   useEffect(() => {
@@ -186,6 +247,45 @@ export function UserStatusCard({
             />
           </div>
         </div>
+
+        {/* Targeted ringing indicator - shows when a parked call is unparked to this specific user */}
+        {targetedRinging && twilioCallPending && (
+          <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 animate-pulse">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 animate-bounce">
+                  <Phone className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-medium text-amber-900 dark:text-amber-100">
+                    {targetedRinging.callerName || targetedRinging.callerNumber}
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    Incoming transfer • {ringTime}s
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleDeclineTargeted}
+                  className="h-9 w-9 p-0"
+                >
+                  <PhoneOff className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleAcceptTargeted}
+                  className="h-9 px-4 bg-green-600 hover:bg-green-700"
+                >
+                  <PhoneCall className="h-4 w-4 mr-1" />
+                  Answer
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Active Twilio call - draggable card when connected */}
         {twilioCallConnected && (() => {

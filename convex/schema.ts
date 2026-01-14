@@ -269,6 +269,27 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_organization_slot", ["organizationId", "slotNumber"]),
 
+  // Targeted Ringing (for unpark/transfer to specific user)
+  // When a call is being directed to a specific user, not broadcast to all
+  targetedRinging: defineTable({
+    organizationId: v.id("organizations"),
+    targetUserId: v.id("users"),
+    callerNumber: v.string(),
+    callerName: v.optional(v.string()),
+    pstnCallSid: v.string(),
+    status: v.union(
+      v.literal("ringing"),
+      v.literal("accepted"),
+      v.literal("declined"),
+      v.literal("expired")
+    ),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_target_user", ["targetUserId", "status"])
+    .index("by_organization", ["organizationId"])
+    .index("by_pstn_sid", ["pstnCallSid"]),
+
   // Pending Transfers (for transfer workflow with ringing)
   pendingTransfers: defineTable({
     organizationId: v.id("organizations"),

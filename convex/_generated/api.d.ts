@@ -16,6 +16,7 @@ import type * as pendingTransfers from "../pendingTransfers.js";
 import type * as phoneNumbers from "../phoneNumbers.js";
 import type * as platformUsers from "../platformUsers.js";
 import type * as presence from "../presence.js";
+import type * as targetedRinging from "../targetedRinging.js";
 import type * as userMetrics from "../userMetrics.js";
 import type * as users from "../users.js";
 
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   phoneNumbers: typeof phoneNumbers;
   platformUsers: typeof platformUsers;
   presence: typeof presence;
+  targetedRinging: typeof targetedRinging;
   userMetrics: typeof userMetrics;
   users: typeof users;
 }>;

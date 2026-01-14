@@ -69,6 +69,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
   const endCallMutation = useMutation(api.calls.end);
   const heartbeat = useMutation(api.presence.heartbeat);
+  const createTargetedRinging = useMutation(api.targetedRinging.create);
 
   // Parking store for optimistic updates
   const addOptimisticCall = useParkingStore((s) => s.addOptimisticCall);
@@ -240,11 +241,33 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           // UNPARK: Resume call from parking lot to target agent
           const pstnCallSid = dragData?.pstnCallSid;
           const conferenceName = dragData?.conferenceName;
+          const callerNumber = dragData?.call?.from || "Unknown";
+          const callerName = dragData?.call?.fromName;
 
           if (!pstnCallSid) {
             console.error("PSTN call SID not found for unpark - call may have been parked before this update");
             alert("Cannot unpark this call - missing call information. The call was parked before this feature was updated.");
             return;
+          }
+
+          // Get target user's Convex ID from the targetId (format: "user-{convexId}")
+          const targetConvexUserId = targetId.replace("user-", "") as Id<"users">;
+
+          // Create targeted ringing record BEFORE calling resume
+          // This tells the UI to show ringing only in this user's card
+          if (convexOrg?._id) {
+            try {
+              await createTargetedRinging({
+                organizationId: convexOrg._id,
+                targetUserId: targetConvexUserId,
+                callerNumber,
+                callerName,
+                pstnCallSid,
+              });
+              console.log(`🔔 Created targeted ringing for ${callerNumber} -> ${targetUser.name}`);
+            } catch (e) {
+              console.error("Failed to create targeted ringing record:", e);
+            }
           }
 
           // Build the correct Twilio identity: orgId-userId (matches token generation)
@@ -365,6 +388,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
                 twilioActiveCall={twilioActiveCall}
                 onHangUp={hangUp}
                 onToggleMute={toggleMute}
+                onAnswerTwilio={answerCall}
+                onRejectTwilio={rejectCall}
               />
             </div>
           </div>
@@ -416,14 +441,15 @@ function IncomingCallsArea({
   onAnswerTwilio,
   onRejectTwilio,
 }: IncomingCallsAreaProps) {
-  // SIMPLIFIED: Only use Twilio SDK for incoming call display
-  // This prevents duplicates - Twilio SDK is the single source of truth
-  // Convex is only used for call history/claiming, not for UI display
+  // Query for active targeted ringing records
+  // If this call is targeted to a specific user, don't show global banner
+  const targetedRinging = useQuery(
+    api.targetedRinging.getActiveForOrg,
+    convexOrgId ? { organizationId: convexOrgId } : "skip"
+  );
 
   const handleAnswer = useCallback(() => {
     console.log("Answer button clicked");
-    // Answer in Twilio SDK - this is all we need
-    // The claim happens in the background via use-twilio-device hook
     onAnswerTwilio();
   }, [onAnswerTwilio]);
 
@@ -432,19 +458,30 @@ function IncomingCallsArea({
     onRejectTwilio();
   }, [onRejectTwilio, twilioCallStatus]);
 
-  // Only show if call status is "pending" (ringing) - this is reactive state
-  // When call is accepted, callStatus changes to "open" and this will hide
+  // Only show if call status is "pending" (ringing)
   const isIncomingCall = twilioActiveCall &&
     twilioActiveCall.direction === "INCOMING" &&
     twilioCallStatus === "pending";
 
   if (!isIncomingCall) return null;
 
+  // Check if this incoming call is targeted to a specific user
+  // If so, don't show the global banner - it will show in the user's card instead
+  const callerNumber = twilioActiveCall.parameters?.From;
+  const isTargetedCall = targetedRinging?.some(
+    (tr) => tr.callerNumber === callerNumber && tr.status === "ringing"
+  );
+
+  if (isTargetedCall) {
+    console.log(`📞 Incoming call from ${callerNumber} is targeted - hiding global banner`);
+    return null;
+  }
+
   return (
     <IncomingCallPopup
       call={{
         _id: twilioActiveCall.parameters?.CallSid || "unknown",
-        from: twilioActiveCall.parameters?.From || "Unknown",
+        from: callerNumber || "Unknown",
         fromName: undefined,
         startedAt: Date.now(),
       }}
@@ -461,9 +498,11 @@ interface AgentGridProps {
   twilioActiveCall?: any;
   onHangUp?: () => void;
   onToggleMute?: () => boolean;
+  onAnswerTwilio?: () => void;
+  onRejectTwilio?: () => void;
 }
 
-function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCall, onHangUp, onToggleMute }: AgentGridProps) {
+function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCall, onHangUp, onToggleMute, onAnswerTwilio, onRejectTwilio }: AgentGridProps) {
   // Fetch users with their daily metrics from Convex
   const usersWithMetrics = useQuery(
     api.users.getByOrganizationWithMetrics,
@@ -538,6 +577,8 @@ function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCal
             twilioActiveCall={isCurrentUser ? twilioActiveCall : undefined}
             onHangUp={isCurrentUser ? onHangUp : undefined}
             onToggleMute={isCurrentUser ? onToggleMute : undefined}
+            onAnswerTwilio={isCurrentUser ? onAnswerTwilio : undefined}
+            onRejectTwilio={isCurrentUser ? onRejectTwilio : undefined}
           />
         );
       })}
