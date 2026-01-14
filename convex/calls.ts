@@ -193,6 +193,14 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
 
     if (!call) return;
 
+    // IMPORTANT: Don't process "ended" for parked calls
+    // When we park a call, the browser SDK disconnects which triggers a "completed" status
+    // But the call is still active in the conference - don't delete it!
+    if (args.state === "ended" && call.state === "parked") {
+      console.log(`Ignoring 'ended' status for parked call ${args.twilioCallSid} - call is in parking lot`);
+      return;
+    }
+
     const updates: any = {
       state: args.state,
     };
@@ -327,6 +335,13 @@ export const parkByCallSid = mutation({
     parkedByUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    console.log("🅿️ parkByCallSid called with:", {
+      twilioCallSid: args.twilioCallSid,
+      conferenceName: args.conferenceName,
+      callerNumber: args.callerNumber,
+      organizationId: args.organizationId,
+    });
+
     // Find call by twilioCallSid
     const call = await ctx.db
       .query("activeCalls")
@@ -334,6 +349,8 @@ export const parkByCallSid = mutation({
         q.eq("twilioCallSid", args.twilioCallSid)
       )
       .first();
+
+    console.log("🅿️ Found activeCall:", call ? { id: call._id, state: call.state, from: call.from } : "NOT FOUND");
 
     // Find first available slot
     const slots = await ctx.db
@@ -388,6 +405,7 @@ export const parkByCallSid = mutation({
         parkingSlot: slotNumber,
         holdStartedAt: Date.now(),
       });
+      console.log(`🅿️ Updated activeCall ${call._id} to state=parked, slot=${slotNumber}`);
 
       // Update user status back to available
       if (call.assignedUserId) {
@@ -396,7 +414,11 @@ export const parkByCallSid = mutation({
           updatedAt: Date.now(),
         });
       }
+    } else {
+      console.log("🅿️ WARNING: No activeCall found - parking lot entry created but call state not updated");
     }
+
+    console.log(`🅿️ parkByCallSid SUCCESS - slot ${slotNumber}, conference: ${args.conferenceName}`);
 
     return {
       success: true,

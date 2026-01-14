@@ -205,10 +205,10 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
           const holdResult = await holdResponse.json();
           const conferenceName = holdResult.conferenceName;
-          console.log(`Call parked in conference: ${conferenceName}`);
+          console.log(`Call parked in conference:`, holdResult);
 
           // Step 3: Save to database
-          await parkByCallSidMutation({
+          console.log(`Calling parkByCallSidMutation with:`, {
             twilioCallSid: callSid,
             conferenceName,
             callerNumber,
@@ -217,6 +217,16 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             parkedByUserId: currentUser?._id,
           });
 
+          const parkResult = await parkByCallSidMutation({
+            twilioCallSid: callSid,
+            conferenceName,
+            callerNumber,
+            callerName,
+            organizationId: convexOrg._id,
+            parkedByUserId: currentUser?._id,
+          });
+
+          console.log(`✅ parkByCallSidMutation returned:`, parkResult);
           console.log(`Call ${callSid} saved to parking lot database`);
         } finally {
           // Step 4: Remove optimistic entry (real one arrives via subscription)
