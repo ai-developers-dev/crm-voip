@@ -6,7 +6,14 @@ import { UserStatusCard } from "./user-status-card";
 import { IncomingCallPopup } from "./incoming-call-popup";
 import { ParkingLot } from "./parking-lot";
 import { ActiveCallCard } from "./active-call-card";
-import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +29,16 @@ interface CallingDashboardProps {
 
 export function CallingDashboard({ organizationId, viewMode = "normal" }: CallingDashboardProps) {
   const [dragActiveCall, setDragActiveCall] = useState<any>(null);
+
+  // Configure drag sensors with activation constraint
+  // Requires 8px movement before drag starts - prevents accidental drags when clicking buttons
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   // Get the Convex organization from Clerk org ID
   const convexOrg = useQuery(
@@ -212,7 +229,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   };
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Status bar */}
         <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
