@@ -247,14 +247,16 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             return;
           }
 
-          console.log(`📞 UNPARKING: ${pstnCallSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
+          // Build the correct Twilio identity: orgId-userId (matches token generation)
+          const targetTwilioIdentity = `${organizationId}-${targetUser.clerkUserId}`;
+          console.log(`📞 UNPARKING: ${pstnCallSid} -> ${targetUser.name} (identity: ${targetTwilioIdentity})`);
 
           const resumeResponse = await fetch("/api/twilio/resume", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               twilioCallSid: pstnCallSid,
-              targetIdentity: targetUser.clerkUserId,
+              targetIdentity: targetTwilioIdentity,
               conferenceName: conferenceName,
             }),
           });
@@ -277,7 +279,9 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             return;
           }
 
-          console.log(`Initiating transfer: ${callSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
+          // Build the correct Twilio identity: orgId-userId (matches token generation)
+          const targetTwilioIdentity = `${organizationId}-${targetUser.clerkUserId}`;
+          console.log(`Initiating transfer: ${callSid} -> ${targetUser.name} (identity: ${targetTwilioIdentity})`);
 
           const transferResponse = await fetch("/api/twilio/transfer", {
             method: "POST",
@@ -285,7 +289,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             body: JSON.stringify({
               twilioCallSid: callSid,
               targetUserId: targetId,
-              targetIdentity: targetUser.clerkUserId,
+              targetIdentity: targetTwilioIdentity,
               type: "direct",
               sourceUserId: currentUser?._id,
             }),
