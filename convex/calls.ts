@@ -536,6 +536,9 @@ export const claimCall = mutation({
     agentClerkId: v.string(),
   },
   handler: async (ctx, args) => {
+    console.log(`\n=== CLAIM CALL MUTATION DEBUG ===`);
+    console.log(`Input: twilioCallSid=${args.twilioCallSid}, agentClerkId=${args.agentClerkId}`);
+
     // Find the call by Twilio SID
     const call = await ctx.db
       .query("activeCalls")
@@ -543,8 +546,10 @@ export const claimCall = mutation({
       .first();
 
     if (!call) {
+      console.log(`❌ Call NOT FOUND in activeCalls table`);
       return { success: false, reason: "call_not_found" };
     }
+    console.log(`✓ Found call: id=${call._id}, org=${call.organizationId}, state=${call.state}`);
 
     // Find the user by Clerk ID AND organization
     // Important: Same Clerk user can exist in multiple orgs, so we must match the org
@@ -553,12 +558,16 @@ export const claimCall = mutation({
       .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.agentClerkId))
       .collect();
 
+    console.log(`✓ Found ${usersWithClerkId.length} users with clerkId ${args.agentClerkId}:`);
+    usersWithClerkId.forEach(u => console.log(`  - ${u.name} (${u._id}) in org ${u.organizationId}`));
+
     const user = usersWithClerkId.find(u => u.organizationId === call.organizationId);
 
     if (!user) {
-      console.log(`User ${args.agentClerkId} not found in org ${call.organizationId}`);
+      console.log(`❌ No user found in call's org ${call.organizationId}`);
       return { success: false, reason: "agent_not_found" };
     }
+    console.log(`✓ Matched user: ${user.name} (${user._id})`)
 
     // Check if already claimed by another agent
     if (call.assignedUserId && call.assignedUserId !== user._id) {
@@ -586,16 +595,22 @@ export const claimCall = mutation({
     const isNewDay = user.lastCallCountReset !== today;
     const currentInbound = isNewDay ? 0 : (user.todayInboundCalls || 0);
     const currentOutbound = isNewDay ? 0 : (user.todayOutboundCalls || 0);
+    const newInbound = currentInbound + 1;
+
+    console.log(`📊 Updating user ${user._id}:`);
+    console.log(`  - isNewDay: ${isNewDay} (lastReset: ${user.lastCallCountReset}, today: ${today})`);
+    console.log(`  - currentInbound: ${currentInbound} -> newInbound: ${newInbound}`);
+    console.log(`  - currentOutbound: ${currentOutbound}`);
 
     await ctx.db.patch(user._id, {
       status: "on_call",
-      todayInboundCalls: currentInbound + 1,
+      todayInboundCalls: newInbound,
       todayOutboundCalls: currentOutbound, // Preserve outbound count
       lastCallCountReset: today,
       updatedAt: Date.now(),
     });
 
-    console.log(`📞 Claimed call and incremented inbound count for ${user.name}`);
+    console.log(`✅ SUCCESS: Claimed call and set todayInboundCalls=${newInbound} for ${user.name}`);
 
     return { success: true, callId: call._id, userId: user._id };
   },
