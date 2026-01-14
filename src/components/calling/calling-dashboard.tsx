@@ -198,7 +198,9 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
           if (!holdResponse.ok) {
             const error = await holdResponse.json();
-            console.error("❌ Failed to park call:", error);
+            console.error("❌ Failed to park call - Status:", holdResponse.status);
+            console.error("❌ Error details:", JSON.stringify(error, null, 2));
+            alert(`Failed to park call: ${error.details || error.error || 'Unknown error'}`);
             removeOptimisticCall(tempId);
             setParkingInProgress(null);
             return;

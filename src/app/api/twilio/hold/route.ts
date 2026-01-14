@@ -70,14 +70,26 @@ export async function POST(request: NextRequest) {
     const client = twilio(accountSid, authToken);
 
     // STEP 1: Fetch the browser SDK call to get the parent call SID
-    console.log(`Step 1: Fetching browser client call: ${twilioCallSid}`);
-    const browserCall = await client.calls(twilioCallSid).fetch();
-    console.log(`Browser call details:`, {
-      sid: browserCall.sid,
-      parentCallSid: browserCall.parentCallSid,
-      direction: browserCall.direction,
-      status: browserCall.status,
-    });
+    let browserCall;
+    let pstnCallSid: string;
+    let parentCall;
+
+    try {
+      console.log(`Step 1: Fetching browser client call: ${twilioCallSid}`);
+      browserCall = await client.calls(twilioCallSid).fetch();
+      console.log(`Browser call details:`, {
+        sid: browserCall.sid,
+        parentCallSid: browserCall.parentCallSid,
+        direction: browserCall.direction,
+        status: browserCall.status,
+      });
+    } catch (twilioError) {
+      console.error("Step 1 FAILED - Could not fetch browser call:", twilioError);
+      return NextResponse.json(
+        { error: "Failed to fetch browser call from Twilio", details: String(twilioError) },
+        { status: 500 }
+      );
+    }
 
     if (!browserCall.parentCallSid) {
       console.error("No parent call found - this may not be a browser client call");
@@ -87,12 +99,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pstnCallSid = browserCall.parentCallSid;
+    pstnCallSid = browserCall.parentCallSid;
     console.log(`PSTN parent call SID: ${pstnCallSid}`);
 
     // Verify parent call is still active
-    const parentCall = await client.calls(pstnCallSid).fetch();
-    console.log(`Parent call status: ${parentCall.status}`);
+    try {
+      parentCall = await client.calls(pstnCallSid).fetch();
+      console.log(`Parent call status: ${parentCall.status}`);
+    } catch (twilioError) {
+      console.error("Step 1b FAILED - Could not fetch parent call:", twilioError);
+      return NextResponse.json(
+        { error: "Failed to fetch parent call from Twilio", details: String(twilioError) },
+        { status: 500 }
+      );
+    }
+
     if (parentCall.status === "completed" || parentCall.status === "canceled") {
       return NextResponse.json(
         { error: `Parent call is already ${parentCall.status}` },
@@ -104,40 +125,62 @@ export async function POST(request: NextRequest) {
     const conferenceName = `park-${pstnCallSid}-${Date.now()}`;
 
     // STEP 2: Save to database FIRST (like working app)
-    // This ensures UI updates immediately via Convex subscription
-    console.log(`Step 2: Saving to database FIRST...`);
-    const convexOrgId = organizationId || org._id;
+    let parkResult;
+    try {
+      console.log(`Step 2: Saving to database FIRST...`);
+      console.log(`  organizationId from request: ${organizationId}`);
+      console.log(`  org._id from query: ${org._id}`);
+      console.log(`  parkedByUserId: ${parkedByUserId}`);
 
-    const parkResult = await convex.mutation(api.calls.parkByCallSid, {
-      twilioCallSid: twilioCallSid, // Browser CallSid for activeCall lookup
-      conferenceName,
-      callerNumber: callerNumber || parentCall.from || "Unknown",
-      callerName: callerName,
-      organizationId: convexOrgId as Id<"organizations">,
-      parkedByUserId: parkedByUserId as Id<"users"> | undefined,
-    });
+      const convexOrgId = organizationId || org._id;
+      console.log(`  Using convexOrgId: ${convexOrgId}`);
 
-    console.log(`✅ Database updated - slot ${parkResult.slotNumber}`, parkResult);
+      parkResult = await convex.mutation(api.calls.parkByCallSid, {
+        twilioCallSid: twilioCallSid,
+        conferenceName,
+        callerNumber: callerNumber || parentCall.from || "Unknown",
+        callerName: callerName,
+        organizationId: convexOrgId as Id<"organizations">,
+        parkedByUserId: parkedByUserId as Id<"users"> | undefined,
+      });
+
+      console.log(`✅ Database updated - slot ${parkResult.slotNumber}`, parkResult);
+    } catch (convexError) {
+      console.error("Step 2 FAILED - Convex mutation error:", convexError);
+      return NextResponse.json(
+        { error: "Failed to save to database", details: String(convexError) },
+        { status: 500 }
+      );
+    }
 
     // STEP 3: NOW redirect the PSTN call to conference
-    console.log(`Step 3: Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
-    const twiml = `
-      <Response>
-        <Dial>
-          <Conference
-            waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical"
-            startConferenceOnEnter="true"
-            endConferenceOnExit="false"
-          >${conferenceName}</Conference>
-        </Dial>
-      </Response>
-    `.trim();
+    try {
+      console.log(`Step 3: Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
+      const twiml = `
+        <Response>
+          <Dial>
+            <Conference
+              waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical"
+              startConferenceOnEnter="true"
+              endConferenceOnExit="false"
+            >${conferenceName}</Conference>
+          </Dial>
+        </Response>
+      `.trim();
 
-    await client.calls(pstnCallSid).update({
-      twiml: twiml,
-    });
+      await client.calls(pstnCallSid).update({
+        twiml: twiml,
+      });
 
-    console.log(`✅ Call parked successfully - PSTN ${pstnCallSid} in conference: ${conferenceName}`);
+      console.log(`✅ Call parked successfully - PSTN ${pstnCallSid} in conference: ${conferenceName}`);
+    } catch (twilioError) {
+      console.error("Step 3 FAILED - Could not redirect call:", twilioError);
+      // Note: DB entry was already created, so call is "parked" in DB but not in Twilio
+      return NextResponse.json(
+        { error: "Failed to redirect call to conference", details: String(twilioError) },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
