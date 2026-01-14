@@ -114,6 +114,15 @@ export async function POST(request: NextRequest) {
           userId, // Track who made the outbound call
         });
         console.log("Created outbound call record in Convex");
+
+        // Increment outbound call count on the user record
+        if (userId) {
+          await convex.mutation(api.users.incrementCallCount, {
+            userId,
+            direction: "outbound",
+          });
+          console.log(`✅ Incremented outbound call count for user ${userId}`);
+        }
       } catch (error) {
         console.error("Failed to create outbound call record:", error);
         // Continue anyway - call can still proceed

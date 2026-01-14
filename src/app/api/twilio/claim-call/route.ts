@@ -39,6 +39,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Increment inbound call count on the user record
+    // This stores the count directly on the user for real-time display
+    if (result.userId) {
+      try {
+        await convex.mutation(api.users.incrementCallCount, {
+          userId: result.userId,
+          direction: "inbound",
+        });
+        console.log(`✅ Incremented inbound call count for user ${result.userId}`);
+      } catch (error) {
+        console.error("Failed to increment call count:", error);
+        // Don't fail the claim if metrics fail
+      }
+    }
+
     console.log(`Agent ${userId} successfully claimed call ${twilioCallSid}`);
     return NextResponse.json({
       success: true,

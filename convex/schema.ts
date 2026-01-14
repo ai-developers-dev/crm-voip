@@ -112,6 +112,10 @@ export default defineSchema({
       v.literal("on_break"),
       v.literal("offline")
     ),
+    // Daily call counts (stored directly on user for simplicity)
+    todayInboundCalls: v.optional(v.number()),
+    todayOutboundCalls: v.optional(v.number()),
+    lastCallCountReset: v.optional(v.string()), // "YYYY-MM-DD" for daily reset
     createdAt: v.number(),
     updatedAt: v.number(),
   })

@@ -583,14 +583,10 @@ export const claimCall = mutation({
       updatedAt: Date.now(),
     });
 
-    // Increment daily call counter for this agent (inbound call)
-    await ctx.runMutation(internal.userMetrics.incrementCallsAccepted, {
-      userId: user._id,
-      organizationId: call.organizationId,
-      direction: "inbound",
-    });
+    // Note: Call count increment is now handled in the API route
+    // using api.users.incrementCallCount for direct user storage
 
-    return { success: true, callId: call._id };
+    return { success: true, callId: call._id, userId: user._id };
   },
 });
 

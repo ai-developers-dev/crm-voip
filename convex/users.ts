@@ -52,7 +52,7 @@ export const getByOrganizationWithMetrics = query({
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
       .collect();
 
-    // Get today's metrics for all users in this org
+    // Get today's metrics for talk time (still using userDailyMetrics for this)
     const metrics = await ctx.db
       .query("userDailyMetrics")
       .withIndex("by_organization_date", (q) =>
@@ -60,19 +60,22 @@ export const getByOrganizationWithMetrics = query({
       )
       .collect();
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup of talk time
     const metricsMap = new Map(metrics.map((m) => [m.userId, m]));
 
     // Combine users with their metrics
+    // Call counts come directly from user record, talk time from userDailyMetrics
     return users.map((user) => {
+      const isToday = user.lastCallCountReset === today;
       const userMetrics = metricsMap.get(user._id);
+
       return {
         ...user,
         todayMetrics: {
-          callsAccepted: userMetrics?.callsAccepted ?? 0,
+          callsAccepted: (isToday ? (user.todayInboundCalls || 0) + (user.todayOutboundCalls || 0) : 0),
           talkTimeSeconds: userMetrics?.talkTimeSeconds ?? 0,
-          inboundCallsAccepted: userMetrics?.inboundCallsAccepted ?? 0,
-          outboundCallsMade: userMetrics?.outboundCallsMade ?? 0,
+          inboundCallsAccepted: isToday ? (user.todayInboundCalls || 0) : 0,
+          outboundCallsMade: isToday ? (user.todayOutboundCalls || 0) : 0,
         },
       };
     });
@@ -410,6 +413,35 @@ export const createUser = mutation({
       createdAt: now,
       updatedAt: now,
     });
+  },
+});
+
+// Mutation to increment call count (inbound or outbound)
+// Stores counts directly on user for real-time display
+export const incrementCallCount = mutation({
+  args: {
+    userId: v.id("users"),
+    direction: v.union(v.literal("inbound"), v.literal("outbound")),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    const today = new Date().toISOString().split("T")[0];
+    const isNewDay = user.lastCallCountReset !== today;
+
+    // Reset counts if it's a new day
+    const currentInbound = isNewDay ? 0 : (user.todayInboundCalls || 0);
+    const currentOutbound = isNewDay ? 0 : (user.todayOutboundCalls || 0);
+
+    await ctx.db.patch(args.userId, {
+      todayInboundCalls: args.direction === "inbound" ? currentInbound + 1 : currentInbound,
+      todayOutboundCalls: args.direction === "outbound" ? currentOutbound + 1 : currentOutbound,
+      lastCallCountReset: today,
+      updatedAt: Date.now(),
+    });
+
+    console.log(`📞 Incremented ${args.direction} call count for user ${args.userId}`);
   },
 });
 
