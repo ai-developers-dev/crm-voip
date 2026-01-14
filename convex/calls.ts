@@ -93,6 +93,7 @@ export const createOutgoing = mutation({
     from: v.string(),
     to: v.string(),
     toName: v.optional(v.string()),
+    userId: v.optional(v.id("users")), // User who made the outbound call
   },
   handler: async (ctx, args) => {
     // Check if call already exists
@@ -103,6 +104,15 @@ export const createOutgoing = mutation({
 
     if (existing) {
       return existing._id;
+    }
+
+    // Increment daily outbound call counter for this agent
+    if (args.userId) {
+      await ctx.runMutation(internal.userMetrics.incrementCallsAccepted, {
+        userId: args.userId,
+        organizationId: args.organizationId,
+        direction: "outbound",
+      });
     }
 
     // Create new outgoing call
@@ -116,6 +126,7 @@ export const createOutgoing = mutation({
       state: "connecting",
       startedAt: Date.now(),
       isRecording: false,
+      assignedUserId: args.userId,
     });
   },
 });
@@ -572,10 +583,11 @@ export const claimCall = mutation({
       updatedAt: Date.now(),
     });
 
-    // Increment daily call counter for this agent
+    // Increment daily call counter for this agent (inbound call)
     await ctx.runMutation(internal.userMetrics.incrementCallsAccepted, {
       userId: user._id,
       organizationId: call.organizationId,
+      direction: "inbound",
     });
 
     return { success: true, callId: call._id };

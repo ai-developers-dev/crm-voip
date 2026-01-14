@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Phone, Clock, PhoneCall, PhoneOff } from "lucide-react";
+import { Phone, Clock, PhoneCall, PhoneOff, PhoneIncoming, PhoneOutgoing } from "lucide-react";
 import { ActiveCallCard } from "./active-call-card";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useState, useEffect, useCallback } from "react";
@@ -25,6 +25,8 @@ interface UserStatusCardProps {
   todayMetrics?: {
     callsAccepted: number;
     talkTimeSeconds: number;
+    inboundCallsAccepted: number;
+    outboundCallsMade: number;
   };
   activeCalls: any[];
   twilioActiveCall?: any;
@@ -223,11 +225,17 @@ export function UserStatusCard({
           </div>
 
           {/* Daily metrics */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1" title="Calls accepted today">
-              <Phone className="h-4 w-4" />
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1" title="Inbound calls accepted today">
+              <PhoneIncoming className="h-4 w-4 text-green-600" />
               <span className="font-medium tabular-nums">
-                {todayMetrics?.callsAccepted ?? 0}
+                {todayMetrics?.inboundCallsAccepted ?? 0}
+              </span>
+            </div>
+            <div className="flex items-center gap-1" title="Outbound calls made today">
+              <PhoneOutgoing className="h-4 w-4 text-blue-600" />
+              <span className="font-medium tabular-nums">
+                {todayMetrics?.outboundCallsMade ?? 0}
               </span>
             </div>
             <div className="flex items-center gap-1" title="Talk time today">

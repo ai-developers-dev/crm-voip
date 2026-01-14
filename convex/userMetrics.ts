@@ -6,11 +6,12 @@ function getTodayDateString(): string {
   return new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
 }
 
-// Internal mutation to increment call count when call is answered
+// Internal mutation to increment call count when call is answered/made
 export const incrementCallsAccepted = internalMutation({
   args: {
     userId: v.id("users"),
     organizationId: v.id("organizations"),
+    direction: v.union(v.literal("inbound"), v.literal("outbound")),
   },
   handler: async (ctx, args) => {
     const today = getTodayDateString();
@@ -21,9 +22,13 @@ export const incrementCallsAccepted = internalMutation({
       )
       .first();
 
+    const isInbound = args.direction === "inbound";
+
     if (existing) {
       await ctx.db.patch(existing._id, {
         callsAccepted: existing.callsAccepted + 1,
+        inboundCallsAccepted: (existing.inboundCallsAccepted ?? 0) + (isInbound ? 1 : 0),
+        outboundCallsMade: (existing.outboundCallsMade ?? 0) + (isInbound ? 0 : 1),
         updatedAt: Date.now(),
       });
     } else {
@@ -33,6 +38,8 @@ export const incrementCallsAccepted = internalMutation({
         date: today,
         callsAccepted: 1,
         talkTimeSeconds: 0,
+        inboundCallsAccepted: isInbound ? 1 : 0,
+        outboundCallsMade: isInbound ? 0 : 1,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -69,6 +76,8 @@ export const addTalkTime = internalMutation({
         date: today,
         callsAccepted: 0,
         talkTimeSeconds: args.talkTimeSeconds,
+        inboundCallsAccepted: 0,
+        outboundCallsMade: 0,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });

@@ -538,6 +538,8 @@ export default defineSchema({
     date: v.string(), // "YYYY-MM-DD"
     callsAccepted: v.number(),
     talkTimeSeconds: v.number(),
+    inboundCallsAccepted: v.optional(v.number()), // Inbound calls answered today
+    outboundCallsMade: v.optional(v.number()), // Outbound calls made today
     createdAt: v.number(),
     updatedAt: v.number(),
   })

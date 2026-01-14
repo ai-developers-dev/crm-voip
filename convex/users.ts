@@ -64,13 +64,18 @@ export const getByOrganizationWithMetrics = query({
     const metricsMap = new Map(metrics.map((m) => [m.userId, m]));
 
     // Combine users with their metrics
-    return users.map((user) => ({
-      ...user,
-      todayMetrics: metricsMap.get(user._id) || {
-        callsAccepted: 0,
-        talkTimeSeconds: 0,
-      },
-    }));
+    return users.map((user) => {
+      const userMetrics = metricsMap.get(user._id);
+      return {
+        ...user,
+        todayMetrics: {
+          callsAccepted: userMetrics?.callsAccepted ?? 0,
+          talkTimeSeconds: userMetrics?.talkTimeSeconds ?? 0,
+          inboundCallsAccepted: userMetrics?.inboundCallsAccepted ?? 0,
+          outboundCallsMade: userMetrics?.outboundCallsMade ?? 0,
+        },
+      };
+    });
   },
 });
 

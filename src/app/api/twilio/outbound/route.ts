@@ -80,6 +80,28 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
     const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
 
+    // Parse clerkUserId from the identity (format: clerkOrgId-clerkUserId)
+    // The "from" field contains the Twilio client identity
+    let userId: Id<"users"> | undefined;
+    if (from && from.includes("-") && organizationId) {
+      const parts = from.split("-");
+      if (parts.length >= 2) {
+        const clerkUserId = parts.slice(1).join("-"); // Handle IDs with dashes
+        try {
+          const user = await convex.query(api.users.getByClerkId, {
+            clerkUserId,
+            organizationId: organizationId as Id<"organizations">,
+          });
+          if (user) {
+            userId = user._id;
+            console.log(`Identified outbound caller: ${user.name} (${userId})`);
+          }
+        } catch (error) {
+          console.error("Failed to lookup user for outbound call:", error);
+        }
+      }
+    }
+
     // Create outbound call record in Convex if organizationId provided
     if (organizationId) {
       try {
@@ -89,6 +111,7 @@ export async function POST(request: NextRequest) {
           from: twilioNumber || from,
           to: formattedTo,
           toName: contactName || undefined,
+          userId, // Track who made the outbound call
         });
         console.log("Created outbound call record in Convex");
       } catch (error) {
