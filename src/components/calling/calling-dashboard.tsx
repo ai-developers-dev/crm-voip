@@ -401,20 +401,15 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         </div>
       </div>
 
-      {/* Drag overlay - matches parking slot dimensions */}
+      {/* Drag overlay - compact card that matches parking slot size */}
       <DragOverlay>
         {dragActiveCall ? (
-          <div className="w-56 flex items-center gap-3 rounded-md border p-3 shadow-lg bg-primary/10 dark:bg-primary/20 cursor-grabbing">
+          <div className="w-48 flex items-center gap-2 rounded-md border-2 border-primary p-2 shadow-xl bg-white dark:bg-slate-900 cursor-grabbing">
             <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold flex-shrink-0">
-              <Phone className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium truncate block">
-                {dragActiveCall.fromName || dragActiveCall.from}
-              </span>
-              <p className="text-xs text-muted-foreground">Drop to park</p>
-            </div>
+            <Phone className="h-4 w-4 text-primary flex-shrink-0" />
+            <span className="text-sm font-medium truncate flex-1">
+              {dragActiveCall.fromName || dragActiveCall.from}
+            </span>
           </div>
         ) : null}
       </DragOverlay>

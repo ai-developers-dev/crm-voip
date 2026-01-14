@@ -149,17 +149,28 @@ export function ActiveCallCard({
           "flex items-center gap-2 rounded-md border bg-primary/5 dark:bg-primary/10 p-2 cursor-grab active:cursor-grabbing",
           isDragging && "ring-2 ring-primary"
         )}
-        {...listeners}
-        {...attributes}
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        {/* Drag handle - only this part triggers drag */}
+        <div {...listeners} {...attributes} className="cursor-grab">
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
         <Phone className="h-4 w-4 text-primary" />
         <span className="flex-1 text-sm font-medium truncate">
           {call.fromName || call.from}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {formatDuration(duration)}
         </span>
+        {/* Disconnect button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+          onClick={handleEndCall}
+          title="End Call"
+        >
+          <PhoneOff className="h-4 w-4" />
+        </Button>
       </div>
     );
   }
