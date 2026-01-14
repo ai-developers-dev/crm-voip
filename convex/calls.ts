@@ -1,5 +1,6 @@
 import { mutation, query, internalMutation, internalQuery, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 // Query to get all active calls for an organization
 export const getActive = query({
@@ -454,6 +455,12 @@ export const claimCall = mutation({
       updatedAt: Date.now(),
     });
 
+    // Increment daily call counter for this agent
+    await ctx.runMutation(internal.userMetrics.incrementCallsAccepted, {
+      userId: user._id,
+      organizationId: call.organizationId,
+    });
+
     return { success: true, callId: call._id };
   },
 });
@@ -464,6 +471,8 @@ export const end = mutation({
   handler: async (ctx, args) => {
     const call = await ctx.db.get(args.callId);
     if (!call) throw new Error("Call not found");
+
+    const talkTimeSeconds = call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0;
 
     // Move to history
     await ctx.db.insert("callHistory", {
@@ -479,9 +488,18 @@ export const end = mutation({
       startedAt: call.startedAt,
       answeredAt: call.answeredAt,
       endedAt: Date.now(),
-      duration: call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0,
+      duration: talkTimeSeconds,
       notes: call.notes,
     });
+
+    // Add talk time to agent's daily metrics
+    if (call.assignedUserId && talkTimeSeconds > 0) {
+      await ctx.runMutation(internal.userMetrics.addTalkTime, {
+        userId: call.assignedUserId,
+        organizationId: call.organizationId,
+        talkTimeSeconds,
+      });
+    }
 
     // Update user status
     if (call.assignedUserId) {
@@ -512,6 +530,8 @@ export const endByCallSid = mutation({
       return { success: true, alreadyCleaned: true };
     }
 
+    const talkTimeSeconds = call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0;
+
     // Move to history
     await ctx.db.insert("callHistory", {
       organizationId: call.organizationId,
@@ -526,9 +546,18 @@ export const endByCallSid = mutation({
       startedAt: call.startedAt,
       answeredAt: call.answeredAt,
       endedAt: Date.now(),
-      duration: call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0,
+      duration: talkTimeSeconds,
       notes: call.notes,
     });
+
+    // Add talk time to agent's daily metrics
+    if (call.assignedUserId && talkTimeSeconds > 0) {
+      await ctx.runMutation(internal.userMetrics.addTalkTime, {
+        userId: call.assignedUserId,
+        organizationId: call.organizationId,
+        talkTimeSeconds,
+      });
+    }
 
     // Update user status
     if (call.assignedUserId) {

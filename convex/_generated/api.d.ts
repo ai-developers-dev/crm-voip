@@ -12,9 +12,11 @@ import type * as calls from "../calls.js";
 import type * as http from "../http.js";
 import type * as organizations from "../organizations.js";
 import type * as parkingLot from "../parkingLot.js";
+import type * as pendingTransfers from "../pendingTransfers.js";
 import type * as phoneNumbers from "../phoneNumbers.js";
 import type * as platformUsers from "../platformUsers.js";
 import type * as presence from "../presence.js";
+import type * as userMetrics from "../userMetrics.js";
 import type * as users from "../users.js";
 
 import type {
@@ -28,9 +30,11 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   organizations: typeof organizations;
   parkingLot: typeof parkingLot;
+  pendingTransfers: typeof pendingTransfers;
   phoneNumbers: typeof phoneNumbers;
   platformUsers: typeof platformUsers;
   presence: typeof presence;
+  userMetrics: typeof userMetrics;
   users: typeof users;
 }>;
 

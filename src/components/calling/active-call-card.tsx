@@ -23,6 +23,7 @@ import type { Call } from "@twilio/voice-sdk";
 interface ActiveCallCardProps {
   call: {
     _id: string;
+    twilioCallSid?: string;
     from: string;
     fromName?: string;
     state: string;

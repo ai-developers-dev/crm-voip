@@ -40,6 +40,40 @@ export const getByOrganization = query({
   },
 });
 
+// Query to get all users in an organization with their daily metrics
+export const getByOrganizationWithMetrics = query({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+
+    // Get all users
+    const users = await ctx.db
+      .query("users")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    // Get today's metrics for all users in this org
+    const metrics = await ctx.db
+      .query("userDailyMetrics")
+      .withIndex("by_organization_date", (q) =>
+        q.eq("organizationId", args.organizationId).eq("date", today)
+      )
+      .collect();
+
+    // Create a map for quick lookup
+    const metricsMap = new Map(metrics.map((m) => [m.userId, m]));
+
+    // Combine users with their metrics
+    return users.map((user) => ({
+      ...user,
+      todayMetrics: metricsMap.get(user._id) || {
+        callsAccepted: 0,
+        talkTimeSeconds: 0,
+      },
+    }));
+  },
+});
+
 // Query to get current user by organization (uses Clerk identity)
 export const getCurrentByOrg = query({
   args: { organizationId: v.id("organizations") },

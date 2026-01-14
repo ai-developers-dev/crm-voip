@@ -265,6 +265,33 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_organization_slot", ["organizationId", "slotNumber"]),
 
+  // Pending Transfers (for transfer workflow with ringing)
+  pendingTransfers: defineTable({
+    organizationId: v.id("organizations"),
+    activeCallId: v.id("activeCalls"),
+    twilioCallSid: v.string(),
+    sourceUserId: v.optional(v.id("users")), // Who initiated the transfer (null if from parking)
+    targetUserId: v.id("users"), // Who needs to answer
+    targetTwilioCallSid: v.optional(v.string()), // SID of the outbound call to target
+    status: v.union(
+      v.literal("ringing"),   // Target agent's phone is ringing
+      v.literal("accepted"),  // Target answered
+      v.literal("declined"),  // Target rejected
+      v.literal("timeout")    // No answer within timeout
+    ),
+    type: v.union(
+      v.literal("direct"),    // Direct transfer from agent to agent
+      v.literal("from_park")  // Transfer from parking slot
+    ),
+    returnToParkSlot: v.optional(v.number()), // If declined and from_park, return here
+    createdAt: v.number(),
+    expiresAt: v.number(), // When the ringing times out
+  })
+    .index("by_target_user_status", ["targetUserId", "status"])
+    .index("by_call", ["activeCallId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_twilio_sid", ["twilioCallSid"]),
+
   // Real-time Presence
   presence: defineTable({
     organizationId: v.id("organizations"),
@@ -478,6 +505,19 @@ export default defineSchema({
   })
     .index("by_organization_date", ["organizationId", "date"])
     .index("by_date", ["date"]),
+
+  // User Daily Metrics (per-agent dashboard display)
+  userDailyMetrics: defineTable({
+    userId: v.id("users"),
+    organizationId: v.id("organizations"),
+    date: v.string(), // "YYYY-MM-DD"
+    callsAccepted: v.number(),
+    talkTimeSeconds: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_date", ["userId", "date"])
+    .index("by_organization_date", ["organizationId", "date"]),
 
   // ============================================
   // AUDIT & COMPLIANCE TABLES

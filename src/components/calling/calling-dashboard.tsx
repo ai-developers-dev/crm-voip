@@ -51,7 +51,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
   const endCallMutation = useMutation(api.calls.end);
   const parkCallMutation = useMutation(api.calls.park);
-  const transferCallMutation = useMutation(api.calls.transfer);
   const heartbeat = useMutation(api.presence.heartbeat);
 
   // Presence heartbeat - runs every 30 seconds
@@ -124,23 +123,88 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
     if (!over) return;
 
     const callId = active.id as string;
+    const callData = active.data.current?.call;
+    const twilioCallSid = callData?.twilioCallSid || twilioActiveCall?.parameters?.CallSid;
     const targetType = over.data.current?.type;
     const targetId = over.id as string;
 
     try {
       if (targetType === "parking-slot") {
-        // Park the call
-        const slotNumber = parseInt(targetId.replace("slot-", ""));
+        // Park the call with hold music
+        const slotNumber = parseInt(targetId.replace("parking-", ""));
+
+        // Step 1: Put call on hold via Twilio REST API (plays hold music)
+        if (twilioCallSid) {
+          console.log(`Putting call ${twilioCallSid} on hold before parking`);
+          const holdResponse = await fetch("/api/twilio/hold", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ twilioCallSid }),
+          });
+
+          if (!holdResponse.ok) {
+            const error = await holdResponse.json();
+            console.error("Failed to put call on hold:", error);
+            // Continue with DB update even if Twilio fails
+          }
+        }
+
+        // Step 2: Update database state
         await parkCallMutation({
           callId: callId as Id<"activeCalls">,
           slotNumber,
         });
+
+        // Step 3: Disconnect local Twilio SDK call (caller is now on hold music)
+        if (twilioActiveCall) {
+          twilioActiveCall.disconnect();
+        }
       } else if (targetType === "user") {
-        // Transfer the call
-        await transferCallMutation({
-          callId: callId as Id<"activeCalls">,
-          targetUserId: targetId as Id<"users">,
+        // Transfer the call to another user with ringing
+        const targetUser = over.data.current?.user;
+        const sourceType = active.data.current?.type;
+        const isFromParking = sourceType === "parked-call";
+        const parkingSlot = active.data.current?.slotNumber;
+
+        if (!targetUser?.clerkUserId) {
+          console.error("Target user clerkUserId not found");
+          return;
+        }
+
+        if (!twilioCallSid) {
+          console.error("Twilio call SID not found for transfer");
+          return;
+        }
+
+        console.log(`Initiating transfer: ${twilioCallSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
+
+        const transferResponse = await fetch("/api/twilio/transfer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            twilioCallSid,
+            activeCallId: callId,
+            targetUserId: targetId,
+            targetIdentity: targetUser.clerkUserId,
+            type: isFromParking ? "from_park" : "direct",
+            returnToParkSlot: isFromParking ? parkingSlot : undefined,
+            sourceUserId: currentUser?._id,
+          }),
         });
+
+        if (!transferResponse.ok) {
+          const error = await transferResponse.json();
+          console.error("Transfer failed:", error);
+        } else {
+          const result = await transferResponse.json();
+          console.log("Transfer initiated:", result);
+
+          // Disconnect local Twilio SDK call - caller is now on hold music
+          // The target agent will receive a new incoming call
+          if (twilioActiveCall && !isFromParking) {
+            twilioActiveCall.disconnect();
+          }
+        }
       }
     } catch (error) {
       console.error("Drag operation failed:", error);
@@ -286,9 +350,9 @@ interface AgentGridProps {
 }
 
 function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCall, onHangUp, onToggleMute }: AgentGridProps) {
-  // Fetch real users from Convex
-  const users = useQuery(
-    api.users.getByOrganization,
+  // Fetch users with their daily metrics from Convex
+  const usersWithMetrics = useQuery(
+    api.users.getByOrganizationWithMetrics,
     convexOrgId ? { organizationId: convexOrgId } : "skip"
   );
 
@@ -299,7 +363,7 @@ function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCal
   );
 
   // Show loading while fetching
-  if (convexOrgId === undefined || users === undefined) {
+  if (convexOrgId === undefined || usersWithMetrics === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -310,7 +374,7 @@ function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCal
     );
   }
 
-  if (!users || users.length === 0) {
+  if (!usersWithMetrics || usersWithMetrics.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
         <Card className="max-w-md">
@@ -341,8 +405,8 @@ function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCal
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {users.map((user) => {
+    <div className="flex flex-col gap-2 max-w-4xl">
+      {usersWithMetrics.map((user) => {
         // Pass Twilio call only to the current user's card
         const isCurrentUser = currentUserId && user._id === currentUserId;
         return (
@@ -350,10 +414,12 @@ function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCal
             key={user._id}
             user={{
               id: user._id,
+              clerkUserId: user.clerkUserId,
               name: user.name,
               status: user.status,
               avatarUrl: user.avatarUrl || null,
             }}
+            todayMetrics={user.todayMetrics}
             activeCalls={callsByUser.get(user._id) || []}
             twilioActiveCall={isCurrentUser ? twilioActiveCall : undefined}
             onHangUp={isCurrentUser ? onHangUp : undefined}
