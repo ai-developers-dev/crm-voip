@@ -16,6 +16,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  * 3. THEN redirect the call to conference
  *
  * This ensures the parking lot entry exists before any status callbacks arrive.
+ * Updated: 2026-01-14 - Convex functions deployed
  */
 export async function POST(request: NextRequest) {
   try {
