@@ -51,7 +51,15 @@ export function ActiveCallCard({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: call._id,
-      data: { type: "call", call },
+      data: {
+        type: "call",
+        call,
+        callObject: activeCall,
+        callerId: call.from,
+        callerName: call.fromName,
+        twilioCallSid: call.twilioCallSid,
+        isParked: false, // Explicitly mark as not parked (matches working app)
+      },
     });
 
   const style = {

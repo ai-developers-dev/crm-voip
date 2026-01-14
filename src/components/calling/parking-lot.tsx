@@ -46,12 +46,16 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
       call: null,
     }));
 
+    // Debug: Log raw DB data
+    console.log("🅿️ ParkingLot - dbSlots from query:", dbSlots);
+    console.log("🅿️ ParkingLot - optimisticCalls:", optimisticCalls);
+
     // Fill in from DB
     if (dbSlots) {
       for (const dbSlot of dbSlots) {
         const idx = dbSlot.slotNumber - 1;
         if (idx >= 0 && idx < 10) {
-          slots[idx] = {
+          const slotData = {
             slotNumber: dbSlot.slotNumber,
             isOccupied: dbSlot.isOccupied,
             call: dbSlot.call || {
@@ -60,6 +64,17 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
               conferenceName: dbSlot.conferenceName,
             },
           };
+          slots[idx] = slotData;
+
+          // Debug: Log each occupied slot
+          if (dbSlot.isOccupied) {
+            console.log(`🅿️ Slot ${dbSlot.slotNumber} OCCUPIED:`, {
+              callerNumber: dbSlot.callerNumber,
+              callerName: dbSlot.callerName,
+              hasCall: !!dbSlot.call,
+              conferenceName: dbSlot.conferenceName,
+            });
+          }
         }
       }
     }
@@ -81,8 +96,13 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
             conferenceName: optCall.conferenceName,
           },
         };
+        console.log(`🅿️ Optimistic slot ${emptyIdx + 1}:`, optCall);
       }
     }
+
+    // Debug: Count occupied slots
+    const occupiedCount = slots.filter(s => s.isOccupied).length;
+    console.log(`🅿️ Total occupied slots: ${occupiedCount}`);
 
     return slots;
   }, [dbSlots, optimisticCalls]);

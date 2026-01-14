@@ -212,11 +212,17 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           setParkingInProgress(null);
         }
 
-        // Step 4: Disconnect browser SDK call (caller stays in conference on hold)
-        if (twilioActiveCall) {
-          console.log("Disconnecting browser SDK call - caller remains in conference");
-          twilioActiveCall.disconnect();
-        }
+        // Step 4: The browser SDK call will disconnect automatically when the PSTN
+        // parent call is redirected to the conference. We don't need to manually
+        // disconnect it - this matches the working app pattern.
+        // The Twilio status callback will handle cleanup.
+        console.log("Waiting for browser SDK call to disconnect naturally...");
+
+        // NOTE: If the call doesn't disconnect naturally within a few seconds,
+        // we may need to disconnect it manually. But try natural first.
+        // if (twilioActiveCall) {
+        //   twilioActiveCall.disconnect();
+        // }
       } else if (targetId.startsWith("user-")) {
         // Transfer the call to another user with ringing
         const targetUser = over.data.current?.user;
