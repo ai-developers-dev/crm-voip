@@ -140,36 +140,44 @@ export function ActiveCallCard({
     [activeCall, call._id, endCallMutation, onEndCall]
   );
 
+  // Simple row layout - no card wrapper, just a draggable div
   if (compact) {
     return (
       <div
         ref={setNodeRef}
         style={style}
         className={cn(
-          "flex items-center gap-2 rounded-md border bg-primary/5 dark:bg-primary/10 p-2 cursor-grab active:cursor-grabbing",
-          isDragging && "ring-2 ring-primary"
+          "flex items-center gap-3 p-2 rounded-lg bg-primary/10 dark:bg-primary/20 touch-none select-none",
+          isDragging && "opacity-50 ring-2 ring-primary"
         )}
-        {...listeners}
-        {...attributes}
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-        <Phone className="h-4 w-4 text-primary" />
-        <span className="flex-1 text-sm font-medium truncate">
-          {call.fromName || call.from}
-        </span>
-        <span className="text-xs text-muted-foreground tabular-nums">
+        {/* Drag handle area */}
+        <div
+          {...listeners}
+          {...attributes}
+          className="flex items-center gap-2 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <Phone className="h-4 w-4 text-primary flex-shrink-0" />
+          <span className="text-sm font-medium truncate">
+            {call.fromName || call.from}
+          </span>
+        </div>
+
+        {/* Duration */}
+        <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
           {formatDuration(duration)}
         </span>
-        {/* Disconnect button - stopPropagation prevents drag when clicking */}
+
+        {/* End call button */}
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:bg-destructive/10"
+          variant="destructive"
+          size="sm"
+          className="h-7 w-7 p-0 flex-shrink-0"
           onClick={handleEndCall}
-          onPointerDown={(e) => e.stopPropagation()}
           title="End Call"
         >
-          <PhoneOff className="h-4 w-4" />
+          <PhoneOff className="h-3.5 w-3.5" />
         </Button>
       </div>
     );
