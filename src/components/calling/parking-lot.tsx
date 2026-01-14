@@ -21,7 +21,9 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
   });
 
   // Get optimistic calls from Zustand store
-  const optimisticCalls = useParkingStore((s) => s.getAllOptimisticCalls());
+  // Select the raw object to avoid creating new array references on every render
+  const optimisticCallsMap = useParkingStore((s) => s.optimisticCalls);
+  const optimisticCalls = useMemo(() => Object.values(optimisticCallsMap), [optimisticCallsMap]);
   const parkingInProgress = useParkingStore((s) => s.parkingInProgress);
 
   // Single droppable for entire parking lot (not per-slot)
