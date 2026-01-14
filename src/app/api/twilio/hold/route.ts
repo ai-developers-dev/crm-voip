@@ -68,8 +68,31 @@ export async function POST(request: NextRequest) {
     // Create Twilio REST client
     const client = twilio(accountSid, authToken);
 
+    // Fetch the browser SDK call to get the parent call SID
+    // The browser call is a CHILD call - the PSTN caller is the PARENT
+    console.log(`Fetching browser client call: ${twilioCallSid}`);
+    const browserCall = await client.calls(twilioCallSid).fetch();
+    console.log(`Browser call details:`, {
+      sid: browserCall.sid,
+      parentCallSid: browserCall.parentCallSid,
+      direction: browserCall.direction,
+      status: browserCall.status,
+    });
+
+    // The parent call is the PSTN caller we want to park
+    if (!browserCall.parentCallSid) {
+      console.error("No parent call found - this may not be a browser client call");
+      return NextResponse.json(
+        { error: "No parent call found - cannot park this call" },
+        { status: 400 }
+      );
+    }
+
+    const pstnCallSid = browserCall.parentCallSid;
+    console.log(`PSTN parent call SID: ${pstnCallSid}`);
+
     // Create unique conference name for this parked call
-    const conferenceName = `park-${twilioCallSid}-${Date.now()}`;
+    const conferenceName = `park-${pstnCallSid}-${Date.now()}`;
 
     // Conference-based parking with hold music
     // - waitUrl: Plays hold music from Twilio's free twimlet
@@ -87,17 +110,19 @@ export async function POST(request: NextRequest) {
       </Response>
     `.trim();
 
-    // Update the call with conference TwiML
-    await client.calls(twilioCallSid).update({
+    // Redirect the PARENT call (PSTN caller) to the conference
+    console.log(`Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
+    await client.calls(pstnCallSid).update({
       twiml: twiml,
     });
 
-    console.log(`Call ${twilioCallSid} parked in conference: ${conferenceName}`);
+    console.log(`✅ Call parked successfully - PSTN ${pstnCallSid} in conference: ${conferenceName}`);
 
     return NextResponse.json({
       success: true,
       conferenceName,
-      twilioCallSid,
+      pstnCallSid,
+      browserCallSid: twilioCallSid,
       message: "Call parked in conference with hold music"
     });
   } catch (error) {

@@ -13,7 +13,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCenter,
 } from "@dnd-kit/core";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -146,17 +145,17 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
     if (!over) return;
 
-    const callId = active.id as string;
-    const callData = active.data.current?.call;
-    const twilioCallSid = callData?.twilioCallSid || twilioActiveCall?.parameters?.CallSid;
-    const targetType = over.data.current?.type;
+    const dragData = active.data.current;
     const targetId = over.id as string;
 
     try {
-      if (targetType === "parking-lot") {
-        // Conference-based parking with optimistic UI updates
-        if (!twilioCallSid) {
-          console.error("No twilioCallSid available for parking");
+      // Check over.id directly (like working app) - not over.data.current?.type
+      if (over.id === "parking-lot" && dragData?.type === "call" && !dragData?.isParked) {
+        console.log("🚗 PARKING CALL - drop detected on parking-lot");
+
+        // Use twilioActiveCall directly from hook (like working app)
+        if (!twilioActiveCall) {
+          console.error("No active call to park");
           return;
         }
 
@@ -165,17 +164,18 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           return;
         }
 
-        // Get caller info from the call data or Twilio parameters
-        const callerNumber = callData?.from || twilioActiveCall?.parameters?.From || "Unknown";
-        const callerName = callData?.fromName || undefined;
+        // Get call info directly from Twilio SDK call
+        const callSid = twilioActiveCall.parameters.CallSid;
+        const callerNumber = twilioActiveCall.parameters.From || "Unknown";
+        const callerName = dragData?.call?.fromName || undefined;
 
         // Step 1: Optimistically add to parking lot UI
         const tempId = generateTempParkingId();
         console.log(`Adding optimistic parking entry: ${tempId}`);
-        setParkingInProgress(twilioCallSid);
+        setParkingInProgress(callSid);
         addOptimisticCall({
           id: tempId,
-          twilioCallSid,
+          twilioCallSid: callSid,
           callerNumber,
           callerName,
           parkedAt: Date.now(),
@@ -184,12 +184,12 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
         try {
           // Step 2: Call Twilio API to put call in conference with hold music
-          console.log(`Parking call ${twilioCallSid} using conference`);
+          console.log(`Parking call ${callSid} using conference`);
           const holdResponse = await fetch("/api/twilio/hold", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              twilioCallSid,
+              twilioCallSid: callSid,
               callerNumber,
               callerName,
             }),
@@ -209,7 +209,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
           // Step 3: Save to database
           await parkByCallSidMutation({
-            twilioCallSid,
+            twilioCallSid: callSid,
             conferenceName,
             callerNumber,
             callerName,
@@ -217,7 +217,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             parkedByUserId: currentUser?._id,
           });
 
-          console.log(`Call ${twilioCallSid} saved to parking lot database`);
+          console.log(`Call ${callSid} saved to parking lot database`);
         } finally {
           // Step 4: Remove optimistic entry (real one arrives via subscription)
           removeOptimisticCall(tempId);
@@ -229,31 +229,35 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           console.log("Disconnecting local Twilio call - caller remains in conference");
           twilioActiveCall.disconnect();
         }
-      } else if (targetType === "user") {
+      } else if (targetId.startsWith("user-")) {
         // Transfer the call to another user with ringing
         const targetUser = over.data.current?.user;
         const sourceType = active.data.current?.type;
         const isFromParking = sourceType === "parked-call";
         const parkingSlot = active.data.current?.slotNumber;
 
+        // Get call SID from Twilio SDK or drag data (for parked calls)
+        const callSid = isFromParking
+          ? dragData?.twilioCallSid
+          : twilioActiveCall?.parameters?.CallSid;
+
         if (!targetUser?.clerkUserId) {
           console.error("Target user clerkUserId not found");
           return;
         }
 
-        if (!twilioCallSid) {
+        if (!callSid) {
           console.error("Twilio call SID not found for transfer");
           return;
         }
 
-        console.log(`Initiating transfer: ${twilioCallSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
+        console.log(`Initiating transfer: ${callSid} -> ${targetUser.name} (${targetUser.clerkUserId})`);
 
         const transferResponse = await fetch("/api/twilio/transfer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            twilioCallSid,
-            activeCallId: callId,
+            twilioCallSid: callSid,
             targetUserId: targetId,
             targetIdentity: targetUser.clerkUserId,
             type: isFromParking ? "from_park" : "direct",
@@ -284,7 +288,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
