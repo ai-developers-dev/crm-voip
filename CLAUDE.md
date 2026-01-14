@@ -81,3 +81,187 @@ See `/convex/schema.ts` for complete schema including:
 - [ ] Call recording playback
 - [ ] IVR configuration
 - [ ] Call queues
+
+---
+
+## Expert Agent Knowledge Base
+
+### parking-lot-expert Patterns
+
+**CRITICAL: Conference-Based Parking (NOT Simple Hold)**
+
+Simple URL redirect to hold music does NOT work for call parking. The call will disconnect when the agent hangs up. You MUST use conference-based parking:
+
+```typescript
+// CORRECT: Conference-based parking
+const conferenceName = `park-${twilioCallSid}-${Date.now()}`;
+const twiml = `
+  <Response>
+    <Dial>
+      <Conference
+        waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical"
+        startConferenceOnEnter="true"
+        endConferenceOnExit="false"
+      >${conferenceName}</Conference>
+    </Dial>
+  </Response>
+`;
+await client.calls(twilioCallSid).update({ twiml });
+
+// WRONG: Simple hold music redirect (call ends when agent disconnects)
+// await client.calls(twilioCallSid).update({ url: holdMusicUrl });
+```
+
+**Key Attributes:**
+- `endConferenceOnExit="false"` - Call persists after agent disconnects
+- `waitUrl` - Plays hold music from Twilio twimlet
+- `startConferenceOnEnter="true"` - Conference starts immediately
+
+**Use twilioCallSid as Primary Identifier**
+
+Never rely on Convex `_id` for parking operations. The call record may not exist in the database yet due to race conditions:
+
+```typescript
+// CORRECT: Use twilioCallSid
+export const parkByCallSid = mutation({
+  args: {
+    twilioCallSid: v.string(),
+    conferenceName: v.string(),
+    callerNumber: v.string(),
+    // ...
+  },
+  handler: async (ctx, args) => {
+    // Find call by twilioCallSid, or create parking record without it
+  },
+});
+
+// WRONG: Requiring Convex _id
+// parkCallMutation({ callId: callId as Id<"activeCalls">, ... })
+```
+
+**Parking Lot Schema Must Store Conference Info**
+
+```typescript
+parkingLots: defineTable({
+  organizationId: v.id("organizations"),
+  slotNumber: v.number(),
+  isOccupied: v.boolean(),
+  conferenceName: v.optional(v.string()), // Required for unparking
+  callerNumber: v.optional(v.string()),
+  callerName: v.optional(v.string()),
+  // ...
+})
+```
+
+### drag-drop-expert Patterns
+
+**Single Droppable Zone for Parking Lot**
+
+Use one droppable for the entire parking lot, not individual slots:
+
+```typescript
+// CORRECT: Single droppable
+const { setNodeRef, isOver } = useDroppable({
+  id: "parking-lot",
+  data: { type: "parking-lot" },
+});
+
+// WRONG: Per-slot droppables
+// parking-1, parking-2, etc.
+```
+
+**DragOverlay Must Match Target Dimensions**
+
+The dragged card should visually match the parking slot size:
+
+```typescript
+<DragOverlay>
+  {dragActiveCall ? (
+    <div className="w-56 flex items-center gap-3 rounded-md border p-3">
+      {/* Match parking slot styling exactly */}
+    </div>
+  ) : null}
+</DragOverlay>
+```
+
+**Use twilioCallSid for Draggable ID, Not Convex _id**
+
+```typescript
+// In useDraggable
+const { ... } = useDraggable({
+  id: call.twilioCallSid || call._id, // Prefer twilioCallSid
+  data: {
+    type: "active-call",
+    call,
+    twilioCallSid: call.twilioCallSid,
+  },
+});
+```
+
+**Optimistic Updates with Zustand Store**
+
+```typescript
+// 1. Add temp entry immediately
+const tempId = generateTempParkingId();
+addOptimisticCall({ id: tempId, twilioCallSid, ... });
+
+// 2. Call Twilio API
+const result = await fetch("/api/twilio/hold", { ... });
+
+// 3. Save to database
+await parkByCallSidMutation({ ... });
+
+// 4. Remove temp entry (real one arrives via subscription)
+removeOptimisticCall(tempId);
+```
+
+### twilio-expert Patterns
+
+**Conference TwiML for Call Parking**
+
+```xml
+<Response>
+  <Dial>
+    <Conference
+      waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical"
+      startConferenceOnEnter="true"
+      endConferenceOnExit="false"
+    >park-CA123-1234567890</Conference>
+  </Dial>
+</Response>
+```
+
+**Unparking a Call (Redirect Out of Conference)**
+
+To unpark, redirect the participant to connect to the new agent:
+
+```typescript
+// Get participants in the conference
+const participants = await client
+  .conferences(conferenceSid)
+  .participants
+  .list();
+
+// Redirect the parked caller to ring the new agent
+for (const participant of participants) {
+  await client
+    .conferences(conferenceSid)
+    .participants(participant.callSid)
+    .update({
+      url: ringAgentUrl,
+      method: "POST",
+    });
+}
+```
+
+**Hold Music Options**
+
+```
+// Twilio Twimlet (free)
+http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical
+http://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient
+http://twimlets.com/holdmusic?Bucket=com.twilio.music.electronica
+
+// Custom hold music endpoint
+/api/twilio/hold-music (returns TwiML with <Play> and <Loop>)
+```

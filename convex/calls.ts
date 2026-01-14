@@ -316,6 +316,97 @@ export const park = mutation({
   },
 });
 
+// Mutation to park a call using twilioCallSid (avoids race condition with _id)
+export const parkByCallSid = mutation({
+  args: {
+    twilioCallSid: v.string(),
+    conferenceName: v.string(),
+    callerNumber: v.string(),
+    callerName: v.optional(v.string()),
+    organizationId: v.id("organizations"),
+    parkedByUserId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    // Find call by twilioCallSid
+    const call = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) =>
+        q.eq("twilioCallSid", args.twilioCallSid)
+      )
+      .first();
+
+    // Find first available slot
+    const slots = await ctx.db
+      .query("parkingLots")
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+
+    // Find first empty slot or create new one
+    let slotNumber = 1;
+    const occupiedSlots = new Set(slots.filter(s => s.isOccupied).map(s => s.slotNumber));
+    while (occupiedSlots.has(slotNumber) && slotNumber <= 10) {
+      slotNumber++;
+    }
+
+    if (slotNumber > 10) {
+      throw new Error("All parking slots are occupied");
+    }
+
+    const existingSlot = slots.find(s => s.slotNumber === slotNumber);
+
+    // Update or create parking slot
+    if (existingSlot) {
+      await ctx.db.patch(existingSlot._id, {
+        isOccupied: true,
+        activeCallId: call?._id,
+        parkedByUserId: args.parkedByUserId,
+        parkedAt: Date.now(),
+        conferenceName: args.conferenceName,
+        callerNumber: args.callerNumber,
+        callerName: args.callerName,
+      });
+    } else {
+      await ctx.db.insert("parkingLots", {
+        organizationId: args.organizationId,
+        slotNumber,
+        isOccupied: true,
+        activeCallId: call?._id,
+        parkedByUserId: args.parkedByUserId,
+        parkedAt: Date.now(),
+        conferenceName: args.conferenceName,
+        callerNumber: args.callerNumber,
+        callerName: args.callerName,
+      });
+    }
+
+    // Update call state if it exists
+    if (call) {
+      await ctx.db.patch(call._id, {
+        state: "parked",
+        parkingSlot: slotNumber,
+        holdStartedAt: Date.now(),
+      });
+
+      // Update user status back to available
+      if (call.assignedUserId) {
+        await ctx.db.patch(call.assignedUserId, {
+          status: "available",
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    return {
+      success: true,
+      slotNumber,
+      conferenceName: args.conferenceName,
+      callId: call?._id,
+    };
+  },
+});
+
 // Mutation to retrieve a parked call
 export const unpark = mutation({
   args: {

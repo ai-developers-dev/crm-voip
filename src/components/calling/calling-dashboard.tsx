@@ -21,6 +21,7 @@ import { Phone, Users, Wifi, WifiOff, Loader2, GripVertical } from "lucide-react
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
+import { useParkingStore, generateTempParkingId } from "@/lib/stores/parking-store";
 
 interface CallingDashboardProps {
   organizationId?: string;
@@ -67,8 +68,13 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   // Convex mutations
   const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
   const endCallMutation = useMutation(api.calls.end);
-  const parkCallMutation = useMutation(api.calls.park);
+  const parkByCallSidMutation = useMutation(api.calls.parkByCallSid);
   const heartbeat = useMutation(api.presence.heartbeat);
+
+  // Parking store for optimistic updates
+  const addOptimisticCall = useParkingStore((s) => s.addOptimisticCall);
+  const removeOptimisticCall = useParkingStore((s) => s.removeOptimisticCall);
+  const setParkingInProgress = useParkingStore((s) => s.setParkingInProgress);
 
   // Presence heartbeat - runs every 30 seconds
   useEffect(() => {
@@ -146,34 +152,80 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
     const targetId = over.id as string;
 
     try {
-      if (targetType === "parking-slot") {
-        // Park the call with hold music
-        const slotNumber = parseInt(targetId.replace("parking-", ""));
+      if (targetType === "parking-lot") {
+        // Conference-based parking with optimistic UI updates
+        if (!twilioCallSid) {
+          console.error("No twilioCallSid available for parking");
+          return;
+        }
 
-        // Step 1: Put call on hold via Twilio REST API (plays hold music)
-        if (twilioCallSid) {
-          console.log(`Putting call ${twilioCallSid} on hold before parking`);
+        if (!convexOrg?._id) {
+          console.error("No organization ID available for parking");
+          return;
+        }
+
+        // Get caller info from the call data or Twilio parameters
+        const callerNumber = callData?.from || twilioActiveCall?.parameters?.From || "Unknown";
+        const callerName = callData?.fromName || undefined;
+
+        // Step 1: Optimistically add to parking lot UI
+        const tempId = generateTempParkingId();
+        console.log(`Adding optimistic parking entry: ${tempId}`);
+        setParkingInProgress(twilioCallSid);
+        addOptimisticCall({
+          id: tempId,
+          twilioCallSid,
+          callerNumber,
+          callerName,
+          parkedAt: Date.now(),
+          parkedByUserId: currentUser?._id,
+        });
+
+        try {
+          // Step 2: Call Twilio API to put call in conference with hold music
+          console.log(`Parking call ${twilioCallSid} using conference`);
           const holdResponse = await fetch("/api/twilio/hold", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ twilioCallSid }),
+            body: JSON.stringify({
+              twilioCallSid,
+              callerNumber,
+              callerName,
+            }),
           });
 
           if (!holdResponse.ok) {
             const error = await holdResponse.json();
-            console.error("Failed to put call on hold:", error);
-            // Continue with DB update even if Twilio fails
+            console.error("Failed to park call in conference:", error);
+            removeOptimisticCall(tempId);
+            setParkingInProgress(null);
+            return;
           }
+
+          const holdResult = await holdResponse.json();
+          const conferenceName = holdResult.conferenceName;
+          console.log(`Call parked in conference: ${conferenceName}`);
+
+          // Step 3: Save to database
+          await parkByCallSidMutation({
+            twilioCallSid,
+            conferenceName,
+            callerNumber,
+            callerName,
+            organizationId: convexOrg._id,
+            parkedByUserId: currentUser?._id,
+          });
+
+          console.log(`Call ${twilioCallSid} saved to parking lot database`);
+        } finally {
+          // Step 4: Remove optimistic entry (real one arrives via subscription)
+          removeOptimisticCall(tempId);
+          setParkingInProgress(null);
         }
 
-        // Step 2: Update database state
-        await parkCallMutation({
-          callId: callId as Id<"activeCalls">,
-          slotNumber,
-        });
-
-        // Step 3: Disconnect local Twilio SDK call (caller is now on hold music)
+        // Step 5: Disconnect local Twilio SDK call (caller is now on hold music in conference)
         if (twilioActiveCall) {
+          console.log("Disconnecting local Twilio call - caller remains in conference");
           twilioActiveCall.disconnect();
         }
       } else if (targetType === "user") {

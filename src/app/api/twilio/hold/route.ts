@@ -7,10 +7,13 @@ import { api } from "../../../../../convex/_generated/api";
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
- * PUT a call on hold by redirecting it to hold music TwiML
+ * Park a call using conference-based parking
  *
- * This uses the Twilio REST API to update the call's URL,
- * which causes Twilio to fetch new TwiML instructions (hold music).
+ * This redirects the call to join a Twilio Conference with hold music.
+ * The conference persists even after the agent disconnects (endConferenceOnExit=false).
+ * This is the Twilio-recommended approach for call parking.
+ *
+ * See: https://www.twilio.com/docs/voice/twiml/conference
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { twilioCallSid } = await request.json();
+    const { twilioCallSid, callerNumber, callerName } = await request.json();
 
     if (!twilioCallSid) {
       return NextResponse.json(
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Putting call ${twilioCallSid} on hold`);
+    console.log(`Parking call ${twilioCallSid} using conference`);
 
     // Get Twilio credentials (check org settings first, then env vars)
     const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
@@ -65,26 +68,42 @@ export async function POST(request: NextRequest) {
     // Create Twilio REST client
     const client = twilio(accountSid, authToken);
 
-    // Build hold music URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-    const holdMusicUrl = `${appUrl}/api/twilio/hold-music`;
+    // Create unique conference name for this parked call
+    const conferenceName = `park-${twilioCallSid}-${Date.now()}`;
 
-    // Update the call to redirect to hold music TwiML
+    // Conference-based parking with hold music
+    // - waitUrl: Plays hold music from Twilio's free twimlet
+    // - startConferenceOnEnter: Conference starts immediately
+    // - endConferenceOnExit: false = call stays in conference after agent disconnects
+    const twiml = `
+      <Response>
+        <Dial>
+          <Conference
+            waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical"
+            startConferenceOnEnter="true"
+            endConferenceOnExit="false"
+          >${conferenceName}</Conference>
+        </Dial>
+      </Response>
+    `.trim();
+
+    // Update the call with conference TwiML
     await client.calls(twilioCallSid).update({
-      url: holdMusicUrl,
-      method: "POST",
+      twiml: twiml,
     });
 
-    console.log(`Call ${twilioCallSid} redirected to hold music`);
+    console.log(`Call ${twilioCallSid} parked in conference: ${conferenceName}`);
 
     return NextResponse.json({
       success: true,
-      message: "Call placed on hold"
+      conferenceName,
+      twilioCallSid,
+      message: "Call parked in conference with hold music"
     });
   } catch (error) {
-    console.error("Error putting call on hold:", error);
+    console.error("Error parking call:", error);
     return NextResponse.json(
-      { error: "Failed to put call on hold", details: error instanceof Error ? error.message : String(error) },
+      { error: "Failed to park call", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

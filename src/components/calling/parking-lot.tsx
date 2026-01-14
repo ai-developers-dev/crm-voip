@@ -7,7 +7,8 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Phone, ParkingSquare, Loader2, GripVertical } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { useParkingStore } from "@/lib/stores/parking-store";
 
 interface ParkingLotProps {
   organizationId: Id<"organizations">;
@@ -15,31 +16,92 @@ interface ParkingLotProps {
 
 export function ParkingLot({ organizationId }: ParkingLotProps) {
   // Query parking slots from Convex
-  const slots = useQuery(api.parkingLot.getSlots, {
+  const dbSlots = useQuery(api.parkingLot.getSlots, {
     organizationId,
   });
 
-  // If no slots exist yet, show placeholder slots
-  // These will be created when first call is parked or admin initializes them
-  const displaySlots =
-    slots && slots.length > 0
-      ? slots
-      : Array.from({ length: 10 }, (_, i) => ({
-          _id: `placeholder-${i}` as Id<"parkingLots">,
-          slotNumber: i + 1,
-          isOccupied: false,
-          call: null,
-          organizationId,
-        }));
+  // Get optimistic calls from Zustand store
+  const optimisticCalls = useParkingStore((s) => s.getAllOptimisticCalls());
+  const parkingInProgress = useParkingStore((s) => s.parkingInProgress);
+
+  // Single droppable for entire parking lot (not per-slot)
+  const { setNodeRef, isOver } = useDroppable({
+    id: "parking-lot",
+    data: { type: "parking-lot" },
+  });
+
+  // Merge DB slots with optimistic calls
+  const displaySlots = useMemo(() => {
+    // Start with empty slots
+    const slots: Array<{
+      slotNumber: number;
+      isOccupied: boolean;
+      call: any;
+      isOptimistic?: boolean;
+    }> = Array.from({ length: 10 }, (_, i) => ({
+      slotNumber: i + 1,
+      isOccupied: false,
+      call: null,
+    }));
+
+    // Fill in from DB
+    if (dbSlots) {
+      for (const dbSlot of dbSlots) {
+        const idx = dbSlot.slotNumber - 1;
+        if (idx >= 0 && idx < 10) {
+          slots[idx] = {
+            slotNumber: dbSlot.slotNumber,
+            isOccupied: dbSlot.isOccupied,
+            call: dbSlot.call || {
+              from: dbSlot.callerNumber,
+              fromName: dbSlot.callerName,
+              conferenceName: dbSlot.conferenceName,
+            },
+          };
+        }
+      }
+    }
+
+    // Add optimistic calls to first available slots
+    for (const optCall of optimisticCalls) {
+      // Find first empty slot
+      const emptyIdx = slots.findIndex((s) => !s.isOccupied);
+      if (emptyIdx >= 0) {
+        slots[emptyIdx] = {
+          slotNumber: emptyIdx + 1,
+          isOccupied: true,
+          isOptimistic: true,
+          call: {
+            _id: optCall.id,
+            twilioCallSid: optCall.twilioCallSid,
+            from: optCall.callerNumber,
+            fromName: optCall.callerName,
+            conferenceName: optCall.conferenceName,
+          },
+        };
+      }
+    }
+
+    return slots;
+  }, [dbSlots, optimisticCalls]);
 
   return (
-    <div className="p-4">
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "p-4 transition-all rounded-lg",
+        isOver && "ring-2 ring-primary ring-offset-2 bg-primary/5"
+      )}
+    >
       <div className="flex items-center gap-2 mb-4">
         <ParkingSquare className="h-5 w-5 text-primary" />
         <h2 className="font-semibold">Parking Lot</h2>
+        {parkingInProgress && (
+          <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
+        )}
       </div>
 
-      {slots === undefined ? (
+      {dbSlots === undefined ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -51,8 +113,16 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
               slotNumber={slot.slotNumber}
               isOccupied={slot.isOccupied}
               call={slot.call}
+              isOptimistic={slot.isOptimistic}
             />
           ))}
+        </div>
+      )}
+
+      {/* Drop zone indicator when dragging over */}
+      {isOver && (
+        <div className="mt-3 p-3 rounded-md border-2 border-dashed border-primary bg-primary/10 text-center">
+          <p className="text-sm font-medium text-primary">Drop to park call</p>
         </div>
       )}
     </div>
@@ -63,38 +133,28 @@ interface ParkingSlotProps {
   slotNumber: number;
   isOccupied: boolean;
   call: any;
+  isOptimistic?: boolean;
 }
 
-function ParkingSlot({ slotNumber, isOccupied, call }: ParkingSlotProps) {
-  // Droppable hook - accepts calls being dropped into this slot
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: `parking-${slotNumber}`,
-    data: { type: "parking-slot", slotNumber },
-  });
-
-  // Draggable hook - allows parked calls to be dragged out
+function ParkingSlot({ slotNumber, isOccupied, call, isOptimistic }: ParkingSlotProps) {
+  // Draggable hook - allows parked calls to be dragged out for transfer
   const {
     attributes,
     listeners,
-    setNodeRef: setDraggableRef,
+    setNodeRef,
     transform,
     isDragging,
   } = useDraggable({
-    id: call?._id || `empty-slot-${slotNumber}`,
-    data: { type: "parked-call", call, slotNumber },
-    disabled: !isOccupied, // Only draggable when occupied
-  });
-
-  // Merge refs for both droppable and draggable
-  const mergeRefs = useCallback(
-    (node: HTMLDivElement | null) => {
-      setDroppableRef(node);
-      if (isOccupied) {
-        setDraggableRef(node);
-      }
+    id: call?._id || call?.twilioCallSid || `empty-slot-${slotNumber}`,
+    data: {
+      type: "parked-call",
+      call,
+      slotNumber,
+      twilioCallSid: call?.twilioCallSid,
+      conferenceName: call?.conferenceName,
     },
-    [setDroppableRef, setDraggableRef, isOccupied]
-  );
+    disabled: !isOccupied || isOptimistic, // Can't drag optimistic (still saving)
+  });
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -103,21 +163,27 @@ function ParkingSlot({ slotNumber, isOccupied, call }: ParkingSlotProps) {
 
   return (
     <div
-      ref={mergeRefs}
-      style={isOccupied ? style : undefined}
+      ref={isOccupied && !isOptimistic ? setNodeRef : undefined}
+      style={isOccupied && !isOptimistic ? style : undefined}
       className={cn(
         "flex items-center gap-3 rounded-md border p-3 transition-all",
         isOccupied
-          ? "bg-primary/5 dark:bg-primary/10 border-primary/30 cursor-grab active:cursor-grabbing"
+          ? "bg-primary/5 dark:bg-primary/10 border-primary/30"
           : "bg-background border-dashed",
-        isOver && "ring-2 ring-primary ring-offset-2 bg-primary/5",
+        isOccupied && !isOptimistic && "cursor-grab active:cursor-grabbing",
+        isOptimistic && "opacity-70 animate-pulse",
         isDragging && "ring-2 ring-primary shadow-lg"
       )}
-      {...(isOccupied ? { ...listeners, ...attributes } : {})}
+      {...(isOccupied && !isOptimistic ? { ...listeners, ...attributes } : {})}
     >
       {/* Drag handle indicator for occupied slots */}
-      {isOccupied && (
+      {isOccupied && !isOptimistic && (
         <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      )}
+
+      {/* Loading spinner for optimistic slots */}
+      {isOptimistic && (
+        <Loader2 className="h-4 w-4 text-primary animate-spin flex-shrink-0" />
       )}
 
       <div
@@ -136,10 +202,12 @@ function ParkingSlot({ slotNumber, isOccupied, call }: ParkingSlotProps) {
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium truncate">
-              {call.fromName || call.from}
+              {call.fromName || call.from || "Unknown"}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">On hold</p>
+          <p className="text-xs text-muted-foreground">
+            {isOptimistic ? "Parking..." : "On hold"}
+          </p>
         </div>
       ) : (
         <span className="text-sm text-muted-foreground">Empty</span>

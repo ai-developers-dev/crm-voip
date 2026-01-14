@@ -261,6 +261,9 @@ export default defineSchema({
     parkedByUserId: v.optional(v.id("users")),
     parkedAt: v.optional(v.number()),
     holdMusicUrl: v.optional(v.string()),
+    conferenceName: v.optional(v.string()), // Twilio conference name for parking
+    callerNumber: v.optional(v.string()),
+    callerName: v.optional(v.string()),
   })
     .index("by_organization", ["organizationId"])
     .index("by_organization_slot", ["organizationId", "slotNumber"]),
