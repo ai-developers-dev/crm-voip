@@ -288,9 +288,30 @@ export function useTwilioDevice() {
   );
 
   // Answer incoming call
-  const answerCall = useCallback(() => {
+  const answerCall = useCallback(async () => {
     if (state.activeCall) {
+      // Accept the Twilio call
       state.activeCall.accept();
+
+      // Claim the call in the database to increment metrics
+      const callSid = state.activeCall.parameters?.CallSid;
+      if (callSid) {
+        try {
+          const response = await fetch("/api/twilio/claim-call", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ twilioCallSid: callSid }),
+          });
+          const result = await response.json();
+          if (result.success) {
+            console.log("✅ Call claimed, inbound metrics incremented");
+          } else {
+            console.log("Call claim result:", result.reason);
+          }
+        } catch (error) {
+          console.error("Failed to claim call:", error);
+        }
+      }
     }
   }, [state.activeCall]);
 
