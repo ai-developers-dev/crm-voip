@@ -140,15 +140,15 @@ export function ActiveCallCard({
     [activeCall, call._id, endCallMutation, onEndCall]
   );
 
-  // Simple row layout - no card wrapper, just a draggable div
+  // Clean white card - no outer colored box
   if (compact) {
     return (
       <div
         ref={setNodeRef}
         style={style}
         className={cn(
-          "flex items-center gap-3 p-2 rounded-lg bg-primary/10 dark:bg-primary/20 touch-none select-none",
-          isDragging && "opacity-50 ring-2 ring-primary"
+          "flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-900 border shadow-sm touch-none select-none",
+          isDragging && "opacity-50 shadow-lg ring-2 ring-primary"
         )}
       >
         {/* Drag handle area */}
