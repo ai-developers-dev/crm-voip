@@ -2,6 +2,35 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
+ * DEBUG: Get recent call history records to diagnose stats issues
+ */
+export const debugCallHistory = query({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    // Get the 10 most recent calls for this org
+    const calls = await ctx.db
+      .query("callHistory")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .order("desc")
+      .take(10);
+
+    console.log(`🔍 DEBUG: Found ${calls.length} recent calls in callHistory`);
+
+    return calls.map((call) => ({
+      _id: call._id,
+      twilioCallSid: call.twilioCallSid,
+      direction: call.direction,
+      outcome: call.outcome,
+      handledByUserId: call.handledByUserId || "NULL",
+      startedAt: call.startedAt,
+      startedAtDate: new Date(call.startedAt).toISOString(),
+      from: call.from,
+      to: call.to,
+    }));
+  },
+});
+
+/**
  * Helper function to get the start of today in UTC (midnight)
  */
 function getTodayStartTimestamp(): number {
