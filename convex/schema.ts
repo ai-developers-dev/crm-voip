@@ -249,6 +249,7 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_organization_date", ["organizationId", "startedAt"])
     .index("by_user", ["handledByUserId"])
+    .index("by_user_date", ["handledByUserId", "startedAt"])
     .index("by_contact", ["contactId"])
     .index("by_twilio_sid", ["twilioCallSid"])
     // New indexes for phone number lookups and reporting

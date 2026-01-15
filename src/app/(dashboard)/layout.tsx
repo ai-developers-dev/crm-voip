@@ -8,7 +8,7 @@ import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
 import {
   Phone, Settings, Building2, Shield, LogOut, UserCog,
-  ChevronDown, Plus, Loader2, AlertCircle, CheckCircle
+  ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -663,6 +663,12 @@ export default function DashboardLayout({
             )}
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/stats">
+              <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
+                <BarChart3 className="h-3 w-3" />
+                Stats
+              </Badge>
+            </Link>
             <Link href="/settings">
               <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
                 <Settings className="h-3 w-3" />

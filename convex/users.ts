@@ -40,42 +40,77 @@ export const getByOrganization = query({
   },
 });
 
+// Helper function to get the start of today in UTC (midnight)
+function getTodayStartTimestamp(): number {
+  const now = new Date();
+  const todayUTC = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  return todayUTC.getTime();
+}
+
 // Query to get all users in an organization with their daily metrics
+// Stats are calculated from callHistory table (single source of truth)
 export const getByOrganizationWithMetrics = query({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
-    const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+    const todayStart = getTodayStartTimestamp();
 
-    // Get all users
+    // Get all users in the organization
     const users = await ctx.db
       .query("users")
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
       .collect();
 
-    // Get today's metrics for talk time (still using userDailyMetrics for this)
-    const metrics = await ctx.db
-      .query("userDailyMetrics")
+    // Get today's completed calls for this org from callHistory
+    const todayCalls = await ctx.db
+      .query("callHistory")
       .withIndex("by_organization_date", (q) =>
-        q.eq("organizationId", args.organizationId).eq("date", today)
+        q.eq("organizationId", args.organizationId).gte("startedAt", todayStart)
       )
       .collect();
 
-    // Create a map for quick lookup of talk time
-    const metricsMap = new Map(metrics.map((m) => [m.userId, m]));
+    // Build stats map by user ID
+    const statsMap = new Map<
+      string,
+      { inbound: number; outbound: number; talkTime: number }
+    >();
 
-    // Combine users with their metrics
-    // Call counts come directly from user record, talk time from userDailyMetrics
+    for (const call of todayCalls) {
+      if (!call.handledByUserId) continue;
+      const odUserId = call.handledByUserId.toString();
+      const current = statsMap.get(odUserId) || {
+        inbound: 0,
+        outbound: 0,
+        talkTime: 0,
+      };
+
+      if (call.direction === "inbound" && call.outcome === "answered") {
+        current.inbound++;
+      }
+      if (call.direction === "outbound") {
+        current.outbound++;
+      }
+      current.talkTime += call.talkTime || 0;
+
+      statsMap.set(odUserId, current);
+    }
+
+    // Combine users with their stats
     return users.map((user) => {
-      const isToday = user.lastCallCountReset === today;
-      const userMetrics = metricsMap.get(user._id);
+      const stats = statsMap.get(user._id.toString()) || {
+        inbound: 0,
+        outbound: 0,
+        talkTime: 0,
+      };
 
       return {
         ...user,
         todayMetrics: {
-          callsAccepted: (isToday ? (user.todayInboundCalls || 0) + (user.todayOutboundCalls || 0) : 0),
-          talkTimeSeconds: userMetrics?.talkTimeSeconds ?? 0,
-          inboundCallsAccepted: isToday ? (user.todayInboundCalls || 0) : 0,
-          outboundCallsMade: isToday ? (user.todayOutboundCalls || 0) : 0,
+          callsAccepted: stats.inbound + stats.outbound,
+          talkTimeSeconds: stats.talkTime,
+          inboundCallsAccepted: stats.inbound,
+          outboundCallsMade: stats.outbound,
         },
       };
     });
