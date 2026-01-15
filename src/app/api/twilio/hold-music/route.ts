@@ -91,7 +91,11 @@ export async function GET(request: NextRequest) {
         });
         console.log(`Custom URL from Convex: ${customUrl || 'none'}`);
         if (customUrl) {
-          holdMusicUrl = customUrl;
+          // Use our streaming proxy endpoint instead of Convex URL directly
+          // This ensures proper Content-Type headers for Twilio
+          const baseUrl = url.origin;
+          holdMusicUrl = `${baseUrl}/api/twilio/hold-music-stream?clerkOrgId=${encodeURIComponent(clerkOrgId)}`;
+          console.log(`Using streaming proxy: ${holdMusicUrl}`);
         }
       } catch (err) {
         console.error("Error fetching custom hold music in GET:", err);
