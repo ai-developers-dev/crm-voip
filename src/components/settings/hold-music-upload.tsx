@@ -42,9 +42,9 @@ export function HoldMusicUpload({ organizationId }: HoldMusicUploadProps) {
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File size must be under 10MB");
+    // Validate file size (max 1GB)
+    if (file.size > 1024 * 1024 * 1024) {
+      setError("File size must be under 1GB");
       return;
     }
 
@@ -99,7 +99,7 @@ export function HoldMusicUpload({ organizationId }: HoldMusicUploadProps) {
         </CardTitle>
         <CardDescription>
           Upload an MP3 file to play when callers are on hold or parked. Maximum
-          file size: 10MB.
+          file size: 1GB.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
