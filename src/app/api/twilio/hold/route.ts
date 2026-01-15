@@ -172,14 +172,17 @@ export async function POST(request: NextRequest) {
 
       console.log(`Using hold music: ${customHoldMusicUrl ? 'custom' : 'default twimlet'}`);
 
+      // IMPORTANT: startConferenceOnEnter="false" means the caller hears waitUrl music
+      // while waiting alone. The conference "starts" when an agent joins with
+      // startConferenceOnEnter="true" (during unpark). Until then, hold music plays.
       const twiml = `
         <Response>
           <Dial>
             <Conference
               waitUrl="${holdMusicWaitUrl}"
               waitMethod="GET"
-              startConferenceOnEnter="true"
-              endConferenceOnExit="true"
+              startConferenceOnEnter="false"
+              endConferenceOnExit="false"
               statusCallback="${statusCallbackUrl}"
               statusCallbackEvent="end leave"
             >${conferenceName}</Conference>
