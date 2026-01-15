@@ -163,10 +163,19 @@ export async function POST(request: NextRequest) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "";
       const statusCallbackUrl = `${baseUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`;
 
-      // TEMPORARILY force default twimlet to test if conference setup works
-      // TODO: Re-enable custom music after confirming twimlet plays
-      const holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
-      console.log(`Using hold music: DEFAULT TWIMLET (testing)`);
+      // Check for custom hold music URL from org settings
+      const customHoldMusicUrl = org.settings?.holdMusicUrl;
+
+      let holdMusicWaitUrl: string;
+      if (customHoldMusicUrl) {
+        // Use our hold-music endpoint which returns TwiML with the audio URL
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || baseUrl;
+        holdMusicWaitUrl = `${appUrl}/api/twilio/hold-music?clerkOrgId=${encodeURIComponent(orgId)}`;
+        console.log(`Using custom hold music via endpoint: ${holdMusicWaitUrl}`);
+      } else {
+        holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
+        console.log(`Using default twimlet hold music`);
+      }
 
       // IMPORTANT: startConferenceOnEnter="false" means the caller hears waitUrl music
       // while waiting alone. The conference "starts" when an agent joins with

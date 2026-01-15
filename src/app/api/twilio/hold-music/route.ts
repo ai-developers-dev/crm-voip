@@ -93,8 +93,8 @@ export async function GET(request: NextRequest) {
         if (customUrl) {
           // Use our streaming proxy endpoint instead of Convex URL directly
           // This ensures proper Content-Type headers for Twilio
-          const baseUrl = url.origin;
-          holdMusicUrl = `${baseUrl}/api/twilio/hold-music-stream?clerkOrgId=${encodeURIComponent(clerkOrgId)}`;
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+          holdMusicUrl = `${appUrl}/api/twilio/hold-music-stream?clerkOrgId=${encodeURIComponent(clerkOrgId)}`;
           console.log(`Using streaming proxy: ${holdMusicUrl}`);
         }
       } catch (err) {
