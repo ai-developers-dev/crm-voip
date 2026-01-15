@@ -72,31 +72,53 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also handle GET for testing (plays default hold music)
+// Handle GET for Twilio conference waitUrl callback
 export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const clerkOrgId = url.searchParams.get("clerkOrgId");
+  console.log("Hold music GET request received");
 
-  let holdMusicUrl = DEFAULT_HOLD_MUSIC;
+  try {
+    const url = new URL(request.url);
+    const clerkOrgId = url.searchParams.get("clerkOrgId");
+    console.log(`Hold music request for org: ${clerkOrgId || 'none'}`);
 
-  // Check for custom hold music if org ID provided
-  if (clerkOrgId) {
-    try {
-      const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
-        clerkOrgId,
-      });
-      if (customUrl) {
-        holdMusicUrl = customUrl;
+    let holdMusicUrl = DEFAULT_HOLD_MUSIC;
+
+    // Check for custom hold music if org ID provided
+    if (clerkOrgId) {
+      try {
+        const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
+          clerkOrgId,
+        });
+        console.log(`Custom URL from Convex: ${customUrl || 'none'}`);
+        if (customUrl) {
+          holdMusicUrl = customUrl;
+        }
+      } catch (err) {
+        console.error("Error fetching custom hold music in GET:", err);
+        // Use default
       }
-    } catch {
-      // Use default
     }
+
+    console.log(`Playing hold music URL: ${holdMusicUrl}`);
+
+    const twiml = new VoiceResponse();
+    twiml.play({ loop: 0 }, holdMusicUrl);
+
+    const twimlString = twiml.toString();
+    console.log("Returning TwiML:", twimlString);
+
+    return new NextResponse(twimlString, {
+      headers: { "Content-Type": "text/xml" },
+    });
+  } catch (error) {
+    console.error("Error in hold-music GET:", error);
+
+    // Return default music as fallback
+    const twiml = new VoiceResponse();
+    twiml.play({ loop: 0 }, DEFAULT_HOLD_MUSIC);
+
+    return new NextResponse(twiml.toString(), {
+      headers: { "Content-Type": "text/xml" },
+    });
   }
-
-  const twiml = new VoiceResponse();
-  twiml.play({ loop: 0 }, holdMusicUrl);
-
-  return new NextResponse(twiml.toString(), {
-    headers: { "Content-Type": "text/xml" },
-  });
 }

@@ -163,15 +163,20 @@ export async function POST(request: NextRequest) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "";
       const statusCallbackUrl = `${baseUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`;
 
-      // Use our hold-music endpoint with org ID for custom music support
-      // The endpoint will return custom music if uploaded, otherwise default Twilio music
-      const holdMusicUrl = `${baseUrl}/api/twilio/hold-music?clerkOrgId=${encodeURIComponent(orgId)}`;
+      // Check for custom hold music URL, otherwise use Twilio's free hold music
+      // Use the URL directly from org settings (set when uploading custom music)
+      const customHoldMusicUrl = org.settings?.holdMusicUrl;
+      const holdMusicWaitUrl = customHoldMusicUrl
+        ? `${baseUrl}/api/twilio/hold-music?clerkOrgId=${encodeURIComponent(orgId)}`
+        : "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
+
+      console.log(`Using hold music: ${customHoldMusicUrl ? 'custom' : 'default twimlet'}`);
 
       const twiml = `
         <Response>
           <Dial>
             <Conference
-              waitUrl="${holdMusicUrl}"
+              waitUrl="${holdMusicWaitUrl}"
               waitMethod="GET"
               startConferenceOnEnter="true"
               endConferenceOnExit="true"
