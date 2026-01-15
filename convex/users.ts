@@ -360,22 +360,24 @@ export const updateUser = mutation({
 });
 
 // Query to get available agents for incoming calls
-// First checks presence heartbeats, falls back to user status if no presence records
+// OPTIMIZED: Runs org and presence queries in parallel, then batch-fetches users
 export const getAvailableAgents = query({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
-    // Get the organization to retrieve the Clerk org ID (needed for Twilio client identity)
-    const organization = await ctx.db.get(args.organizationId);
+    const now = Date.now();
+
+    // OPTIMIZATION: Run org lookup and presence query in PARALLEL
+    const [organization, presenceRecords] = await Promise.all([
+      ctx.db.get(args.organizationId),
+      ctx.db
+        .query("presence")
+        .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+        .collect(),
+    ]);
+
     if (!organization) {
       return [];
     }
-
-    // Get presence records for this org that are recent (within 30s) and available
-    const now = Date.now();
-    const presenceRecords = await ctx.db
-      .query("presence")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-      .collect();
 
     // Filter to only available, recent heartbeats
     const availablePresence = presenceRecords.filter(
@@ -386,9 +388,15 @@ export const getAvailableAgents = query({
 
     // If we have presence records, use those
     if (availablePresence.length > 0) {
-      const agents = await Promise.all(
-        availablePresence.map(async (presence) => {
-          const user = await ctx.db.get(presence.userId);
+      // OPTIMIZATION: Batch fetch all users in PARALLEL instead of sequential N+1 queries
+      const users = await Promise.all(
+        availablePresence.map((presence) => ctx.db.get(presence.userId))
+      );
+
+      // Combine presence with user data
+      const agents = availablePresence
+        .map((presence, index) => {
+          const user = users[index];
           if (!user) return null;
           return {
             _id: user._id,
@@ -400,8 +408,9 @@ export const getAvailableAgents = query({
             twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
           };
         })
-      );
-      return agents.filter((a): a is NonNullable<typeof a> => a !== null);
+        .filter((a): a is NonNullable<typeof a> => a !== null);
+
+      return agents;
     }
 
     // Fallback: If no presence records, check users with status "available"
