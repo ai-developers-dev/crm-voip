@@ -1,32 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+// Default hold music from Twilio's free collection
+const DEFAULT_HOLD_MUSIC = "http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3";
 
 /**
  * TwiML endpoint that plays hold music on loop
  *
  * This is called when a call is redirected to hold (parked).
- * The caller hears royalty-free hold music until the call is resumed.
+ * If the organization has custom hold music uploaded, it plays that.
+ * Otherwise, it falls back to Twilio's royalty-free hold music.
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check for organization ID in query params or form data
+    const url = new URL(request.url);
+    let clerkOrgId = url.searchParams.get("clerkOrgId");
+
+    // Also check form data (for TwiML callbacks)
+    if (!clerkOrgId) {
+      try {
+        const formData = await request.formData();
+        clerkOrgId = formData.get("clerkOrgId") as string | null;
+      } catch {
+        // Form data not available, continue with null
+      }
+    }
+
+    let holdMusicUrl = DEFAULT_HOLD_MUSIC;
+
+    // If we have an org ID, check for custom hold music
+    if (clerkOrgId) {
+      try {
+        const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
+          clerkOrgId,
+        });
+        if (customUrl) {
+          holdMusicUrl = customUrl;
+          console.log(`Using custom hold music for org ${clerkOrgId}`);
+        }
+      } catch (err) {
+        console.error("Error fetching custom hold music:", err);
+        // Continue with default
+      }
+    }
+
     const twiml = new VoiceResponse();
-
-    // Play hold music on infinite loop
-    // Using Twilio's built-in royalty-free hold music
-    // You can replace this URL with your own hold music file
-    twiml.play({
-      loop: 0, // 0 = infinite loop
-    }, "http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3");
-
-    // Alternative hold music options (uncomment to use):
-    // twiml.play({ loop: 0 }, "http://com.twilio.sounds.music.s3.amazonaws.com/BusyStrings.mp3");
-    // twiml.play({ loop: 0 }, "http://com.twilio.sounds.music.s3.amazonaws.com/VersijOntw);
-    // twiml.play({ loop: 0 }, "http://com.twilio.sounds.music.s3.amazonaws.com/oldDog_-_endless_summer.mp3");
+    twiml.play({ loop: 0 }, holdMusicUrl);
 
     const twimlString = twiml.toString();
-    console.log("Returning hold music TwiML:", twimlString);
+    console.log("Returning hold music TwiML:", twimlString.substring(0, 200));
 
     return new NextResponse(twimlString, {
       headers: { "Content-Type": "text/xml" },
@@ -34,9 +62,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error generating hold music TwiML:", error);
 
-    // Return silent pause as fallback
+    // Return default music as fallback
     const twiml = new VoiceResponse();
-    twiml.pause({ length: 60 });
+    twiml.play({ loop: 0 }, DEFAULT_HOLD_MUSIC);
 
     return new NextResponse(twiml.toString(), {
       headers: { "Content-Type": "text/xml" },
@@ -44,12 +72,29 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also handle GET for testing
-export async function GET() {
+// Also handle GET for testing (plays default hold music)
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const clerkOrgId = url.searchParams.get("clerkOrgId");
+
+  let holdMusicUrl = DEFAULT_HOLD_MUSIC;
+
+  // Check for custom hold music if org ID provided
+  if (clerkOrgId) {
+    try {
+      const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
+        clerkOrgId,
+      });
+      if (customUrl) {
+        holdMusicUrl = customUrl;
+      }
+    } catch {
+      // Use default
+    }
+  }
+
   const twiml = new VoiceResponse();
-  twiml.play({
-    loop: 0,
-  }, "http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3");
+  twiml.play({ loop: 0 }, holdMusicUrl);
 
   return new NextResponse(twiml.toString(), {
     headers: { "Content-Type": "text/xml" },

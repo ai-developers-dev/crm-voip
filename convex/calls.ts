@@ -559,7 +559,8 @@ export const claimCall = mutation({
         .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", clerkOrgId))
         .first();
       if (org) {
-        orgId = org._id;
+        const foundOrgId = org._id; // Capture for TypeScript narrowing in callbacks
+        orgId = foundOrgId;
         console.log(`✓ Found org by clerkOrgId: ${orgId}`);
 
         // CRITICAL FIX: The twilioCallSid from the browser is the AGENT leg's SID,
@@ -568,7 +569,7 @@ export const claimCall = mutation({
         const ringingCall = await ctx.db
           .query("activeCalls")
           .withIndex("by_organization_state", (q) =>
-            q.eq("organizationId", org._id).eq("state", "ringing")
+            q.eq("organizationId", foundOrgId).eq("state", "ringing")
           )
           .first();
 

@@ -72,6 +72,7 @@ export default defineSchema({
     settings: v.object({
       recordingEnabled: v.boolean(),
       holdMusicUrl: v.optional(v.string()),
+      holdMusicStorageId: v.optional(v.id("_storage")), // Convex storage ID for uploaded MP3
       maxConcurrentCalls: v.number(),
       // Per-tenant Twilio credentials
       twilioCredentials: v.optional(v.object({

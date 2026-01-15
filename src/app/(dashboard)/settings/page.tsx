@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { updateOwnOrganization, UpdateOwnOrganizationData } from "./actions";
+import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 
 export default function SettingsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
@@ -276,6 +277,11 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Hold Music Upload */}
+      {convexOrg?._id && (
+        <HoldMusicUpload organizationId={convexOrg._id} />
+      )}
 
       {/* Edit Organization Dialog */}
       <Dialog open={isEditOpen} onOpenChange={(open) => {

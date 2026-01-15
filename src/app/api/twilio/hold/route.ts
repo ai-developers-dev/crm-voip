@@ -159,15 +159,20 @@ export async function POST(request: NextRequest) {
     try {
       console.log(`Step 3: Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
 
-      // Get the base URL for status callbacks
+      // Get the base URL for callbacks
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "";
       const statusCallbackUrl = `${baseUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`;
+
+      // Use our hold-music endpoint with org ID for custom music support
+      // The endpoint will return custom music if uploaded, otherwise default Twilio music
+      const holdMusicUrl = `${baseUrl}/api/twilio/hold-music?clerkOrgId=${encodeURIComponent(orgId)}`;
 
       const twiml = `
         <Response>
           <Dial>
             <Conference
-              waitUrl="http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical"
+              waitUrl="${holdMusicUrl}"
+              waitMethod="GET"
               startConferenceOnEnter="true"
               endConferenceOnExit="true"
               statusCallback="${statusCallbackUrl}"
