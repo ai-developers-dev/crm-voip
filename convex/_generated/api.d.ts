@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as callStats from "../callStats.js";
 import type * as calls from "../calls.js";
 import type * as http from "../http.js";
 import type * as organizations from "../organizations.js";
@@ -27,6 +28,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  callStats: typeof callStats;
   calls: typeof calls;
   http: typeof http;
   organizations: typeof organizations;

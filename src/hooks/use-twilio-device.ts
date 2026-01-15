@@ -131,31 +131,7 @@ export function useTwilioDevice() {
             ...prev,
             callStatus: "open",
           }));
-
-          // Claim the call in the background - don't block audio
-          // This is just for database tracking, NOT for call control
-          const callSid = call.parameters.CallSid;
-          if (callSid) {
-            // Fire and forget - don't await, don't disconnect on failure
-            fetch("/api/twilio/claim-call", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ twilioCallSid: callSid }),
-            })
-              .then((response) => response.json())
-              .then((result) => {
-                if (!result.success) {
-                  // Just log - don't disconnect. The audio is already connected.
-                  // Twilio handles the actual call routing - we're just tracking in DB.
-                  console.warn(`Claim call result: ${result.reason} (call continues)`);
-                } else {
-                  console.log("Call claimed in database:", result.callId);
-                }
-              })
-              .catch((error) => {
-                console.error("Error claiming call (call continues):", error);
-              });
-          }
+          // Note: claim-call is handled in answerCall function to avoid duplicate API calls
         });
 
         call.on("disconnect", () => {

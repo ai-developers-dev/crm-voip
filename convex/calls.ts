@@ -534,10 +534,11 @@ export const claimCall = mutation({
   args: {
     twilioCallSid: v.string(),
     agentClerkId: v.string(),
+    clerkOrgId: v.optional(v.string()), // Fallback org lookup for race condition handling
   },
   handler: async (ctx, args) => {
     console.log(`\n=== CLAIM CALL MUTATION DEBUG ===`);
-    console.log(`Input: twilioCallSid=${args.twilioCallSid}, agentClerkId=${args.agentClerkId}`);
+    console.log(`Input: twilioCallSid=${args.twilioCallSid}, agentClerkId=${args.agentClerkId}, clerkOrgId=${args.clerkOrgId}`);
 
     // Find the call by Twilio SID
     const call = await ctx.db
@@ -545,11 +546,28 @@ export const claimCall = mutation({
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
 
-    if (!call) {
-      console.log(`❌ Call NOT FOUND in activeCalls table`);
-      return { success: false, reason: "call_not_found" };
+    // Determine organization ID from call record or fallback to clerkOrgId lookup
+    let orgId = call?.organizationId;
+
+    if (!call && args.clerkOrgId) {
+      const clerkOrgId = args.clerkOrgId; // Assign to const for TypeScript
+      console.log(`⚠️ Call NOT FOUND - using clerkOrgId fallback: ${clerkOrgId}`);
+      const org = await ctx.db
+        .query("organizations")
+        .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", clerkOrgId))
+        .first();
+      orgId = org?._id;
+      if (orgId) {
+        console.log(`✓ Found org by clerkOrgId: ${orgId}`);
+      }
+    } else if (call) {
+      console.log(`✓ Found call: id=${call._id}, org=${call.organizationId}, state=${call.state}`);
     }
-    console.log(`✓ Found call: id=${call._id}, org=${call.organizationId}, state=${call.state}`);
+
+    if (!orgId) {
+      console.log(`❌ Could not determine organization (call not found, no clerkOrgId fallback)`);
+      return { success: false, reason: "call_not_found_no_org" };
+    }
 
     // Find the user by Clerk ID AND organization
     // Important: Same Clerk user can exist in multiple orgs, so we must match the org
@@ -561,13 +579,40 @@ export const claimCall = mutation({
     console.log(`✓ Found ${usersWithClerkId.length} users with clerkId ${args.agentClerkId}:`);
     usersWithClerkId.forEach(u => console.log(`  - ${u.name} (${u._id}) in org ${u.organizationId}`));
 
-    const user = usersWithClerkId.find(u => u.organizationId === call.organizationId);
+    const user = usersWithClerkId.find(u => u.organizationId === orgId);
 
     if (!user) {
-      console.log(`❌ No user found in call's org ${call.organizationId}`);
+      console.log(`❌ No user found in org ${orgId}`);
       return { success: false, reason: "agent_not_found" };
     }
     console.log(`✓ Matched user: ${user.name} (${user._id})`)
+
+    // Calculate today's date and user metrics (used in both paths)
+    const today = new Date().toISOString().split("T")[0];
+    const isNewDay = user.lastCallCountReset !== today;
+    const currentInbound = isNewDay ? 0 : (user.todayInboundCalls || 0);
+    const currentOutbound = isNewDay ? 0 : (user.todayOutboundCalls || 0);
+    const newInbound = currentInbound + 1;
+
+    // Handle case where call record doesn't exist yet (race condition)
+    // Still increment stats - the call record will be created by webhook soon
+    if (!call) {
+      console.log(`⚠️ No call record - incrementing stats anyway (race condition handling)`);
+      console.log(`📊 Updating user ${user._id}:`);
+      console.log(`  - isNewDay: ${isNewDay} (lastReset: ${user.lastCallCountReset}, today: ${today})`);
+      console.log(`  - currentInbound: ${currentInbound} -> newInbound: ${newInbound}`);
+
+      await ctx.db.patch(user._id, {
+        status: "on_call",
+        todayInboundCalls: newInbound,
+        todayOutboundCalls: currentOutbound,
+        lastCallCountReset: today,
+        updatedAt: Date.now(),
+      });
+
+      console.log(`✅ SUCCESS: Set todayInboundCalls=${newInbound} for ${user.name} (call record pending)`);
+      return { success: true, reason: "stats_incremented_call_pending", userId: user._id };
+    }
 
     // Check if already claimed by another agent
     if (call.assignedUserId && call.assignedUserId !== user._id) {
@@ -591,12 +636,6 @@ export const claimCall = mutation({
     });
 
     // Update user status to on_call AND increment inbound call count
-    const today = new Date().toISOString().split("T")[0];
-    const isNewDay = user.lastCallCountReset !== today;
-    const currentInbound = isNewDay ? 0 : (user.todayInboundCalls || 0);
-    const currentOutbound = isNewDay ? 0 : (user.todayOutboundCalls || 0);
-    const newInbound = currentInbound + 1;
-
     console.log(`📊 Updating user ${user._id}:`);
     console.log(`  - isNewDay: ${isNewDay} (lastReset: ${user.lastCallCountReset}, today: ${today})`);
     console.log(`  - currentInbound: ${currentInbound} -> newInbound: ${newInbound}`);

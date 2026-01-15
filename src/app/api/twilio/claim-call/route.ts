@@ -8,7 +8,7 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, orgId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,12 +25,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`\n=== CLAIM CALL API DEBUG ===`);
     console.log(`Clerk userId (agentClerkId): ${userId}`);
+    console.log(`Clerk orgId (clerkOrgId): ${orgId}`);
     console.log(`twilioCallSid: ${twilioCallSid}`);
 
     // Attempt to claim the call atomically
+    // Pass clerkOrgId as fallback for race condition handling
     const result = await convex.mutation(api.calls.claimCall, {
       twilioCallSid,
       agentClerkId: userId,
+      clerkOrgId: orgId || undefined,
     });
 
     console.log(`claimCall result:`, JSON.stringify(result, null, 2));
