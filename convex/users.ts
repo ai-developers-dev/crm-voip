@@ -70,15 +70,6 @@ export const getByOrganizationWithMetrics = query({
       )
       .collect();
 
-    // DEBUG: Log what we're finding
-    console.log(`📊 STATS DEBUG: todayStart=${todayStart} (${new Date(todayStart).toISOString()})`);
-    console.log(`📊 STATS DEBUG: Found ${users.length} users, ${todayCalls.length} calls today`);
-
-    // Log each call's key fields
-    for (const call of todayCalls) {
-      console.log(`📊 Call: direction=${call.direction}, outcome=${call.outcome}, handledByUserId=${call.handledByUserId}, startedAt=${call.startedAt}`);
-    }
-
     // Build stats map by user ID
     const statsMap = new Map<
       string,
@@ -86,10 +77,8 @@ export const getByOrganizationWithMetrics = query({
     >();
 
     for (const call of todayCalls) {
-      if (!call.handledByUserId) {
-        console.log(`📊 SKIPPING call - no handledByUserId: ${call.twilioCallSid}`);
-        continue;
-      }
+      if (!call.handledByUserId) continue;
+
       const odUserId = call.handledByUserId.toString();
       const current = statsMap.get(odUserId) || {
         inbound: 0,
@@ -99,20 +88,14 @@ export const getByOrganizationWithMetrics = query({
 
       if (call.direction === "inbound" && call.outcome === "answered") {
         current.inbound++;
-        console.log(`📊 Counting INBOUND for user ${odUserId}`);
       }
       if (call.direction === "outbound") {
         current.outbound++;
-        console.log(`📊 Counting OUTBOUND for user ${odUserId}`);
       }
       current.talkTime += call.talkTime || 0;
 
       statsMap.set(odUserId, current);
     }
-
-    // Log user IDs for matching
-    console.log(`📊 User IDs in org:`, users.map(u => u._id.toString()));
-    console.log(`📊 Stats map keys:`, Array.from(statsMap.keys()));
 
     // Combine users with their stats
     return users.map((user) => {
@@ -121,8 +104,6 @@ export const getByOrganizationWithMetrics = query({
         outbound: 0,
         talkTime: 0,
       };
-
-      console.log(`📊 User ${user.name} (${user._id}): inbound=${stats.inbound}, outbound=${stats.outbound}`);
 
       return {
         ...user,

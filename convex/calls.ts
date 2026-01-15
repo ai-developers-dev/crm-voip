@@ -616,10 +616,7 @@ export const claimCall = mutation({
     // Handle case where call record doesn't exist yet (race condition)
     // Still increment stats - the call record will be created by webhook soon
     if (!call) {
-      console.log(`⚠️ No call record - incrementing stats anyway (race condition handling)`);
-      console.log(`📊 Updating user ${user._id}:`);
-      console.log(`  - isNewDay: ${isNewDay} (lastReset: ${user.lastCallCountReset}, today: ${today})`);
-      console.log(`  - currentInbound: ${currentInbound} -> newInbound: ${newInbound}`);
+      console.log(`⚠️ No call record found - updating user status (call record pending)`);
 
       await ctx.db.patch(user._id, {
         status: "on_call",
@@ -629,7 +626,6 @@ export const claimCall = mutation({
         updatedAt: Date.now(),
       });
 
-      console.log(`✅ SUCCESS: Set todayInboundCalls=${newInbound} for ${user.name} (call record pending)`);
       return { success: true, reason: "stats_incremented_call_pending", userId: user._id };
     }
 
@@ -654,21 +650,16 @@ export const claimCall = mutation({
       answeredAt: Date.now(),
     });
 
-    // Update user status to on_call AND increment inbound call count
-    console.log(`📊 Updating user ${user._id}:`);
-    console.log(`  - isNewDay: ${isNewDay} (lastReset: ${user.lastCallCountReset}, today: ${today})`);
-    console.log(`  - currentInbound: ${currentInbound} -> newInbound: ${newInbound}`);
-    console.log(`  - currentOutbound: ${currentOutbound}`);
-
+    // Update user status to on_call
     await ctx.db.patch(user._id, {
       status: "on_call",
       todayInboundCalls: newInbound,
-      todayOutboundCalls: currentOutbound, // Preserve outbound count
+      todayOutboundCalls: currentOutbound,
       lastCallCountReset: today,
       updatedAt: Date.now(),
     });
 
-    console.log(`✅ SUCCESS: Claimed call and set todayInboundCalls=${newInbound} for ${user.name}`);
+    console.log(`✅ Call claimed by ${user.name}`);
 
     return { success: true, callId: call._id, userId: user._id };
   },

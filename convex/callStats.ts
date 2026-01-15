@@ -14,8 +14,6 @@ export const debugCallHistory = query({
       .order("desc")
       .take(10);
 
-    console.log(`🔍 DEBUG: Found ${calls.length} recent calls in callHistory`);
-
     return calls.map((call) => ({
       _id: call._id,
       twilioCallSid: call.twilioCallSid,

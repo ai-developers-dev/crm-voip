@@ -265,3 +265,129 @@ http://twimlets.com/holdmusic?Bucket=com.twilio.music.electronica
 // Custom hold music endpoint
 /api/twilio/hold-music (returns TwiML with <Play> and <Loop>)
 ```
+
+**Dual-Leg Call Architecture (CRITICAL)**
+
+Inbound calls create TWO Twilio calls with different CallSids:
+1. **PSTN leg**: Caller → Twilio number (CallSid A) - This is what your webhook receives
+2. **Agent leg**: Twilio → Browser client (CallSid B) - This is what the browser SDK receives
+
+```
+Caller dials → Twilio (CallSid A) → Voice webhook → TwiML <Dial><Client>
+                                                          ↓
+                                            Browser receives incoming (CallSid B)
+```
+
+**When the agent answers:**
+- Browser SDK has CallSid B
+- Your database has activeCall with CallSid A
+- You MUST match by org + state, not just CallSid
+
+```typescript
+// CORRECT: Find ringing call in org when SID doesn't match
+if (!call && args.clerkOrgId) {
+  const ringingCall = await ctx.db
+    .query("activeCalls")
+    .withIndex("by_organization_state", (q) =>
+      q.eq("organizationId", orgId).eq("state", "ringing")
+    )
+    .first();
+  if (ringingCall) call = ringingCall;
+}
+
+// WRONG: Only matching by exact CallSid
+const call = await ctx.db.query("activeCalls")
+  .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", browserCallSid))
+  .first();
+// This will NOT find the call!
+```
+
+### convex-expert Patterns
+
+**Deployment Reminder (CRITICAL)**
+
+Convex functions deploy SEPARATELY from Vercel:
+- `git push origin main` → Deploys Next.js to Vercel ONLY
+- `npx convex deploy --yes` → Deploys functions to Convex prod
+- `npx convex dev --once` → Deploys functions to Convex dev
+
+**Always run BOTH after Convex changes:**
+```bash
+git push origin main && npx convex deploy --yes && npx convex dev --once
+```
+
+**Query Optimization - Parallel Queries**
+
+Use `Promise.all()` for independent queries:
+
+```typescript
+// CORRECT: Parallel queries (~100ms total)
+const [organization, presenceRecords] = await Promise.all([
+  ctx.db.get(args.organizationId),
+  ctx.db.query("presence").withIndex("by_organization", ...).collect(),
+]);
+
+// WRONG: Sequential queries (~200ms total)
+const organization = await ctx.db.get(args.organizationId);
+const presenceRecords = await ctx.db.query("presence")...;
+```
+
+**Avoid N+1 Queries - Batch Fetch**
+
+```typescript
+// CORRECT: Batch fetch in parallel
+const users = await Promise.all(
+  presenceRecords.map((p) => ctx.db.get(p.userId))
+);
+
+// WRONG: Sequential N+1 queries
+for (const p of presenceRecords) {
+  const user = await ctx.db.get(p.userId); // Each is a separate round-trip!
+}
+```
+
+### incoming-call-expert Patterns
+
+**Voice Webhook Performance (CRITICAL)**
+
+The voice webhook BLOCKS Twilio from dialing agents until it returns TwiML.
+Every millisecond of DB queries = delayed ring for the caller.
+
+**Target: < 200ms response time**
+
+```typescript
+// OPTIMIZED: Parallel queries
+const orgId = phoneNumber.organizationId;
+const [agents] = await Promise.all([
+  convex.query(api.users.getAvailableAgents, { organizationId: orgId }),
+  // Fire-and-forget for non-blocking operations
+  convex.mutation(api.calls.createOrGetIncoming, {...}).catch(console.error),
+]);
+
+// Return TwiML immediately
+return new NextResponse(twiml.toString(), {
+  headers: { "Content-Type": "text/xml" },
+});
+```
+
+**Optimization Checklist:**
+1. Run independent queries in parallel with `Promise.all()`
+2. Fire-and-forget for non-critical mutations (call record creation)
+3. Cache phone number lookups if they don't change often
+4. Keep the critical path minimal - only what's needed to return TwiML
+
+---
+
+## Recent Issues & Solutions (2026-01)
+
+### Issue: Call Statistics Always Showing 0
+**Cause:** Dual-leg CallSid mismatch - `claimCall` couldn't find the activeCall
+**Fix:** `/convex/calls.ts` - Fall back to finding ringing call by org when SID not found
+
+### Issue: Convex Functions Not Updating
+**Cause:** Only pushed to GitHub (Vercel), didn't deploy Convex functions
+**Fix:** Always run `npx convex deploy --yes` after Convex changes
+
+### Issue: Incoming Call Card Delayed 2-3 Rings
+**Cause:** Sequential DB queries in voice webhook (300-900ms)
+**Fix:** `/src/app/api/twilio/voice/route.ts` and `/convex/users.ts` - Parallel queries
