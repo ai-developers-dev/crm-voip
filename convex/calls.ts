@@ -541,7 +541,9 @@ export const claimCall = mutation({
     console.log(`Input: twilioCallSid=${args.twilioCallSid}, agentClerkId=${args.agentClerkId}, clerkOrgId=${args.clerkOrgId}`);
 
     // Find the call by Twilio SID
-    const call = await ctx.db
+    // NOTE: This might be the AGENT leg's SID, not the PSTN caller's SID
+    // Twilio creates two calls: PSTN→Twilio (original) and Twilio→Agent (browser)
+    let call = await ctx.db
       .query("activeCalls")
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
@@ -551,17 +553,34 @@ export const claimCall = mutation({
 
     if (!call && args.clerkOrgId) {
       const clerkOrgId = args.clerkOrgId; // Assign to const for TypeScript
-      console.log(`⚠️ Call NOT FOUND - using clerkOrgId fallback: ${clerkOrgId}`);
+      console.log(`⚠️ Call NOT FOUND by exact SID - using clerkOrgId fallback: ${clerkOrgId}`);
       const org = await ctx.db
         .query("organizations")
         .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", clerkOrgId))
         .first();
-      orgId = org?._id;
-      if (orgId) {
+      if (org) {
+        orgId = org._id;
         console.log(`✓ Found org by clerkOrgId: ${orgId}`);
+
+        // CRITICAL FIX: The twilioCallSid from the browser is the AGENT leg's SID,
+        // but the activeCall was created with the PSTN leg's SID.
+        // Look for any ringing inbound call in this org instead.
+        const ringingCall = await ctx.db
+          .query("activeCalls")
+          .withIndex("by_organization_state", (q) =>
+            q.eq("organizationId", org._id).eq("state", "ringing")
+          )
+          .first();
+
+        if (ringingCall) {
+          console.log(`✓ Found ringing call in org: id=${ringingCall._id}, from=${ringingCall.from}, twilioSid=${ringingCall.twilioCallSid}`);
+          call = ringingCall; // Use this call instead
+        } else {
+          console.log(`⚠️ No ringing calls found in org ${org._id}`);
+        }
       }
     } else if (call) {
-      console.log(`✓ Found call: id=${call._id}, org=${call.organizationId}, state=${call.state}`);
+      console.log(`✓ Found call by exact SID: id=${call._id}, org=${call.organizationId}, state=${call.state}`);
     }
 
     if (!orgId) {
