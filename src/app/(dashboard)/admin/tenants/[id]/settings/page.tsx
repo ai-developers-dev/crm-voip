@@ -26,6 +26,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { updateTenant, UpdateTenantData } from "../../../actions";
+import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 
 export default function TenantSettingsPage() {
   const params = useParams();
@@ -368,6 +369,11 @@ export default function TenantSettingsPage() {
             </dl>
           </CardContent>
         </Card>
+
+        {/* Hold Music Upload */}
+        {tenant._id && (
+          <HoldMusicUpload organizationId={tenant._id} />
+        )}
       </div>
 
       {/* Edit Tenant Dialog */}
