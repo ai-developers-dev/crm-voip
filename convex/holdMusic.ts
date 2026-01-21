@@ -103,6 +103,9 @@ export const getHoldMusicUrl = query({
 /**
  * Get hold music URL by Clerk org ID.
  * Used by the hold music endpoint when org context comes from TwiML.
+ *
+ * IMPORTANT: Always generates a fresh URL from storage ID because
+ * Convex storage URLs are signed and expire over time.
  */
 export const getHoldMusicByClerkId = query({
   args: { clerkOrgId: v.string() },
@@ -112,6 +115,17 @@ export const getHoldMusicByClerkId = query({
       .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
       .first();
 
-    return org?.settings?.holdMusicUrl || null;
+    if (!org?.settings) {
+      return null;
+    }
+
+    // Always get a fresh URL from storage ID (cached URLs expire!)
+    if (org.settings.holdMusicStorageId) {
+      const freshUrl = await ctx.storage.getUrl(org.settings.holdMusicStorageId);
+      return freshUrl;
+    }
+
+    // Fallback to cached URL if no storage ID (legacy or external URL)
+    return org.settings.holdMusicUrl || null;
   },
 });

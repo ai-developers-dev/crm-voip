@@ -159,18 +159,38 @@ export async function POST(request: NextRequest) {
     try {
       console.log(`Step 3: Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
 
-      // Get the base URL for callbacks
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get("origin") || "";
+      // Get the base URL for callbacks - must be publicly accessible (not localhost)
+      // Priority: NEXT_PUBLIC_APP_URL (if production), then derive from request headers
+      let baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
+      // If NEXT_PUBLIC_APP_URL is localhost, try to use request headers instead
+      if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+        const host = request.headers.get("host");
+        const proto = request.headers.get("x-forwarded-proto") || "https";
+        if (host && !host.includes("localhost")) {
+          baseUrl = `${proto}://${host}`;
+        }
+      }
+
+      // Fallback: derive from request URL if still localhost
+      if (baseUrl.includes("localhost") || !baseUrl) {
+        const requestUrl = new URL(request.url);
+        if (!requestUrl.host.includes("localhost")) {
+          baseUrl = requestUrl.origin;
+        }
+      }
+
+      console.log(`Using baseUrl: ${baseUrl}`);
       const statusCallbackUrl = `${baseUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`;
 
-      // Check for custom hold music URL from org settings
-      const customHoldMusicUrl = org.settings?.holdMusicUrl;
+      // Check for custom hold music - use storageId presence as the indicator
+      // (the actual URL will be fetched fresh by hold-music endpoint)
+      const hasCustomHoldMusic = org.settings?.holdMusicStorageId || org.settings?.holdMusicUrl;
 
       let holdMusicWaitUrl: string;
-      if (customHoldMusicUrl) {
+      if (hasCustomHoldMusic) {
         // Use our hold-music endpoint which returns TwiML with the audio URL
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || baseUrl;
-        holdMusicWaitUrl = `${appUrl}/api/twilio/hold-music?clerkOrgId=${encodeURIComponent(orgId)}`;
+        holdMusicWaitUrl = `${baseUrl}/api/twilio/hold-music?clerkOrgId=${encodeURIComponent(orgId)}`;
         console.log(`Using custom hold music via endpoint: ${holdMusicWaitUrl}`);
       } else {
         holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";

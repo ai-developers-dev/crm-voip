@@ -81,6 +81,19 @@ export async function GET(request: NextRequest) {
     const clerkOrgId = url.searchParams.get("clerkOrgId");
     console.log(`Hold music request for org: ${clerkOrgId || 'none'}`);
 
+    // Get the base URL - must be publicly accessible (not localhost)
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    if (appUrl.includes("localhost") || appUrl.includes("127.0.0.1")) {
+      const host = request.headers.get("host");
+      const proto = request.headers.get("x-forwarded-proto") || "https";
+      if (host && !host.includes("localhost")) {
+        appUrl = `${proto}://${host}`;
+      } else {
+        appUrl = url.origin;
+      }
+    }
+    console.log(`Using appUrl: ${appUrl}`);
+
     let holdMusicUrl = DEFAULT_HOLD_MUSIC;
 
     // Check for custom hold music if org ID provided
@@ -93,7 +106,6 @@ export async function GET(request: NextRequest) {
         if (customUrl) {
           // Use our streaming proxy endpoint instead of Convex URL directly
           // This ensures proper Content-Type headers for Twilio
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || url.origin;
           holdMusicUrl = `${appUrl}/api/twilio/hold-music-stream?clerkOrgId=${encodeURIComponent(clerkOrgId)}`;
           console.log(`Using streaming proxy: ${holdMusicUrl}`);
         }
