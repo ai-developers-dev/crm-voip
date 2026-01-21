@@ -188,24 +188,33 @@ export async function POST(request: NextRequest) {
 
       console.log(`🎵 Hold music check - storageId: ${org.settings?.holdMusicStorageId || 'none'}`);
 
-      // TEMPORARY TEST: Force using default twimlet to verify conference waitUrl works at all
-      // If caller hears music with this, then the issue is with our custom audio URL
+      // Default fallback
       holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
-      console.log(`🎵 FORCED TEST: Using default Twilio hold music twimlet`);
 
-      /* DISABLED FOR TESTING
       if (org.settings?.holdMusicStorageId) {
-        const freshAudioUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
-          clerkOrgId: orgId,
-        });
-        console.log(`🎵 Fresh audio URL from Convex: ${freshAudioUrl || 'none'}`);
-        if (freshAudioUrl) {
-          const twimlContent = `<Response><Play loop="0">${freshAudioUrl}</Play></Response>`;
-          holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
-          console.log(`🎵 Using custom hold music via Echo twimlet`);
+        try {
+          // Fetch fresh storage URL (signed URLs expire)
+          const freshAudioUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
+            clerkOrgId: orgId,
+          });
+          console.log(`🎵 Fresh audio URL from Convex: ${freshAudioUrl || 'none'}`);
+
+          if (freshAudioUrl) {
+            // Use the Convex storage URL directly in Play verb via Echo twimlet
+            const twimlContent = `<Response><Play loop="0">${freshAudioUrl}</Play></Response>`;
+            holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
+            console.log(`🎵 Using custom hold music`);
+            console.log(`🎵 Audio URL: ${freshAudioUrl}`);
+          } else {
+            console.log(`🎵 Convex returned null, using default`);
+          }
+        } catch (err) {
+          console.error(`🎵 Error fetching custom audio URL:`, err);
+          // Keep default
         }
+      } else {
+        console.log(`🎵 No storageId configured, using default`);
       }
-      */
 
       // IMPORTANT: startConferenceOnEnter="false" means the caller hears waitUrl music
       // while waiting alone. The conference "starts" when an agent joins with
