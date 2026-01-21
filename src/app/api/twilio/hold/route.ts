@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
           // Use Twilio Echo Twimlet to generate TwiML that plays the audio
           // This bypasses our endpoint entirely - more reliable
           const twimlContent = `<Response><Play loop="0">${freshAudioUrl}</Play></Response>`;
-          holdMusicWaitUrl = `http://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
+          holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
           console.log(`Using custom hold music via Echo twimlet`);
         } else {
           holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
