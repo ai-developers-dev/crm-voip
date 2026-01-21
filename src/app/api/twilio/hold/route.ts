@@ -183,15 +183,25 @@ export async function POST(request: NextRequest) {
       console.log(`Using baseUrl: ${baseUrl}`);
       const statusCallbackUrl = `${baseUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`;
 
-      // Check for custom hold music - use storageId presence as the indicator
-      // (the actual URL will be fetched fresh by hold-music endpoint)
-      const hasCustomHoldMusic = org.settings?.holdMusicStorageId || org.settings?.holdMusicUrl;
-
+      // Get hold music URL - fetch fresh URL if we have a storage ID
       let holdMusicWaitUrl: string;
-      if (hasCustomHoldMusic) {
-        // Use our hold-music endpoint which returns TwiML with the audio URL
-        holdMusicWaitUrl = `${baseUrl}/api/twilio/hold-music?clerkOrgId=${encodeURIComponent(orgId)}`;
-        console.log(`Using custom hold music via endpoint: ${holdMusicWaitUrl}`);
+
+      if (org.settings?.holdMusicStorageId) {
+        // Fetch fresh storage URL (signed URLs expire)
+        const freshAudioUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
+          clerkOrgId: orgId,
+        });
+
+        if (freshAudioUrl) {
+          // Use Twilio Echo Twimlet to generate TwiML that plays the audio
+          // This bypasses our endpoint entirely - more reliable
+          const twimlContent = `<Response><Play loop="0">${freshAudioUrl}</Play></Response>`;
+          holdMusicWaitUrl = `http://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
+          console.log(`Using custom hold music via Echo twimlet`);
+        } else {
+          holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
+          console.log(`No custom URL found, using default twimlet`);
+        }
       } else {
         holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
         console.log(`Using default twimlet hold music`);
