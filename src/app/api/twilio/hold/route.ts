@@ -186,25 +186,30 @@ export async function POST(request: NextRequest) {
       // Get hold music URL - fetch fresh URL if we have a storage ID
       let holdMusicWaitUrl: string;
 
+      console.log(`🎵 Hold music check - storageId: ${org.settings?.holdMusicStorageId || 'none'}`);
+
       if (org.settings?.holdMusicStorageId) {
         // Fetch fresh storage URL (signed URLs expire)
         const freshAudioUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
           clerkOrgId: orgId,
         });
 
+        console.log(`🎵 Fresh audio URL from Convex: ${freshAudioUrl || 'none'}`);
+
         if (freshAudioUrl) {
           // Use Twilio Echo Twimlet to generate TwiML that plays the audio
           // This bypasses our endpoint entirely - more reliable
           const twimlContent = `<Response><Play loop="0">${freshAudioUrl}</Play></Response>`;
           holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
-          console.log(`Using custom hold music via Echo twimlet`);
+          console.log(`🎵 Using custom hold music via Echo twimlet`);
+          console.log(`🎵 waitUrl: ${holdMusicWaitUrl.substring(0, 100)}...`);
         } else {
           holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
-          console.log(`No custom URL found, using default twimlet`);
+          console.log(`🎵 No custom URL found, using default twimlet`);
         }
       } else {
         holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
-        console.log(`Using default twimlet hold music`);
+        console.log(`🎵 Using default twimlet hold music (no storageId)`);
       }
 
       // IMPORTANT: startConferenceOnEnter="false" means the caller hears waitUrl music
@@ -224,6 +229,9 @@ export async function POST(request: NextRequest) {
           </Dial>
         </Response>
       `.trim();
+
+      console.log(`🎵 Full TwiML being sent to Twilio:`);
+      console.log(twiml);
 
       await client.calls(pstnCallSid).update({
         twiml: twiml,
