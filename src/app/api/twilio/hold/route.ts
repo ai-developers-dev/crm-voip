@@ -204,11 +204,11 @@ export async function POST(request: NextRequest) {
           console.log(`🎵 Using custom hold music via Echo twimlet`);
           console.log(`🎵 waitUrl: ${holdMusicWaitUrl.substring(0, 100)}...`);
         } else {
-          holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
+          holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
           console.log(`🎵 No custom URL found, using default twimlet`);
         }
       } else {
-        holdMusicWaitUrl = "http://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
+        holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
         console.log(`🎵 Using default twimlet hold music (no storageId)`);
       }
 
