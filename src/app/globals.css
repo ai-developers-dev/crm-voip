@@ -124,11 +124,13 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    cursor: pointer;
   }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  a, button, [role="button"], label, select, input[type="checkbox"], input[type="radio"], input[type="submit"], input[type="button"] {
+    cursor: pointer;
   }
 }
 
