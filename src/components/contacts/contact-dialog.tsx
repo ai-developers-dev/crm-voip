@@ -55,6 +55,24 @@ const US_STATES = [
   "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
 ];
 
+// Format phone number as user types: xxx-xxx-xxxx
+function formatPhoneInput(value: string): string {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, "");
+
+  // Limit to 10 digits
+  const limited = digits.slice(0, 10);
+
+  // Format based on length
+  if (limited.length <= 3) {
+    return limited;
+  } else if (limited.length <= 6) {
+    return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+  } else {
+    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+  }
+}
+
 export function ContactDialog({
   open,
   onOpenChange,
@@ -104,7 +122,7 @@ export function ContactDialog({
         setNotes(contact.notes || "");
         setPhoneNumbers(
           contact.phoneNumbers.map((p) => ({
-            number: p.number,
+            number: formatPhoneInput(p.number),
             type: p.type,
             isPrimary: p.isPrimary,
           }))
@@ -133,7 +151,7 @@ export function ContactDialog({
 
   const handlePhoneChange = (index: number, value: string) => {
     const updated = [...phoneNumbers];
-    updated[index].number = value;
+    updated[index].number = formatPhoneInput(value);
     setPhoneNumbers(updated);
   };
 
@@ -338,7 +356,7 @@ export function ContactDialog({
                       value={phone.number}
                       onChange={(e) => handlePhoneChange(index, e.target.value)}
                       disabled={isSaving}
-                      placeholder="(555) 123-4567"
+                      placeholder="xxx-xxx-xxxx"
                       className="flex-1"
                     />
 
