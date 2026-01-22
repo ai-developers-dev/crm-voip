@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Default Twilio hold music
+const DEFAULT_MUSIC = "http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3";
 
 /**
  * Simple TwiML endpoint for parking lot hold music.
@@ -11,46 +12,69 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
  * This endpoint is called by Twilio as the conference waitUrl.
  */
 export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const clerkOrgId = url.searchParams.get("clerkOrgId");
+  console.log(`🎵 park-music GET called`);
 
-  console.log(`🎵 park-music called for org: ${clerkOrgId}`);
+  try {
+    const url = new URL(request.url);
+    const clerkOrgId = url.searchParams.get("clerkOrgId");
 
-  // Default Twilio hold music
-  let audioUrl = "http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3";
+    console.log(`🎵 park-music called for org: ${clerkOrgId}`);
 
-  if (clerkOrgId) {
-    try {
-      const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
-        clerkOrgId,
-      });
+    let audioUrl = DEFAULT_MUSIC;
 
-      console.log(`🎵 Custom URL from Convex: ${customUrl || 'none'}`);
+    // Only try Convex if we have the URL configured
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    console.log(`🎵 CONVEX_URL configured: ${convexUrl ? 'yes' : 'NO'}`);
 
-      if (customUrl) {
-        audioUrl = customUrl;
+    if (clerkOrgId && convexUrl) {
+      try {
+        const convex = new ConvexHttpClient(convexUrl);
+        const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
+          clerkOrgId,
+        });
+
+        console.log(`🎵 Custom URL from Convex: ${customUrl || 'none'}`);
+
+        if (customUrl) {
+          audioUrl = customUrl;
+        }
+      } catch (err) {
+        console.error(`🎵 Error fetching custom hold music:`, err);
       }
-    } catch (err) {
-      console.error(`🎵 Error fetching custom hold music:`, err);
     }
-  }
 
-  console.log(`🎵 Playing: ${audioUrl}`);
+    console.log(`🎵 Playing: ${audioUrl}`);
 
-  // Return simple TwiML
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    // Return simple TwiML
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Play loop="0">${audioUrl}</Play>
 </Response>`;
 
-  return new NextResponse(twiml, {
-    headers: {
-      "Content-Type": "text/xml",
-    },
-  });
+    return new NextResponse(twiml, {
+      headers: {
+        "Content-Type": "text/xml",
+      },
+    });
+  } catch (err) {
+    console.error(`🎵 park-music error:`, err);
+
+    // Return default music on any error
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Play loop="0">${DEFAULT_MUSIC}</Play>
+</Response>`;
+
+    return new NextResponse(twiml, {
+      headers: {
+        "Content-Type": "text/xml",
+      },
+    });
+  }
 }
 
 // Also handle POST for flexibility
 export async function POST(request: NextRequest) {
+  console.log(`🎵 park-music POST called`);
   return GET(request);
 }
