@@ -188,13 +188,18 @@ export async function POST(request: NextRequest) {
 
       // Try to get custom hold music from Convex
       let customAudioUrl: string | null = null;
+      console.log(`🎵 Org settings: holdMusicStorageId=${org.settings?.holdMusicStorageId || 'none'}`);
+      console.log(`🎵 CONVEX_URL: ${process.env.NEXT_PUBLIC_CONVEX_URL ? 'set' : 'NOT SET'}`);
+
       if (org.settings?.holdMusicStorageId) {
         try {
           customAudioUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, { clerkOrgId: orgId });
-          console.log(`🎵 Got custom audio URL: ${customAudioUrl ? 'yes' : 'no'}`);
+          console.log(`🎵 Got custom audio URL: ${customAudioUrl ? customAudioUrl.substring(0, 50) + '...' : 'null'}`);
         } catch (err) {
           console.error(`🎵 Error fetching custom audio:`, err);
         }
+      } else {
+        console.log(`🎵 No holdMusicStorageId found in org settings`);
       }
 
       if (customAudioUrl) {
