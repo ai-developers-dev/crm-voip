@@ -186,10 +186,21 @@ export async function POST(request: NextRequest) {
       // Get hold music URL - fetch fresh URL if we have a storage ID
       let holdMusicWaitUrl: string;
 
-      // Use our dedicated park-music endpoint for hold music
-      // This endpoint fetches the org's custom hold music from Convex
-      holdMusicWaitUrl = `${baseUrl}/api/twilio/park-music?clerkOrgId=${encodeURIComponent(orgId)}`;
-      console.log(`🎵 Using park-music endpoint: ${holdMusicWaitUrl}`);
+      // Get custom hold music URL from Convex, or use default
+      const customAudioUrl = org.settings?.holdMusicStorageId
+        ? await convex.query(api.holdMusic.getHoldMusicByClerkId, { clerkOrgId: orgId }).catch(() => null)
+        : null;
+
+      if (customAudioUrl) {
+        // Use Echo twimlet to play the custom audio
+        const twimlContent = `<Response><Play loop="0">${customAudioUrl}</Play></Response>`;
+        holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
+        console.log(`🎵 Using custom audio: ${customAudioUrl.substring(0, 60)}...`);
+      } else {
+        // Use default Twilio hold music
+        holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
+        console.log(`🎵 Using default twimlet`);
+      }
 
       // IMPORTANT: startConferenceOnEnter="false" means the caller hears waitUrl music
       // while waiting alone. The conference "starts" when an agent joins with
