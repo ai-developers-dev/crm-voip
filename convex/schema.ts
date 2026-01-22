@@ -419,6 +419,7 @@ export default defineSchema({
     customerPhoneNumber: v.string(),
     businessPhoneNumber: v.string(), // Your Twilio number
     contactId: v.optional(v.id("contacts")),
+    contactName: v.optional(v.string()), // Cached contact name for display
     assignedUserId: v.optional(v.id("users")),
     status: v.union(
       v.literal("active"),
