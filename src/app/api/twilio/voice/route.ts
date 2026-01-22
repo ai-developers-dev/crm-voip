@@ -83,13 +83,19 @@ export async function POST(request: NextRequest) {
         to
       );
     } else {
-      // Incoming call - look up organization by phone number
-      console.log(`Looking up phone number: ${to}`);
-      const phoneNumber = await convex.query(api.phoneNumbers.lookupByNumber, {
+      // Incoming call - OPTIMIZED: Single HTTP call for phone lookup + available agents
+      // This eliminates the 2-3 ring delay caused by sequential HTTP calls to Convex
+      console.log(`[PERF] Starting incoming call processing for: ${to}`);
+      const startTime = Date.now();
+
+      // Single combined query - replaces sequential lookupByNumber + getAvailableAgents
+      const callData = await convex.query(api.calls.getIncomingCallData, {
         phoneNumber: to,
       });
 
-      if (!phoneNumber) {
+      console.log(`[PERF] getIncomingCallData took ${Date.now() - startTime}ms`);
+
+      if (!callData.found) {
         console.error(`Phone number not configured: ${to}`);
         twiml.say(
           { voice: "alice" },
@@ -101,27 +107,18 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log(`Found organization: ${phoneNumber.organizationId}`);
+      console.log(`Found organization: ${callData.organizationId}, ${callData.agents.length} available agents`);
 
-      // PERFORMANCE: Run getAvailableAgents and createOrGetIncoming in PARALLEL
-      // This reduces latency by ~200-400ms (eliminates sequential DB calls)
-      const orgId = phoneNumber.organizationId as Id<"organizations">;
+      // Fire-and-forget: Create call record (don't block TwiML response)
+      const orgId = callData.organizationId as Id<"organizations">;
+      convex.mutation(api.calls.createOrGetIncoming, {
+        organizationId: orgId,
+        twilioCallSid: callSid,
+        from,
+        to,
+      }).catch(err => console.error("Failed to create call record:", err));
 
-      const [agents] = await Promise.all([
-        // Query available agents
-        convex.query(api.users.getAvailableAgents, { organizationId: orgId }),
-        // Create call record (fire and forget - don't await result, just start it)
-        convex.mutation(api.calls.createOrGetIncoming, {
-          organizationId: orgId,
-          twilioCallSid: callSid,
-          from,
-          to,
-        }).catch(err => console.error("Failed to create call record:", err)),
-      ]);
-
-      console.log(`Found ${agents.length} available agents`);
-
-      if (agents.length === 0) {
+      if (callData.agents.length === 0) {
         // No agents available - go to voicemail
         console.log("No agents available - sending to voicemail");
         twiml.say(
@@ -152,10 +149,12 @@ export async function POST(request: NextRequest) {
 
       // Add each agent as a Client element - Twilio rings all simultaneously
       // IMPORTANT: Client identity must match the token identity format: ${clerkOrgId}-${clerkUserId}
-      for (const agent of agents) {
+      for (const agent of callData.agents) {
         console.log(`Adding agent to dial: ${agent.name} (${agent.twilioIdentity})`);
         dial.client(agent.twilioIdentity);
       }
+
+      console.log(`[PERF] Total webhook processing: ${Date.now() - startTime}ms`);
     }
 
     const twimlString = twiml.toString();

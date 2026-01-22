@@ -1,6 +1,6 @@
-import { mutation, query, internalMutation, internalQuery, MutationCtx } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery, MutationCtx, action } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 
 // Query to get all active calls for an organization
 export const getActive = query({
@@ -791,5 +791,115 @@ export const clearAllActiveCalls = mutation({
 
     console.log(`Cleared ${calls.length} active calls`);
     return { success: true, clearedCount: calls.length };
+  },
+});
+
+// OPTIMIZED: Single query that handles phone lookup + available agents in one HTTP round-trip
+// This eliminates the sequential HTTP calls that were causing 2-3 ring delays
+export const getIncomingCallData = query({
+  args: { phoneNumber: v.string() },
+  handler: async (ctx, args) => {
+    const startTime = Date.now();
+    const now = Date.now();
+
+    // Step 1: Look up phone number config
+    const phoneConfig = await ctx.db
+      .query("phoneNumbers")
+      .withIndex("by_phone_number", (q) => q.eq("phoneNumber", args.phoneNumber))
+      .first();
+
+    if (!phoneConfig) {
+      console.log(`Phone lookup took ${Date.now() - startTime}ms - NOT FOUND`);
+      return { found: false as const, phoneNumber: args.phoneNumber };
+    }
+
+    const orgId = phoneConfig.organizationId;
+
+    // Step 2: Run organization lookup and presence query in PARALLEL
+    const [organization, presenceRecords] = await Promise.all([
+      ctx.db.get(orgId),
+      ctx.db
+        .query("presence")
+        .withIndex("by_organization", (q) => q.eq("organizationId", orgId))
+        .collect(),
+    ]);
+
+    if (!organization) {
+      console.log(`Phone lookup took ${Date.now() - startTime}ms - ORG NOT FOUND`);
+      return { found: false as const, phoneNumber: args.phoneNumber };
+    }
+
+    // Step 3: Filter to available agents with recent heartbeats
+    const availablePresence = presenceRecords.filter(
+      (p) =>
+        now - p.lastHeartbeat < 30000 &&
+        (p.status === "available" || p.status === "on_break")
+    );
+
+    // Step 4: Batch fetch all users in PARALLEL
+    let agents: Array<{
+      _id: string;
+      clerkUserId: string;
+      clerkOrgId: string;
+      name: string;
+      role: string;
+      status: string;
+      twilioIdentity: string;
+    }> = [];
+
+    if (availablePresence.length > 0) {
+      const users = await Promise.all(
+        availablePresence.map((presence) => ctx.db.get(presence.userId))
+      );
+
+      agents = availablePresence
+        .map((presence, index) => {
+          const user = users[index];
+          if (!user) return null;
+          return {
+            _id: user._id,
+            clerkUserId: user.clerkUserId,
+            clerkOrgId: organization.clerkOrgId,
+            name: user.name,
+            role: user.role,
+            status: presence.status,
+            twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
+          };
+        })
+        .filter((a): a is NonNullable<typeof a> => a !== null);
+    } else {
+      // Fallback: Check users with status "available" directly
+      const availableUsers = await ctx.db
+        .query("users")
+        .withIndex("by_organization_status", (q) =>
+          q.eq("organizationId", orgId).eq("status", "available")
+        )
+        .collect();
+
+      agents = availableUsers.map((user) => ({
+        _id: user._id,
+        clerkUserId: user.clerkUserId,
+        clerkOrgId: organization.clerkOrgId,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
+      }));
+    }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`getIncomingCallData took ${totalTime}ms - found ${agents.length} agents`);
+
+    return {
+      found: true as const,
+      organizationId: orgId,
+      clerkOrgId: organization.clerkOrgId,
+      phoneConfig: {
+        friendlyName: phoneConfig.friendlyName,
+        routingType: phoneConfig.routingType,
+        voicemailEnabled: phoneConfig.voicemailEnabled,
+      },
+      agents,
+    };
   },
 });
