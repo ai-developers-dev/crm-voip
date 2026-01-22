@@ -150,12 +150,30 @@ export const createOrGetIncoming = mutation({
       return existing._id;
     }
 
+    // Lookup contact by phone number for caller ID
+    const contacts = await ctx.db
+      .query("contacts")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    const normalizedFrom = args.from.replace(/\D/g, "").slice(-10);
+    const matchingContact = contacts.find((c) =>
+      c.phoneNumbers.some(
+        (p) => p.number.replace(/\D/g, "").slice(-10) === normalizedFrom
+      )
+    );
+
+    const fromName = matchingContact
+      ? `${matchingContact.firstName}${matchingContact.lastName ? " " + matchingContact.lastName : ""}`
+      : undefined;
+
     // Create new incoming call
     return await ctx.db.insert("activeCalls", {
       organizationId: args.organizationId,
       twilioCallSid: args.twilioCallSid,
       direction: "inbound",
       from: args.from,
+      fromName,
       to: args.to,
       state: "ringing",
       startedAt: Date.now(),

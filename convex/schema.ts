@@ -355,6 +355,11 @@ export default defineSchema({
     lastName: v.optional(v.string()),
     company: v.optional(v.string()),
     email: v.optional(v.string()),
+    // Address fields
+    streetAddress: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    zipCode: v.optional(v.string()),
     phoneNumbers: v.array(
       v.object({
         number: v.string(),

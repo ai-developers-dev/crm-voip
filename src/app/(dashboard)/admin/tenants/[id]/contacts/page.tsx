@@ -1,21 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../../../convex/_generated/api";
-import { Id } from "../../../../../../../convex/_generated/dataModel";
+import { Id, Doc } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { ContactList } from "@/components/contacts/contact-list";
+import { ContactDialog } from "@/components/contacts/contact-dialog";
+
+type Contact = Doc<"contacts">;
 
 export default function TenantContactsPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoaded: userLoaded } = useUser();
   const tenantId = params.id as string;
+
+  // Dialog state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   // Check if user is a platform admin
   const isPlatformUser = useQuery(
@@ -28,6 +37,22 @@ export default function TenantContactsPage() {
     api.organizations.getById,
     tenantId ? { organizationId: tenantId as Id<"organizations"> } : "skip"
   );
+
+  // Get contacts for this tenant
+  const contacts = useQuery(
+    api.contacts.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+
+  const handleSelectContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsDialogOpen(true);
+  };
+
+  const handleNewContact = () => {
+    setSelectedContact(null);
+    setIsDialogOpen(true);
+  };
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
@@ -151,20 +176,23 @@ export default function TenantContactsPage() {
         </div>
       </div>
 
-      {/* Coming Soon Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Users className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <CardTitle>Contacts</CardTitle>
-            <CardDescription>
-              Contact management is coming soon. You'll be able to view and manage all contacts for this tenant.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      {/* Contacts Content */}
+      <div className="flex-1 overflow-hidden">
+        <ContactList
+          contacts={contacts || []}
+          onSelectContact={handleSelectContact}
+          onNewContact={handleNewContact}
+          isLoading={contacts === undefined}
+        />
       </div>
+
+      {/* Contact Dialog */}
+      <ContactDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        contact={selectedContact}
+        organizationId={tenant._id}
+      />
     </div>
   );
 }
