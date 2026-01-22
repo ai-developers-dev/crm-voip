@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Building2, Users, Phone, Clock, Eye, Loader2, Settings } from "lucide-react";
+import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { CallingDashboard } from "@/components/calling/calling-dashboard";
@@ -31,11 +31,6 @@ export default function TenantViewPage() {
     tenantId ? { organizationId: tenantId as Id<"organizations"> } : "skip"
   );
 
-  // Get tenant users
-  const tenantUsers = useQuery(
-    api.users.getByOrganization,
-    tenant?._id ? { organizationId: tenant._id } : "skip"
-  );
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
@@ -115,34 +110,41 @@ export default function TenantViewPage() {
         </AlertDescription>
       </Alert>
 
-      {/* Tenant Stats Bar */}
-      <div className="border-b bg-muted/30 px-4 py-3">
+      {/* Navigation Menu */}
+      <div className="border-b bg-muted/30 px-4 py-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              <span className="font-medium">{tenant.name}</span>
-              <Badge variant="secondary">{tenant.plan}</Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-500" />
-              <span className="text-sm">
-                <span className="font-medium">{tenantUsers?.length ?? 0}</span> Users
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-green-500" />
-              <span className="text-sm">
-                <span className="font-medium">0</span> Active Calls
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                Max Concurrent: {tenant.settings.maxConcurrentCalls}
-              </span>
-            </div>
-          </div>
+          <nav className="flex items-center gap-1">
+            <Link href={`/admin/tenants/${tenant._id}`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Phone className="h-4 w-4" />
+                Calls
+              </Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/sms`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                SMS
+              </Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/contacts`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Users className="h-4 w-4" />
+                Contacts
+              </Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/calendar`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Calendar className="h-4 w-4" />
+                Calendar
+              </Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/reports`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Reports
+              </Button>
+            </Link>
+          </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}>
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
