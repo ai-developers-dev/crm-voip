@@ -31,7 +31,7 @@ export function IncomingCallPopup({
   }, [call.startedAt]);
 
   return (
-    <div className="w-full bg-yellow-500 text-white px-4 py-2 animate-in slide-in-from-top-2 shadow-md">
+    <div className="w-full bg-purple-600 text-white px-4 py-2 animate-in slide-in-from-top-2 shadow-md">
       <div className="flex items-center justify-between gap-4">
         {/* Pulsing phone icon + Caller info */}
         <div className="flex items-center gap-3">
@@ -43,7 +43,7 @@ export function IncomingCallPopup({
             <span className="font-medium">
               {call.fromName || call.from}
             </span>
-            <span className="text-yellow-100 text-sm">
+            <span className="text-purple-200 text-sm">
               ({ringTime}s)
             </span>
           </div>

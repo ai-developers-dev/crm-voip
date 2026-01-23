@@ -39,9 +39,9 @@ interface UserStatusCardProps {
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; dotColor: string }> = {
   available: {
     label: "Available",
-    color: "text-green-600",
-    bgColor: "bg-green-100 dark:bg-green-900/30",
-    dotColor: "bg-green-500",
+    color: "text-purple-600",
+    bgColor: "bg-purple-100 dark:bg-purple-900/30",
+    dotColor: "bg-purple-500",
   },
   busy: {
     label: "Busy",
@@ -227,13 +227,13 @@ export function UserStatusCard({
           {/* Daily metrics */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-1" title="Inbound calls accepted today">
-              <PhoneIncoming className="h-4 w-4 text-green-600" />
+              <PhoneIncoming className="h-4 w-4 text-purple-600" />
               <span className="font-medium tabular-nums">
                 {todayMetrics?.inboundCallsAccepted ?? 0}
               </span>
             </div>
             <div className="flex items-center gap-1" title="Outbound calls made today">
-              <PhoneOutgoing className="h-4 w-4 text-blue-600" />
+              <PhoneOutgoing className="h-4 w-4 text-indigo-600" />
               <span className="font-medium tabular-nums">
                 {todayMetrics?.outboundCallsMade ?? 0}
               </span>
@@ -251,24 +251,24 @@ export function UserStatusCard({
             <Switch
               checked={user.status !== "offline"}
               onCheckedChange={handleToggleStatus}
-              className="data-[state=checked]:bg-green-500"
+              className="data-[state=checked]:bg-purple-500"
             />
           </div>
         </div>
 
         {/* Targeted ringing indicator - shows when a parked call is unparked to this specific user */}
         {targetedRinging && twilioCallPending && (
-          <div className="mt-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 animate-pulse">
+          <div className="mt-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 animate-pulse">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500 animate-bounce">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500 animate-bounce">
                   <Phone className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-medium text-amber-900 dark:text-amber-100">
+                  <p className="font-medium text-purple-900 dark:text-purple-100">
                     {targetedRinging.callerName || targetedRinging.callerNumber}
                   </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <p className="text-xs text-purple-700 dark:text-purple-300">
                     Incoming transfer • {ringTime}s
                   </p>
                 </div>

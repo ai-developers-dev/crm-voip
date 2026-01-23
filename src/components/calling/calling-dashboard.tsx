@@ -349,7 +349,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {twilioReady ? (
-              <Badge variant="default" className="gap-1 bg-green-600">
+              <Badge variant="default" className="gap-1 bg-purple-600">
                 <Wifi className="h-3 w-3" />
                 Connected
               </Badge>
