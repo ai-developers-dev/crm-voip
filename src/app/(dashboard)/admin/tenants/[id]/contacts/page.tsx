@@ -11,7 +11,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ContactList } from "@/components/contacts/contact-list";
+import { ContactListCompact } from "@/components/contacts/contact-list-compact";
+import { CommunicationsPane } from "@/components/contacts/communications-pane";
+import { ContactDetailsPlaceholder } from "@/components/contacts/contact-details-placeholder";
 import { ContactDialog } from "@/components/contacts/contact-dialog";
 
 type Contact = Doc<"contacts">;
@@ -22,8 +24,11 @@ export default function TenantContactsPage() {
   const { user, isLoaded: userLoaded } = useUser();
   const tenantId = params.id as string;
 
-  // Dialog state
+  // Dialog state (for create/edit)
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogContact, setDialogContact] = useState<Contact | null>(null);
+
+  // Selected contact for viewing communications (separate from dialog)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   // Check if user is a platform admin
@@ -44,13 +49,13 @@ export default function TenantContactsPage() {
     tenant?._id ? { organizationId: tenant._id } : "skip"
   );
 
+  // Handle selecting a contact (for viewing)
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
-    setIsDialogOpen(true);
   };
 
   const handleNewContact = () => {
-    setSelectedContact(null);
+    setDialogContact(null);
     setIsDialogOpen(true);
   };
 
@@ -176,21 +181,38 @@ export default function TenantContactsPage() {
         </div>
       </div>
 
-      {/* Contacts Content */}
-      <div className="flex-1 overflow-hidden">
-        <ContactList
-          contacts={contacts || []}
-          onSelectContact={handleSelectContact}
-          onNewContact={handleNewContact}
-          isLoading={contacts === undefined}
-        />
+      {/* 3-Column Layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Column 1: Contact List */}
+        <div className="w-80 border-r flex-shrink-0">
+          <ContactListCompact
+            contacts={contacts || []}
+            selectedContactId={selectedContact?._id || null}
+            onSelectContact={handleSelectContact}
+            onNewContact={handleNewContact}
+            isLoading={contacts === undefined}
+          />
+        </div>
+
+        {/* Column 2: Communications Pane */}
+        <div className="flex-1 min-w-0 border-r">
+          <CommunicationsPane
+            contact={selectedContact}
+            organizationId={tenant._id}
+          />
+        </div>
+
+        {/* Column 3: Reserved/Placeholder */}
+        <div className="w-72 flex-shrink-0 bg-muted/30">
+          <ContactDetailsPlaceholder />
+        </div>
       </div>
 
-      {/* Contact Dialog */}
+      {/* Contact Dialog for create/edit */}
       <ContactDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        contact={selectedContact}
+        contact={dialogContact}
         organizationId={tenant._id}
       />
     </div>
