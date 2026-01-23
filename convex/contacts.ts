@@ -214,3 +214,100 @@ export const remove = mutation({
     return { success: true };
   },
 });
+
+// Get communications history for a contact (calls + messages)
+export const getCommunicationsHistory = query({
+  args: {
+    contactId: v.id("contacts"),
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) {
+      return { calls: [], messages: [] };
+    }
+
+    // Get all phone numbers for the contact (normalized to last 10 digits)
+    const contactPhones = contact.phoneNumbers.map((p) =>
+      p.number.replace(/\D/g, "").slice(-10)
+    );
+
+    // Fetch calls and messages in parallel
+    const [allCalls, allMessages] = await Promise.all([
+      ctx.db
+        .query("callHistory")
+        .withIndex("by_organization", (q) =>
+          q.eq("organizationId", args.organizationId)
+        )
+        .order("desc")
+        .collect(),
+      ctx.db
+        .query("messages")
+        .withIndex("by_organization", (q) =>
+          q.eq("organizationId", args.organizationId)
+        )
+        .order("desc")
+        .collect(),
+    ]);
+
+    // Filter calls by contactId or phone number match
+    const seenCallSids = new Set<string>();
+    const calls = allCalls.filter((call) => {
+      // Deduplicate by twilioCallSid
+      if (seenCallSids.has(call.twilioCallSid)) return false;
+
+      // Check if linked by contactId
+      if (call.contactId && call.contactId === args.contactId) {
+        seenCallSids.add(call.twilioCallSid);
+        return true;
+      }
+
+      // Check phone number match (from or to)
+      const fromNormalized = call.from.replace(/\D/g, "").slice(-10);
+      const toNormalized = call.to.replace(/\D/g, "").slice(-10);
+
+      if (
+        contactPhones.includes(fromNormalized) ||
+        contactPhones.includes(toNormalized)
+      ) {
+        seenCallSids.add(call.twilioCallSid);
+        return true;
+      }
+
+      return false;
+    });
+
+    // Filter messages by contactId or phone number match
+    const seenMessageSids = new Set<string>();
+    const messages = allMessages.filter((msg) => {
+      // Deduplicate by twilioMessageSid
+      if (seenMessageSids.has(msg.twilioMessageSid)) return false;
+
+      // Check if linked by contactId
+      if (msg.contactId && msg.contactId === args.contactId) {
+        seenMessageSids.add(msg.twilioMessageSid);
+        return true;
+      }
+
+      // Check phone number match (from or to)
+      const fromNormalized = msg.from.replace(/\D/g, "").slice(-10);
+      const toNormalized = msg.to.replace(/\D/g, "").slice(-10);
+
+      if (
+        contactPhones.includes(fromNormalized) ||
+        contactPhones.includes(toNormalized)
+      ) {
+        seenMessageSids.add(msg.twilioMessageSid);
+        return true;
+      }
+
+      return false;
+    });
+
+    // Return limited results (most recent 100 each)
+    return {
+      calls: calls.slice(0, 100),
+      messages: messages.slice(0, 100),
+    };
+  },
+});
