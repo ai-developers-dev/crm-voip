@@ -708,19 +708,15 @@ export default function DashboardLayout({
   // Check if we're on onboarding pages - don't show calling features there
   const isOnboarding = pathname?.startsWith("/onboarding");
 
-  // Check if organization has completed Twilio setup
-  // IMPORTANT: Enable calling unless we EXPLICITLY know Twilio is NOT configured
-  // This keeps CallingProvider mounted during query loading and page navigation
-  const twilioExplicitlyDisabled = onboardingStatus?.twilioConfigured === false;
-  const hasCallingEnabled = Boolean(organization?.id && !isOnboarding && !twilioExplicitlyDisabled);
+  // Always enable CallingProvider if we have an organization and not on onboarding
+  // The useTwilioDevice hook will handle errors gracefully if Twilio isn't configured
+  // Don't rely on twilioConfigured flag - it may be stale or incorrect
+  const hasCallingEnabled = Boolean(organization?.id && !isOnboarding);
 
   // Debug logging
   console.log("[DashboardLayout] Calling check:", {
     orgId: organization?.id,
     isOnboarding,
-    onboardingStatusLoaded: onboardingStatus !== undefined,
-    twilioConfigured: onboardingStatus?.twilioConfigured,
-    twilioExplicitlyDisabled,
     hasCallingEnabled,
     pathname,
   });
