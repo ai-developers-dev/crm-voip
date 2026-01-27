@@ -23,6 +23,7 @@ export interface TwilioDeviceState {
   device: Device | null;
   isReady: boolean;
   isConnecting: boolean;
+  isReconnecting: boolean;
   // Multi-call state
   calls: Map<string, CallInfo>;
   focusedCallSid: string | null;
@@ -35,6 +36,12 @@ export interface TwilioDeviceState {
 // Default max concurrent calls (can be overridden by org settings)
 const DEFAULT_MAX_CONCURRENT_CALLS = 3;
 
+// Reconnection settings
+const RECONNECT_BASE_DELAY_MS = 1000;
+const RECONNECT_MAX_DELAY_MS = 30000;
+const RECONNECT_MAX_ATTEMPTS = 10;
+const TOKEN_REFRESH_BEFORE_EXPIRY_MS = 60000; // Refresh 60s before expiry (more buffer)
+
 export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURRENT_CALLS) {
   const { user } = useUser();
   const { organization } = useOrganization();
@@ -42,6 +49,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     device: null,
     isReady: false,
     isConnecting: false,
+    isReconnecting: false,
     calls: new Map(),
     focusedCallSid: null,
     activeCall: null,
@@ -53,6 +61,20 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
   // Use ref to track call count to avoid stale closures in event handlers
   const callsRef = useRef<Map<string, CallInfo>>(new Map());
   const maxCallsRef = useRef(maxConcurrentCalls);
+
+  // Refs for reconnection logic
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isReconnectingRef = useRef(false);
+  const lastVisibilityChangeRef = useRef<number>(Date.now());
+  const userRef = useRef(user);
+  const organizationRef = useRef(organization);
+
+  // Keep user/org refs up to date
+  useEffect(() => {
+    userRef.current = user;
+    organizationRef.current = organization;
+  }, [user, organization]);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -105,6 +127,87 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     console.error("Failed to fetch Twilio token after all retries");
     return null;
   }, [user, organization]);
+
+  // Clear any pending reconnection timeout
+  const clearReconnectTimeout = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Forward declaration - will be set by initializeDevice
+  const initializeDeviceRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Attempt to reconnect with exponential backoff
+  const attemptReconnect = useCallback(async () => {
+    // Don't reconnect if already reconnecting or no user/org
+    if (isReconnectingRef.current || !userRef.current || !organizationRef.current) {
+      return;
+    }
+
+    // Check if we've exceeded max attempts
+    if (reconnectAttemptRef.current >= RECONNECT_MAX_ATTEMPTS) {
+      console.error(`Max reconnection attempts (${RECONNECT_MAX_ATTEMPTS}) reached`);
+      setState((prev) => ({
+        ...prev,
+        isReconnecting: false,
+        error: "Connection lost. Please refresh the page.",
+      }));
+      return;
+    }
+
+    isReconnectingRef.current = true;
+    setState((prev) => ({ ...prev, isReconnecting: true }));
+
+    // Calculate delay with exponential backoff
+    const delay = Math.min(
+      RECONNECT_BASE_DELAY_MS * Math.pow(2, reconnectAttemptRef.current),
+      RECONNECT_MAX_DELAY_MS
+    );
+
+    reconnectAttemptRef.current += 1;
+    console.log(`Attempting reconnection (attempt ${reconnectAttemptRef.current}/${RECONNECT_MAX_ATTEMPTS}) in ${delay}ms...`);
+
+    reconnectTimeoutRef.current = setTimeout(async () => {
+      try {
+        // First try to just re-register if device exists
+        if (deviceRef.current) {
+          try {
+            console.log("Attempting to re-register existing device...");
+            await deviceRef.current.register();
+            console.log("Re-registration successful");
+            reconnectAttemptRef.current = 0;
+            isReconnectingRef.current = false;
+            setState((prev) => ({ ...prev, isReconnecting: false, isReady: true, error: null }));
+            return;
+          } catch (registerError: unknown) {
+            console.warn("Re-registration failed, will reinitialize device:", registerError);
+            // If re-register fails, destroy and reinitialize
+            deviceRef.current.destroy();
+            deviceRef.current = null;
+          }
+        }
+
+        // Use the full initializeDevice function (via ref to avoid circular dependency)
+        if (initializeDeviceRef.current) {
+          await initializeDeviceRef.current();
+          // If initializeDevice succeeds, reset reconnect state
+          reconnectAttemptRef.current = 0;
+          isReconnectingRef.current = false;
+          setState((prev) => ({ ...prev, isReconnecting: false }));
+        } else {
+          console.error("initializeDevice not available for reconnection");
+          isReconnectingRef.current = false;
+        }
+      } catch (error) {
+        console.error("Reconnection attempt failed:", error);
+        isReconnectingRef.current = false;
+        // Schedule another attempt
+        setTimeout(() => attemptReconnect(), RECONNECT_BASE_DELAY_MS);
+      }
+    }, delay);
+  }, []);
 
   // Helper to update call info in state
   const updateCallInfo = useCallback((callSid: string, updates: Partial<CallInfo>) => {
@@ -239,11 +342,13 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       });
 
       newDevice.on("unregistered", () => {
-        console.log("Twilio Device unregistered");
+        console.log("Twilio Device unregistered - attempting reconnection");
         setState((prev) => ({
           ...prev,
           isReady: false,
         }));
+        // Attempt to reconnect when device becomes unregistered
+        attemptReconnect();
       });
 
       newDevice.on("incoming", (call: Call) => {
@@ -341,12 +446,25 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         });
       });
 
-      newDevice.on("error", (error) => {
+      newDevice.on("error", (error: { code?: number; message: string }) => {
         console.error("Twilio Device error:", error);
-        setState((prev) => ({
-          ...prev,
-          error: error.message,
-        }));
+
+        // Check for token-related errors that require reconnection
+        const tokenErrors = [20101, 20104, 31005, 31009]; // AccessTokenInvalid, AccessTokenExpired, ConnectionError, TransportError
+        if (error.code && tokenErrors.includes(error.code)) {
+          console.log(`Token/connection error (${error.code}) - attempting reconnection`);
+          setState((prev) => ({
+            ...prev,
+            isReady: false,
+            error: `Connection error (${error.code}). Reconnecting...`,
+          }));
+          attemptReconnect();
+        } else {
+          setState((prev) => ({
+            ...prev,
+            error: error.message,
+          }));
+        }
       });
 
       newDevice.on("tokenWillExpire", async () => {
@@ -379,7 +497,12 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       }));
     }
   // IMPORTANT: Only depend on stable functions, NOT state.calls.size
-  }, [fetchTokenWithRetry, updateCallInfo, removeCall]);
+  }, [fetchTokenWithRetry, updateCallInfo, removeCall, attemptReconnect]);
+
+  // Keep initializeDevice ref up to date for reconnection
+  useEffect(() => {
+    initializeDeviceRef.current = initializeDevice;
+  }, [initializeDevice]);
 
   // Make outbound call
   const makeCall = useCallback(
@@ -759,19 +882,94 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     return Array.from(state.calls.values()).filter(c => c.status === "open");
   }, [state.calls]);
 
+  // Visibility change handler - reconnect when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const now = Date.now();
+        const timeSinceLastChange = now - lastVisibilityChangeRef.current;
+        lastVisibilityChangeRef.current = now;
+
+        console.log(`Tab became visible (was hidden for ${Math.round(timeSinceLastChange / 1000)}s)`);
+
+        // If device exists but is not ready, attempt reconnection
+        // Only trigger if hidden for more than 30 seconds to avoid unnecessary reconnects
+        if (timeSinceLastChange > 30000 && !state.isReady && userRef.current && organizationRef.current) {
+          console.log("Device not ready after returning to tab - attempting reconnection");
+          attemptReconnect();
+        } else if (deviceRef.current && !state.isReady) {
+          // Try a quick re-register if device exists but not ready
+          console.log("Attempting quick re-register after tab focus...");
+          deviceRef.current.register().catch((error) => {
+            console.warn("Quick re-register failed:", error);
+            attemptReconnect();
+          });
+        }
+      } else {
+        lastVisibilityChangeRef.current = Date.now();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [state.isReady, attemptReconnect]);
+
+  // Online/offline handler - reconnect when network comes back
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log("Network came back online");
+      // If device is not ready, attempt reconnection
+      if (!state.isReady && userRef.current && organizationRef.current) {
+        console.log("Device not ready - attempting reconnection after network restored");
+        // Reset reconnect attempts since this is a new network event
+        reconnectAttemptRef.current = 0;
+        attemptReconnect();
+      } else if (deviceRef.current && !state.isReady) {
+        // Try to re-register existing device
+        deviceRef.current.register().catch((error) => {
+          console.warn("Re-register failed after coming online:", error);
+          attemptReconnect();
+        });
+      }
+    };
+
+    const handleOffline = () => {
+      console.log("Network went offline");
+      setState((prev) => ({
+        ...prev,
+        isReady: false,
+        error: "Network offline",
+      }));
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [state.isReady, attemptReconnect]);
+
   // Initialize on mount - only when user/org changes
   useEffect(() => {
     if (user && organization) {
+      // Reset reconnect state on fresh initialization
+      reconnectAttemptRef.current = 0;
+      isReconnectingRef.current = false;
+      clearReconnectTimeout();
+
       initializeDevice();
     }
 
     return () => {
+      clearReconnectTimeout();
       if (deviceRef.current) {
         deviceRef.current.destroy();
         deviceRef.current = null;
       }
     };
-  }, [user, organization, initializeDevice]);
+  }, [user, organization, initializeDevice, clearReconnectTimeout]);
 
   return {
     // State

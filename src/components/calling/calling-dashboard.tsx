@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Users, Wifi, WifiOff, Loader2, GripVertical } from "lucide-react";
+import { useOptionalCallingContext } from "./calling-provider";
 import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,9 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
     })
   );
 
+  // Try to use the global CallingContext first (from layout provider)
+  const callingContext = useOptionalCallingContext();
+
   // Get the Convex organization from Clerk org ID
   const convexOrg = useQuery(
     api.organizations.getCurrent,
@@ -56,36 +60,33 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   // Get max concurrent calls from org settings (default 3)
   const maxConcurrentCalls = convexOrg?.settings?.maxConcurrentCalls ?? 3;
 
-  // Initialize Twilio Device with multi-call support
-  const {
-    isReady: twilioReady,
-    // Legacy single-call interface (for backward compatibility)
-    activeCall: twilioActiveCall,
-    callStatus: twilioCallStatus,
-    error: twilioError,
-    // Multi-call state
-    getAllCalls,
-    getPendingCalls,
-    focusedCallSid,
-    callCount,
-    // Legacy operations
-    answerCall,
-    rejectCall,
-    hangUp,
-    toggleMute,
-    // Multi-call operations
-    answerCallBySid,
-    rejectCallBySid,
-    hangUpBySid,
-    holdCall,
-    unholdCall,
-    focusCall,
-  } = useTwilioDevice(maxConcurrentCalls);
+  // Fallback to direct useTwilioDevice if not using context (e.g., admin viewing tenant)
+  const directTwilioDevice = useTwilioDevice(
+    // Only initialize if we don't have context
+    callingContext ? 0 : maxConcurrentCalls
+  );
 
-  // Convex mutations
-  const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
-  const endCallMutation = useMutation(api.calls.end);
-  const heartbeat = useMutation(api.presence.heartbeat);
+  // Use context if available, otherwise use direct hook
+  const twilioReady = callingContext?.isReady ?? directTwilioDevice.isReady;
+  const twilioActiveCall = callingContext?.activeCall ?? directTwilioDevice.activeCall;
+  const twilioCallStatus = callingContext?.callStatus ?? directTwilioDevice.callStatus;
+  const twilioError = callingContext?.error ?? directTwilioDevice.error;
+  const getAllCalls = callingContext?.getAllCalls ?? directTwilioDevice.getAllCalls;
+  const getPendingCalls = callingContext?.getPendingCalls ?? directTwilioDevice.getPendingCalls;
+  const focusedCallSid = callingContext?.focusedCallSid ?? directTwilioDevice.focusedCallSid;
+  const callCount = callingContext?.callCount ?? directTwilioDevice.callCount;
+  const answerCall = callingContext?.answerCall ?? directTwilioDevice.answerCall;
+  const rejectCall = callingContext?.rejectCall ?? directTwilioDevice.rejectCall;
+  const hangUp = callingContext?.hangUp ?? directTwilioDevice.hangUp;
+  const toggleMute = callingContext?.toggleMute ?? directTwilioDevice.toggleMute;
+  const answerCallBySid = callingContext?.answerCallBySid ?? directTwilioDevice.answerCallBySid;
+  const rejectCallBySid = callingContext?.rejectCallBySid ?? directTwilioDevice.rejectCallBySid;
+  const hangUpBySid = callingContext?.hangUpBySid ?? directTwilioDevice.hangUpBySid;
+  const holdCall = callingContext?.holdCall ?? directTwilioDevice.holdCall;
+  const unholdCall = callingContext?.unholdCall ?? directTwilioDevice.unholdCall;
+  const focusCall = callingContext?.focusCall ?? directTwilioDevice.focusCall;
+
+  // Convex mutations (only needed for operations not handled by context)
   const createTargetedRinging = useMutation(api.targetedRinging.create);
   const setAgentCallSid = useMutation(api.targetedRinging.setAgentCallSid);
 
@@ -93,56 +94,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   const addOptimisticCall = useParkingStore((s) => s.addOptimisticCall);
   const removeOptimisticCall = useParkingStore((s) => s.removeOptimisticCall);
   const setParkingInProgress = useParkingStore((s) => s.setParkingInProgress);
-
-  // Presence heartbeat - runs every 30 seconds
-  useEffect(() => {
-    if (!currentUser?._id || !convexOrg?._id) return;
-
-    // Determine status based on call count
-    const getStatus = () => {
-      if (callCount > 0) return "on_call";
-      return "available";
-    };
-
-    // Initial heartbeat
-    heartbeat({
-      userId: currentUser._id,
-      organizationId: convexOrg._id,
-      status: getStatus(),
-      deviceInfo: {
-        browser: typeof navigator !== "undefined" ? navigator.userAgent.split(" ").pop() || "Unknown" : "Unknown",
-        os: typeof navigator !== "undefined" ? navigator.platform : "Unknown",
-      },
-    });
-
-    // Heartbeat interval
-    const interval = setInterval(() => {
-      heartbeat({
-        userId: currentUser._id,
-        organizationId: convexOrg._id,
-        status: getStatus(),
-      });
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [currentUser?._id, convexOrg?._id, heartbeat, callCount]);
-
-  // Handle incoming Twilio calls - sync all to Convex
-  useEffect(() => {
-    if (!convexOrg?._id) return;
-
-    const allCalls = getAllCalls();
-    for (const callInfo of allCalls) {
-      if (callInfo.direction === "INCOMING") {
-        createOrGetIncomingCall({
-          organizationId: convexOrg._id,
-          twilioCallSid: callInfo.callSid,
-          from: callInfo.from,
-          to: callInfo.to,
-        }).catch(console.error);
-      }
-    }
-  }, [getAllCalls, convexOrg?._id, createOrGetIncomingCall]);
 
   // For now, show a placeholder since we need Convex organization ID
   if (!organizationId) {

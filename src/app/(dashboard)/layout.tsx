@@ -8,7 +8,8 @@ import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
 import {
   Phone, Settings, Building2, Shield, LogOut, UserCog,
-  ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3, Users
+  ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3, Users,
+  Wifi, WifiOff, RefreshCw
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createTenant, updateTenant, CreateTenantData } from "./admin/actions";
+import { CallingProvider, useOptionalCallingContext } from "@/components/calling/calling-provider";
+import { GlobalIncomingBanner } from "@/components/calling/global-incoming-banner";
+import { ActiveCallBar } from "@/components/calling/active-call-bar";
 
 function TenantSwitcher() {
   const [open, setOpen] = useState(false);
@@ -459,6 +463,64 @@ function TenantSwitcher() {
   );
 }
 
+/**
+ * ConnectionStatus - Shows Twilio device connection status in the header
+ */
+function ConnectionStatus() {
+  const callingContext = useOptionalCallingContext();
+
+  // If no calling context, don't show anything
+  if (!callingContext) {
+    return null;
+  }
+
+  const { isReady, isConnecting, isReconnecting, error } = callingContext;
+
+  // Show reconnecting state with a distinct indicator
+  if (isReconnecting) {
+    return (
+      <Badge variant="secondary" className="gap-1 text-xs bg-yellow-500/20 text-yellow-700 border-yellow-500/30">
+        <RefreshCw className="h-3 w-3 animate-spin" />
+        Reconnecting
+      </Badge>
+    );
+  }
+
+  if (error && !isReconnecting) {
+    return (
+      <Badge variant="destructive" className="gap-1 text-xs">
+        <WifiOff className="h-3 w-3" />
+        Error
+      </Badge>
+    );
+  }
+
+  if (isConnecting) {
+    return (
+      <Badge variant="secondary" className="gap-1 text-xs">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Connecting
+      </Badge>
+    );
+  }
+
+  if (isReady) {
+    return (
+      <Badge variant="default" className="gap-1 text-xs bg-green-600 hover:bg-green-700">
+        <Wifi className="h-3 w-3" />
+        Ready
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="secondary" className="gap-1 text-xs">
+      <WifiOff className="h-3 w-3" />
+      Offline
+    </Badge>
+  );
+}
+
 function CustomUserButton({ roleLabel, isSuperAdmin }: { roleLabel: string | null; isSuperAdmin: boolean }) {
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
@@ -643,8 +705,21 @@ export default function DashboardLayout({
     return null;
   }
 
-  return (
+  // Check if we're on onboarding pages - don't show calling features there
+  const isOnboarding = pathname?.startsWith("/onboarding");
+
+  // Check if organization has completed Twilio setup
+  const hasCallingEnabled = organization?.id && !isOnboarding && onboardingStatus?.twilioConfigured;
+
+  // The inner content that will be wrapped conditionally
+  const layoutContent = (
     <div className="min-h-screen bg-background">
+      {/* Global incoming call banner - shows on ALL pages */}
+      <GlobalIncomingBanner />
+
+      {/* Active call bar - shows mini controls when on a call but not on /dashboard */}
+      <ActiveCallBar />
+
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-card">
         <div className="flex h-14 items-center justify-between px-4">
@@ -663,6 +738,8 @@ export default function DashboardLayout({
             )}
           </div>
           <div className="flex items-center gap-3">
+            {/* Connection status indicator */}
+            <ConnectionStatus />
             <Link href="/stats">
               <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
                 <BarChart3 className="h-3 w-3" />
@@ -690,4 +767,16 @@ export default function DashboardLayout({
       <main className="flex-1">{children}</main>
     </div>
   );
+
+  // Wrap with CallingProvider only if calling is enabled for this organization
+  if (hasCallingEnabled && organization?.id) {
+    return (
+      <CallingProvider organizationId={organization.id}>
+        {layoutContent}
+      </CallingProvider>
+    );
+  }
+
+  // Without calling features (onboarding, no Twilio setup, etc.)
+  return layoutContent;
 }

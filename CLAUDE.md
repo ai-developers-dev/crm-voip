@@ -78,6 +78,7 @@ See `/convex/schema.ts` for complete schema including:
 - [x] Drag-and-drop call parking
 - [x] Drag-and-drop call transfers
 - [x] Call history logging
+- [x] Global incoming call notifications (answer from any page)
 - [ ] Call recording playback
 - [ ] IVR configuration
 - [ ] Call queues
@@ -375,6 +376,51 @@ return new NextResponse(twiml.toString(), {
 2. Fire-and-forget for non-critical mutations (call record creation)
 3. Cache phone number lookups if they don't change often
 4. Keep the critical path minimal - only what's needed to return TwiML
+
+### Global Calling Architecture (2026-01-27)
+
+**Problem:** Users could only answer incoming calls from the /dashboard page. Navigating to /contacts, /stats, or /settings meant missing calls.
+
+**Solution:** Global CallingProvider in the layout that wraps ALL dashboard pages.
+
+**Architecture:**
+```
+/src/app/(dashboard)/layout.tsx
+├── CallingProvider (wraps everything when Twilio configured)
+│   ├── GlobalIncomingBanner (fixed top, z-50 - shows on ALL pages)
+│   ├── ActiveCallBar (mini controls when on call but not on /dashboard)
+│   ├── Header with ConnectionStatus indicator
+│   └── {children}
+│       └── CallingDashboard (uses context, no duplicate hook)
+```
+
+**Key Files:**
+- `/src/components/calling/calling-provider.tsx` - Context wrapping useTwilioDevice
+- `/src/components/calling/global-incoming-banner.tsx` - Banner for all pages
+- `/src/components/calling/active-call-bar.tsx` - Mini call controls bar
+- `/src/app/(dashboard)/layout.tsx` - Wraps with CallingProvider
+
+**Context Usage Pattern:**
+```typescript
+// In any component that needs calling features
+const {
+  isReady,
+  getPendingCalls,
+  answerCallBySid,
+  rejectCallBySid
+} = useCallingContext();
+
+// Or for optional access (won't throw if outside provider)
+const context = useOptionalCallingContext();
+if (!context) return null;
+```
+
+**Important Considerations:**
+1. CallingProvider only initializes when `onboardingStatus?.twilioConfigured` is true
+2. Onboarding pages (`/onboarding/*`) don't have calling features
+3. CallingDashboard falls back to direct useTwilioDevice if context unavailable
+4. Only ONE Twilio Device is created per session (in provider, not per page)
+5. Presence heartbeat and call sync are handled by the provider, not CallingDashboard
 
 ---
 
