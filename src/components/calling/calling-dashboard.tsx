@@ -519,12 +519,19 @@ function IncomingCallsArea({
   // Multi-call mode: Use pendingCalls array
   if (pendingCalls.length > 0) {
     // Filter out targeted calls (they show in user cards instead)
-    // Match by agentCallSid since the call.from for unparked calls is the Twilio number, not the original caller
+    // Check both by agentCallSid AND by whether current user is the target
+    // (agentCallSid may not be set yet due to timing - call arrives before mutation completes)
     const nonTargetedCalls = pendingCalls.filter(call => {
-      const isTargeted = targetedRinging?.some(
+      // Direct match by agentCallSid
+      const isTargetedByCallSid = targetedRinging?.some(
         (tr) => tr.agentCallSid === call.callSid && tr.status === "ringing"
       );
-      return !isTargeted;
+      // If current user is the target of ANY ringing call, filter out their pending calls
+      // This handles the race condition where agentCallSid isn't set yet
+      const isTargetedToCurrentUser = currentUserId && targetedRinging?.some(
+        (tr) => tr.targetUserId === currentUserId && tr.status === "ringing"
+      );
+      return !isTargetedByCallSid && !isTargetedToCurrentUser;
     });
 
     if (nonTargetedCalls.length === 0) return null;
@@ -557,13 +564,16 @@ function IncomingCallsArea({
   if (!isIncomingCall) return null;
 
   // Check if this incoming call is targeted to a specific user
-  // Match by agentCallSid since unparked calls have Twilio number as From, not the original caller
+  // Check both by agentCallSid AND by whether current user is the target
   const incomingCallSid = twilioActiveCall.parameters?.CallSid;
-  const isTargetedCall = targetedRinging?.some(
+  const isTargetedByCallSid = targetedRinging?.some(
     (tr) => tr.agentCallSid === incomingCallSid && tr.status === "ringing"
   );
+  const isTargetedToCurrentUser = currentUserId && targetedRinging?.some(
+    (tr) => tr.targetUserId === currentUserId && tr.status === "ringing"
+  );
 
-  if (isTargetedCall) {
+  if (isTargetedByCallSid || isTargetedToCurrentUser) {
     console.log(`Incoming call ${incomingCallSid} is targeted - hiding global banner`);
     return null;
   }

@@ -157,29 +157,51 @@ export function UserStatusCard({
 
   // Handle accepting targeted call
   const handleAcceptTargeted = useCallback(async () => {
-    if (!targetedRinging || !onAnswerTwilio) return;
+    if (!targetedRinging) return;
 
-    console.log("Accepting targeted call:", targetedRinging.callerNumber);
+    // Need at least one answer method
+    if (!onAnswerCallBySid && !onAnswerTwilio) return;
+
+    console.log("Accepting targeted call:", targetedRinging.callerNumber, "agentCallSid:", targetedRinging.agentCallSid);
 
     // Mark as accepted in database
     await acceptTargetedCall({ id: targetedRinging._id });
 
-    // Answer the Twilio call
-    onAnswerTwilio();
-  }, [targetedRinging, onAnswerTwilio, acceptTargetedCall]);
+    // Answer the Twilio call - prefer multi-call method with specific callSid
+    if (onAnswerCallBySid && targetedRinging.agentCallSid) {
+      await onAnswerCallBySid(targetedRinging.agentCallSid, true);
+    } else if (onAnswerCallBySid && pendingCalls.length > 0) {
+      // Fall back to first pending call if agentCallSid not set yet
+      await onAnswerCallBySid(pendingCalls[0].callSid, true);
+    } else if (onAnswerTwilio) {
+      // Legacy single-call fallback
+      onAnswerTwilio();
+    }
+  }, [targetedRinging, onAnswerCallBySid, onAnswerTwilio, acceptTargetedCall, pendingCalls]);
 
   // Handle declining targeted call
   const handleDeclineTargeted = useCallback(async () => {
-    if (!targetedRinging || !onRejectTwilio) return;
+    if (!targetedRinging) return;
 
-    console.log("Declining targeted call:", targetedRinging.callerNumber);
+    // Need at least one reject method
+    if (!onRejectCallBySid && !onRejectTwilio) return;
+
+    console.log("Declining targeted call:", targetedRinging.callerNumber, "agentCallSid:", targetedRinging.agentCallSid);
 
     // Mark as declined in database
     await declineTargetedCall({ id: targetedRinging._id });
 
-    // Reject the Twilio call
-    onRejectTwilio();
-  }, [targetedRinging, onRejectTwilio, declineTargetedCall]);
+    // Reject the Twilio call - prefer multi-call method with specific callSid
+    if (onRejectCallBySid && targetedRinging.agentCallSid) {
+      onRejectCallBySid(targetedRinging.agentCallSid);
+    } else if (onRejectCallBySid && pendingCalls.length > 0) {
+      // Fall back to first pending call if agentCallSid not set yet
+      onRejectCallBySid(pendingCalls[0].callSid);
+    } else if (onRejectTwilio) {
+      // Legacy single-call fallback
+      onRejectTwilio();
+    }
+  }, [targetedRinging, onRejectCallBySid, onRejectTwilio, declineTargetedCall, pendingCalls]);
 
   // Track call start time when call connects
   useEffect(() => {
