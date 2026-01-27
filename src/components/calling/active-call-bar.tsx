@@ -74,9 +74,10 @@ export function ActiveCallBar() {
     return null;
   }
 
-  // Don't show on the dashboard page (full controls are already there)
+  // Don't show on the dashboard/calls page (full controls are already there)
   // Also don't show if no active calls
-  if (pathname === "/dashboard" || activeCalls.length === 0 || !focusedCall) {
+  const isCallsPage = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
+  if (isCallsPage || activeCalls.length === 0 || !focusedCall) {
     return null;
   }
 
