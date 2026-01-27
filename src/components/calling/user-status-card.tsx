@@ -116,6 +116,13 @@ export function UserStatusCard({
     { userId: user.id as Id<"users"> }
   );
 
+  // Debug: Log when targetedRinging changes
+  useEffect(() => {
+    if (targetedRinging !== undefined) {
+      console.log(`🎯 UserStatusCard [${user.name}] targetedRinging:`, targetedRinging, "userId:", user.id);
+    }
+  }, [targetedRinging, user.name, user.id]);
+
   // Determine if we're in multi-call mode
   const isMultiCallMode = !!twilioCallsArray;
 

@@ -52,6 +52,15 @@ export const getForUser = query({
       )
       .first();
 
+    // Debug logging
+    if (record) {
+      console.log(`🎯 getForUser(${args.userId}): Found record`, {
+        callerNumber: record.callerNumber,
+        status: record.status,
+        expired: record.expiresAt < Date.now(),
+      });
+    }
+
     // Check if expired
     if (record && record.expiresAt < Date.now()) {
       return null;
