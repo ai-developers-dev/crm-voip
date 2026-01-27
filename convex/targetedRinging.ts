@@ -79,6 +79,33 @@ export const getActiveForOrg = query({
   },
 });
 
+// Update the agent callSid after the call is created
+export const setAgentCallSid = mutation({
+  args: {
+    pstnCallSid: v.string(),
+    agentCallSid: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const record = await ctx.db
+      .query("targetedRinging")
+      .withIndex("by_pstn_sid", (q) => q.eq("pstnCallSid", args.pstnCallSid))
+      .filter((q) => q.eq(q.field("status"), "ringing"))
+      .first();
+
+    if (!record) {
+      console.log(`No ringing targetedRinging found for PSTN SID: ${args.pstnCallSid}`);
+      return { success: false, reason: "not_found" };
+    }
+
+    await ctx.db.patch(record._id, {
+      agentCallSid: args.agentCallSid,
+    });
+
+    console.log(`📞 Updated targetedRinging with agentCallSid: ${args.agentCallSid}`);
+    return { success: true };
+  },
+});
+
 // Accept the targeted call
 export const accept = mutation({
   args: {

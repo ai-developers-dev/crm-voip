@@ -283,6 +283,7 @@ export default defineSchema({
     callerNumber: v.string(),
     callerName: v.optional(v.string()),
     pstnCallSid: v.string(),
+    agentCallSid: v.optional(v.string()), // The callSid of the call to the agent's browser
     status: v.union(
       v.literal("ringing"),
       v.literal("accepted"),
@@ -294,7 +295,8 @@ export default defineSchema({
   })
     .index("by_target_user", ["targetUserId", "status"])
     .index("by_organization", ["organizationId"])
-    .index("by_pstn_sid", ["pstnCallSid"]),
+    .index("by_pstn_sid", ["pstnCallSid"])
+    .index("by_agent_sid", ["agentCallSid"]),
 
   // Pending Transfers (for transfer workflow with ringing)
   pendingTransfers: defineTable({

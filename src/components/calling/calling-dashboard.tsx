@@ -87,6 +87,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   const endCallMutation = useMutation(api.calls.end);
   const heartbeat = useMutation(api.presence.heartbeat);
   const createTargetedRinging = useMutation(api.targetedRinging.create);
+  const setAgentCallSid = useMutation(api.targetedRinging.setAgentCallSid);
 
   // Parking store for optimistic updates
   const addOptimisticCall = useParkingStore((s) => s.addOptimisticCall);
@@ -309,6 +310,19 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           } else {
             const result = await resumeResponse.json();
             console.log("Call unparked successfully:", result);
+
+            // Update targetedRinging with the agent's call SID so we can filter correctly
+            if (result.participantSid) {
+              try {
+                await setAgentCallSid({
+                  pstnCallSid,
+                  agentCallSid: result.participantSid,
+                });
+                console.log(`Updated targetedRinging with agentCallSid: ${result.participantSid}`);
+              } catch (e) {
+                console.error("Failed to update agentCallSid:", e);
+              }
+            }
           }
         } else {
           // TRANSFER: Transfer active call to another user
@@ -505,9 +519,10 @@ function IncomingCallsArea({
   // Multi-call mode: Use pendingCalls array
   if (pendingCalls.length > 0) {
     // Filter out targeted calls (they show in user cards instead)
+    // Match by agentCallSid since the call.from for unparked calls is the Twilio number, not the original caller
     const nonTargetedCalls = pendingCalls.filter(call => {
       const isTargeted = targetedRinging?.some(
-        (tr) => tr.callerNumber === call.from && tr.status === "ringing"
+        (tr) => tr.agentCallSid === call.callSid && tr.status === "ringing"
       );
       return !isTargeted;
     });
@@ -542,13 +557,14 @@ function IncomingCallsArea({
   if (!isIncomingCall) return null;
 
   // Check if this incoming call is targeted to a specific user
-  const callerNumber = twilioActiveCall.parameters?.From;
+  // Match by agentCallSid since unparked calls have Twilio number as From, not the original caller
+  const incomingCallSid = twilioActiveCall.parameters?.CallSid;
   const isTargetedCall = targetedRinging?.some(
-    (tr) => tr.callerNumber === callerNumber && tr.status === "ringing"
+    (tr) => tr.agentCallSid === incomingCallSid && tr.status === "ringing"
   );
 
   if (isTargetedCall) {
-    console.log(`Incoming call from ${callerNumber} is targeted - hiding global banner`);
+    console.log(`Incoming call ${incomingCallSid} is targeted - hiding global banner`);
     return null;
   }
 
@@ -556,7 +572,7 @@ function IncomingCallsArea({
     <IncomingCallPopup
       call={{
         _id: twilioActiveCall.parameters?.CallSid || "unknown",
-        from: callerNumber || "Unknown",
+        from: twilioActiveCall.parameters?.From || "Unknown",
         fromName: undefined,
         startedAt: Date.now(),
       }}
