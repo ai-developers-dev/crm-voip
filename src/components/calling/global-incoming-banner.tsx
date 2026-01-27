@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useOptionalCallingContext } from "./calling-provider";
@@ -17,6 +18,7 @@ import { IncomingCallPopup } from "./incoming-call-popup";
  */
 export function GlobalIncomingBanner() {
   const callingContext = useOptionalCallingContext();
+  const pathname = usePathname();
 
   // Extract values from context (with defaults for when context is null)
   const calls = callingContext?.calls ?? new Map();
@@ -39,27 +41,9 @@ export function GlobalIncomingBanner() {
   const activeCalls = getActiveCalls?.() ?? [];
   const connectedCallCount = activeCalls.length;
 
-  // Debug logging - MUST be called unconditionally
-  useEffect(() => {
-    if (!callingContext) return;
-
-    console.log("[GlobalIncomingBanner] State:", {
-      isReady,
-      callsSize: calls.size,
-      pendingCallsCount: pendingCalls.length,
-      pendingCalls: pendingCalls.map(c => ({ callSid: c.callSid, from: c.from, status: c.status })),
-      convexOrgId,
-      currentUserId,
-    });
-  }, [callingContext, isReady, calls.size, pendingCalls.length, convexOrgId, currentUserId]);
-
-  // Render-time log (runs on every render)
-  if (callingContext) {
-    console.log("[GlobalIncomingBanner] RENDER - calls.size:", calls.size, "pendingCalls:", pendingCalls.length);
-  }
-
   // If no calling context (e.g., on onboarding pages), render nothing
-  if (!callingContext) {
+  // Also hide on /dashboard - the IncomingCallsArea handles it there
+  if (!callingContext || pathname === "/dashboard") {
     return null;
   }
 
@@ -81,23 +65,12 @@ export function GlobalIncomingBanner() {
     return !isTargetedByCallSid && !isTargetedToCurrentUser;
   });
 
-  // Debug: Log when we have pending calls but filter them all out
-  if (pendingCalls.length > 0 && nonTargetedCalls.length === 0) {
-    console.log("[GlobalIncomingBanner] All pending calls filtered out as targeted:", {
-      pendingCalls: pendingCalls.map(c => c.callSid),
-      targetedRinging: targetedRinging?.map(tr => ({ targetUserId: tr.targetUserId, agentCallSid: tr.agentCallSid, status: tr.status })),
-      currentUserId,
-    });
-  }
-
   if (nonTargetedCalls.length === 0) {
     return null;
   }
 
-  console.log("[GlobalIncomingBanner] Rendering banner for calls:", nonTargetedCalls.map(c => c.callSid));
-
   return (
-    <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="fixed top-14 left-0 right-0 z-50">
       {nonTargetedCalls.map((callInfo) => (
         <IncomingCallPopup
           key={callInfo.callSid}

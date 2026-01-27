@@ -108,7 +108,7 @@ export function ActiveCallBar() {
       : focusedCall.to;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-green-600 text-white shadow-lg">
+    <div className="fixed top-14 left-0 right-0 z-50 bg-green-600 text-white shadow-lg">
       <div className="flex items-center justify-between px-4 py-2">
         {/* Call info */}
         <div className="flex items-center gap-3">

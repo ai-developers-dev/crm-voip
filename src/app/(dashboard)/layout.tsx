@@ -710,16 +710,7 @@ export default function DashboardLayout({
 
   // Always enable CallingProvider if we have an organization and not on onboarding
   // The useTwilioDevice hook will handle errors gracefully if Twilio isn't configured
-  // Don't rely on twilioConfigured flag - it may be stale or incorrect
   const hasCallingEnabled = Boolean(organization?.id && !isOnboarding);
-
-  // Debug logging
-  console.log("[DashboardLayout] Calling check:", {
-    orgId: organization?.id,
-    isOnboarding,
-    hasCallingEnabled,
-    pathname,
-  });
 
   // The inner content that will be wrapped conditionally
   const layoutContent = (
