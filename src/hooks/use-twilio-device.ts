@@ -50,6 +50,19 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
   });
   const deviceRef = useRef<Device | null>(null);
 
+  // Use ref to track call count to avoid stale closures in event handlers
+  const callsRef = useRef<Map<string, CallInfo>>(new Map());
+  const maxCallsRef = useRef(maxConcurrentCalls);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    callsRef.current = state.calls;
+  }, [state.calls]);
+
+  useEffect(() => {
+    maxCallsRef.current = maxConcurrentCalls;
+  }, [maxConcurrentCalls]);
+
   // Fetch token with retry logic and exponential backoff
   const fetchTokenWithRetry = useCallback(async (maxRetries = 3): Promise<string | null> => {
     if (!user || !organization) return null;
@@ -92,11 +105,6 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     console.error("Failed to fetch Twilio token after all retries");
     return null;
   }, [user, organization]);
-
-  // Simple fetch for backward compatibility
-  const fetchToken = useCallback(async () => {
-    return fetchTokenWithRetry(1);
-  }, [fetchTokenWithRetry]);
 
   // Helper to update call info in state
   const updateCallInfo = useCallback((callSid: string, updates: Partial<CallInfo>) => {
@@ -152,12 +160,15 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     });
   }, []);
 
-  // Add a call to state
-  const addCall = useCallback((call: Call, callSid: string, direction: "INCOMING" | "OUTGOING") => {
+  // Add a call to state - returns true if added, false if rejected
+  const addCallToState = useCallback((call: Call, callSid: string, direction: "INCOMING" | "OUTGOING"): boolean => {
+    let wasAdded = false;
+
     setState((prev) => {
-      // Check if we've reached max concurrent calls
-      if (prev.calls.size >= maxConcurrentCalls) {
-        console.warn(`Max concurrent calls (${maxConcurrentCalls}) reached, rejecting new call`);
+      // Check if we've reached max concurrent calls using ref for current value
+      if (prev.calls.size >= maxCallsRef.current) {
+        console.warn(`Max concurrent calls (${maxCallsRef.current}) reached, rejecting new call`);
+        wasAdded = false;
         return prev;
       }
 
@@ -178,6 +189,8 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       // If this is the first call or no call is focused, focus this one
       const shouldFocus = !prev.focusedCallSid || prev.calls.size === 0;
 
+      wasAdded = true;
+
       return {
         ...prev,
         calls: newCalls,
@@ -187,10 +200,10 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       };
     });
 
-    return true;
-  }, [maxConcurrentCalls]);
+    return wasAdded;
+  }, []);
 
-  // Initialize device
+  // Initialize device - only depends on stable refs, not state
   const initializeDevice = useCallback(async () => {
     const token = await fetchTokenWithRetry(3);
     if (!token) {
@@ -235,22 +248,59 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
       newDevice.on("incoming", (call: Call) => {
         const callSid = call.parameters.CallSid;
-        console.log(`Incoming call from: ${call.parameters.From} (SID: ${callSid})`);
+        const from = call.parameters.From;
+        console.log(`Incoming call from: ${from} (SID: ${callSid})`);
 
-        // Check if we can accept more calls
-        const currentCallCount = state.calls.size;
-        if (currentCallCount >= maxConcurrentCalls) {
-          console.warn(`Rejecting incoming call - max concurrent calls (${maxConcurrentCalls}) reached`);
+        // Check if we can accept more calls using REF (not stale state)
+        const currentCallCount = callsRef.current.size;
+        const maxCalls = maxCallsRef.current;
+
+        console.log(`Current calls: ${currentCallCount}, Max: ${maxCalls}`);
+
+        if (currentCallCount >= maxCalls) {
+          console.warn(`Rejecting incoming call - max concurrent calls (${maxCalls}) reached`);
           call.reject();
           return;
         }
 
         // Add the call to our multi-call state
-        const added = addCall(call, callSid, "INCOMING");
-        if (!added) {
-          call.reject();
-          return;
-        }
+        const callInfo: CallInfo = {
+          call,
+          callSid,
+          status: "pending",
+          direction: "INCOMING",
+          from: from || "Unknown",
+          to: call.parameters?.To || "Unknown",
+          isHeld: false,
+          isMuted: false,
+          startedAt: Date.now(),
+        };
+
+        // Update state with new call
+        setState((prev) => {
+          // Double-check inside setState to be safe
+          if (prev.calls.size >= maxCallsRef.current) {
+            console.warn(`Rejecting - max calls reached (checked in setState)`);
+            call.reject();
+            return prev;
+          }
+
+          const newCalls = new Map(prev.calls);
+          newCalls.set(callSid, callInfo);
+
+          // If this is the first call or no call is focused, focus this one
+          const shouldFocus = !prev.focusedCallSid || prev.calls.size === 0;
+
+          console.log(`Call added to state. Total calls: ${newCalls.size}, shouldFocus: ${shouldFocus}`);
+
+          return {
+            ...prev,
+            calls: newCalls,
+            focusedCallSid: shouldFocus ? callSid : prev.focusedCallSid,
+            activeCall: shouldFocus ? call : prev.activeCall,
+            callStatus: shouldFocus ? "pending" : prev.callStatus,
+          };
+        });
 
         // Set up per-call event handlers
         call.on("accept", () => {
@@ -266,20 +316,18 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           removeCall(callSid);
 
           // Clean up the call in Convex database
-          if (callSid) {
-            fetch("/api/twilio/end-call", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ twilioCallSid: callSid }),
+          fetch("/api/twilio/end-call", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ twilioCallSid: callSid }),
+          })
+            .then((response) => response.json())
+            .then((result) => {
+              console.log("Call cleanup result:", result);
             })
-              .then((response) => response.json())
-              .then((result) => {
-                console.log("Call cleanup result:", result);
-              })
-              .catch((error) => {
-                console.error("Error cleaning up call:", error);
-              });
-          }
+            .catch((error) => {
+              console.error("Error cleaning up call:", error);
+            });
         });
 
         call.on("cancel", () => {
@@ -330,7 +378,8 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         error: "Failed to initialize Twilio device",
       }));
     }
-  }, [fetchTokenWithRetry, addCall, updateCallInfo, removeCall, maxConcurrentCalls, state.calls.size]);
+  // IMPORTANT: Only depend on stable functions, NOT state.calls.size
+  }, [fetchTokenWithRetry, updateCallInfo, removeCall]);
 
   // Make outbound call
   const makeCall = useCallback(
@@ -340,9 +389,9 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         return null;
       }
 
-      // Check if we can make more calls
-      if (state.calls.size >= maxConcurrentCalls) {
-        console.error(`Cannot make call - max concurrent calls (${maxConcurrentCalls}) reached`);
+      // Check if we can make more calls using ref
+      if (callsRef.current.size >= maxCallsRef.current) {
+        console.error(`Cannot make call - max concurrent calls (${maxCallsRef.current}) reached`);
         return null;
       }
 
@@ -357,12 +406,34 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         });
 
         const callSid = call.parameters?.CallSid || `out-${Date.now()}`;
-        addCall(call, callSid, "OUTGOING");
 
-        setState((prev) => ({
-          ...prev,
-          isConnecting: false,
-        }));
+        // Add to state
+        const callInfo: CallInfo = {
+          call,
+          callSid,
+          status: "connecting",
+          direction: "OUTGOING",
+          from: "You",
+          to,
+          isHeld: false,
+          isMuted: false,
+          startedAt: Date.now(),
+        };
+
+        setState((prev) => {
+          const newCalls = new Map(prev.calls);
+          newCalls.set(callSid, callInfo);
+          const shouldFocus = !prev.focusedCallSid || prev.calls.size === 0;
+
+          return {
+            ...prev,
+            isConnecting: false,
+            calls: newCalls,
+            focusedCallSid: shouldFocus ? callSid : prev.focusedCallSid,
+            activeCall: shouldFocus ? call : prev.activeCall,
+            callStatus: shouldFocus ? "connecting" : prev.callStatus,
+          };
+        });
 
         call.on("disconnect", () => {
           removeCall(callSid);
@@ -379,7 +450,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         return null;
       }
     },
-    [state.isReady, state.calls.size, organization, maxConcurrentCalls, addCall, removeCall]
+    [state.isReady, organization, removeCall]
   );
 
   // Answer a specific incoming call (by callSid)
@@ -688,7 +759,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     return Array.from(state.calls.values()).filter(c => c.status === "open");
   }, [state.calls]);
 
-  // Initialize on mount
+  // Initialize on mount - only when user/org changes
   useEffect(() => {
     if (user && organization) {
       initializeDevice();
