@@ -299,7 +299,7 @@ export function UserStatusCard({
         </div>
 
         {/* Targeted ringing indicator - shows when a parked call is unparked to this specific user */}
-        {targetedRinging && (twilioCallPending || pendingCalls.length > 0) && (
+        {targetedRinging && (
           <div className="mt-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 animate-pulse">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
