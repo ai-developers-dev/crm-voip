@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff } from "lucide-react";
+import { Phone, PhoneOff, Pause } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface IncomingCallPopupProps {
@@ -13,12 +13,15 @@ interface IncomingCallPopupProps {
   };
   onAnswer?: () => void;
   onDecline?: () => void;
+  // Multi-call support
+  hasActiveCall?: boolean;
 }
 
 export function IncomingCallPopup({
   call,
   onAnswer,
   onDecline,
+  hasActiveCall = false,
 }: IncomingCallPopupProps) {
   const [ringTime, setRingTime] = useState(0);
 
@@ -65,11 +68,27 @@ export function IncomingCallPopup({
             className="h-8 bg-green-600 hover:bg-green-700 text-white"
             onClick={onAnswer}
           >
-            <Phone className="h-4 w-4 mr-1" />
-            Answer
+            {hasActiveCall ? (
+              <>
+                <Pause className="h-4 w-4 mr-1" />
+                Answer & Hold
+              </>
+            ) : (
+              <>
+                <Phone className="h-4 w-4 mr-1" />
+                Answer
+              </>
+            )}
           </Button>
         </div>
       </div>
+
+      {/* Multi-call indicator */}
+      {hasActiveCall && (
+        <div className="mt-1 text-xs text-purple-200">
+          Your current call will be placed on hold
+        </div>
+      )}
     </div>
   );
 }

@@ -547,6 +547,28 @@ export const transfer = mutation({
   },
 });
 
+// Mutation to set a call on hold (for multi-call scenarios)
+export const setHold = mutation({
+  args: {
+    callId: v.id("activeCalls"),
+    isHeld: v.boolean(),
+    holdConferenceName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const call = await ctx.db.get(args.callId);
+    if (!call) {
+      return { success: false, reason: "call_not_found" };
+    }
+
+    await ctx.db.patch(args.callId, {
+      state: args.isHeld ? "on_hold" : "connected",
+      holdStartedAt: args.isHeld ? Date.now() : undefined,
+    });
+
+    return { success: true };
+  },
+});
+
 // Mutation to claim a call (prevents race condition when multiple agents answer)
 export const claimCall = mutation({
   args: {
@@ -624,6 +646,21 @@ export const claimCall = mutation({
       return { success: false, reason: "agent_not_found" };
     }
     console.log(`✓ Matched user: ${user.name} (${user._id})`)
+
+    // MULTI-CALL: Check if user has reached max concurrent calls
+    const org = await ctx.db.get(orgId);
+    const maxConcurrentCalls = org?.settings?.maxConcurrentCalls ?? 3;
+
+    const userActiveCalls = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_assigned_user", (q) => q.eq("assignedUserId", user._id))
+      .filter((q) => q.neq(q.field("state"), "ended"))
+      .collect();
+
+    if (userActiveCalls.length >= maxConcurrentCalls) {
+      console.log(`❌ User ${user.name} has reached max concurrent calls (${maxConcurrentCalls})`);
+      return { success: false, reason: "max_calls_reached" };
+    }
 
     // Calculate today's date and user metrics (used in both paths)
     const today = new Date().toISOString().split("T")[0];

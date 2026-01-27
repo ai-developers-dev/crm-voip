@@ -13,6 +13,7 @@ import { Phone, Clock, PhoneCall, PhoneOff, PhoneIncoming, PhoneOutgoing } from 
 import { ActiveCallCard } from "./active-call-card";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useState, useEffect, useCallback } from "react";
+import type { CallInfo } from "@/hooks/use-twilio-device";
 
 interface UserStatusCardProps {
   user: {
@@ -29,11 +30,21 @@ interface UserStatusCardProps {
     outboundCallsMade: number;
   };
   activeCalls: any[];
+  // Legacy single call interface
   twilioActiveCall?: any;
   onHangUp?: () => void;
   onToggleMute?: () => boolean;
   onAnswerTwilio?: () => void;
   onRejectTwilio?: () => void;
+  // Multi-call interface
+  twilioCallsArray?: CallInfo[];
+  focusedCallSid?: string | null;
+  onFocusCall?: (callSid: string) => void;
+  onHoldCall?: (callSid: string) => Promise<boolean>;
+  onUnholdCall?: (callSid: string) => Promise<boolean>;
+  onHangUpBySid?: (callSid: string) => void;
+  onAnswerCallBySid?: (callSid: string, holdOthers?: boolean) => Promise<boolean>;
+  onRejectCallBySid?: (callSid: string) => void;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string; dotColor: string }> = {
@@ -78,6 +89,15 @@ export function UserStatusCard({
   onToggleMute,
   onAnswerTwilio,
   onRejectTwilio,
+  // Multi-call props
+  twilioCallsArray,
+  focusedCallSid,
+  onFocusCall,
+  onHoldCall,
+  onUnholdCall,
+  onHangUpBySid,
+  onAnswerCallBySid,
+  onRejectCallBySid,
 }: UserStatusCardProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `user-${user.id}`,
@@ -96,13 +116,26 @@ export function UserStatusCard({
     { userId: user.id as Id<"users"> }
   );
 
-  // Check if the Twilio call is connected (not pending/ringing)
-  const twilioCallConnected = twilioActiveCall &&
+  // Determine if we're in multi-call mode
+  const isMultiCallMode = !!twilioCallsArray;
+
+  // Get active (connected) calls from the multi-call array
+  const connectedCalls = isMultiCallMode
+    ? twilioCallsArray.filter(c => c.status === "open")
+    : [];
+
+  // Get pending (ringing) calls from the multi-call array
+  const pendingCalls = isMultiCallMode
+    ? twilioCallsArray.filter(c => c.status === "pending" && c.direction === "INCOMING")
+    : [];
+
+  // Legacy: Check if the Twilio call is connected (not pending/ringing)
+  const twilioCallConnected = !isMultiCallMode && twilioActiveCall &&
     twilioActiveCall.status &&
     (twilioActiveCall.status() === "open" || twilioActiveCall.status() === "connecting");
 
-  // Check if Twilio call is pending (ringing) for this user
-  const twilioCallPending = twilioActiveCall &&
+  // Legacy: Check if Twilio call is pending (ringing) for this user
+  const twilioCallPending = !isMultiCallMode && twilioActiveCall &&
     twilioActiveCall.direction === "INCOMING" &&
     twilioActiveCall.status &&
     twilioActiveCall.status() === "pending";
@@ -152,10 +185,10 @@ export function UserStatusCard({
   useEffect(() => {
     if (twilioCallConnected && !callStartTime) {
       setCallStartTime(Date.now());
-    } else if (!twilioCallConnected) {
+    } else if (!twilioCallConnected && connectedCalls.length === 0) {
       setCallStartTime(null);
     }
-  }, [twilioCallConnected, callStartTime]);
+  }, [twilioCallConnected, callStartTime, connectedCalls.length]);
 
   // Format talk time for display (Xh Xm or Xm)
   const formatTalkTime = (seconds: number) => {
@@ -169,7 +202,8 @@ export function UserStatusCard({
   };
 
   const status = statusConfig[user.status] || statusConfig.offline;
-  const hasActiveCalls = activeCalls.length > 0 || twilioCallConnected;
+  const hasActiveCalls = activeCalls.length > 0 || twilioCallConnected || connectedCalls.length > 0;
+  const totalCallCount = isMultiCallMode ? connectedCalls.length : (twilioCallConnected ? 1 : 0);
 
   const handleToggleStatus = async () => {
     try {
@@ -216,12 +250,20 @@ export function UserStatusCard({
           {/* Name and status */}
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate text-sm">{user.name}</p>
-            <Badge
-              variant="secondary"
-              className={cn("text-xs px-1.5 py-0", status.bgColor, status.color)}
-            >
-              {status.label}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="secondary"
+                className={cn("text-xs px-1.5 py-0", status.bgColor, status.color)}
+              >
+                {status.label}
+              </Badge>
+              {/* Show call count badge if multiple calls */}
+              {totalCallCount > 1 && (
+                <Badge variant="outline" className="text-xs px-1.5 py-0">
+                  {totalCallCount} calls
+                </Badge>
+              )}
+            </div>
           </div>
 
           {/* Daily metrics */}
@@ -257,7 +299,7 @@ export function UserStatusCard({
         </div>
 
         {/* Targeted ringing indicator - shows when a parked call is unparked to this specific user */}
-        {targetedRinging && twilioCallPending && (
+        {targetedRinging && (twilioCallPending || pendingCalls.length > 0) && (
           <div className="mt-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 animate-pulse">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -269,7 +311,7 @@ export function UserStatusCard({
                     {targetedRinging.callerName || targetedRinging.callerNumber}
                   </p>
                   <p className="text-xs text-purple-700 dark:text-purple-300">
-                    Incoming transfer • {ringTime}s
+                    Incoming transfer {"\u2022"} {ringTime}s
                   </p>
                 </div>
               </div>
@@ -295,8 +337,43 @@ export function UserStatusCard({
           </div>
         )}
 
-        {/* Active Twilio call - draggable card when connected */}
-        {twilioCallConnected && (() => {
+        {/* Multi-call mode: Render all connected calls */}
+        {isMultiCallMode && connectedCalls.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {connectedCalls.map((callInfo) => {
+              // Find matching Convex call by twilioCallSid
+              const matchingCall = activeCalls.find(c => c.twilioCallSid === callInfo.callSid);
+              const isFocused = callInfo.callSid === focusedCallSid;
+
+              return (
+                <ActiveCallCard
+                  key={callInfo.callSid}
+                  call={{
+                    _id: matchingCall?._id || callInfo.callSid,
+                    twilioCallSid: callInfo.callSid,
+                    from: callInfo.from || "Unknown",
+                    fromName: matchingCall?.fromName,
+                    state: callInfo.isHeld ? "on_hold" : "connected",
+                    startedAt: matchingCall?.startedAt || callInfo.startedAt,
+                    answeredAt: matchingCall?.answeredAt || callInfo.answeredAt,
+                  }}
+                  activeCall={callInfo.call}
+                  onEndCall={() => onHangUpBySid?.(callInfo.callSid)}
+                  compact
+                  isFocused={isFocused}
+                  isHeld={callInfo.isHeld}
+                  onFocus={() => onFocusCall?.(callInfo.callSid)}
+                  onHold={() => onHoldCall?.(callInfo.callSid)}
+                  onUnhold={() => onUnholdCall?.(callInfo.callSid)}
+                  showFocusControls={connectedCalls.length > 1}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Legacy: Active Twilio call - draggable card when connected */}
+        {!isMultiCallMode && twilioCallConnected && (() => {
           // Find the matching Convex call by twilioCallSid to get the real _id
           const twilioCallSid = twilioActiveCall.parameters?.CallSid;
           const matchingCall = activeCalls.find(c => c.twilioCallSid === twilioCallSid);
@@ -321,8 +398,8 @@ export function UserStatusCard({
           );
         })()}
 
-        {/* Active calls from database for this user */}
-        {activeCalls.length > 0 && !twilioCallConnected && (
+        {/* Active calls from database for this user (when no Twilio call is connected) */}
+        {activeCalls.length > 0 && !twilioCallConnected && connectedCalls.length === 0 && (
           <div className="mt-3 space-y-2">
             {activeCalls.map((call) => (
               <ActiveCallCard
@@ -332,6 +409,52 @@ export function UserStatusCard({
                 onEndCall={onHangUp}
                 compact
               />
+            ))}
+          </div>
+        )}
+
+        {/* Multi-call mode: Show incoming calls that aren't targeted */}
+        {isMultiCallMode && pendingCalls.length > 0 && !targetedRinging && (
+          <div className="mt-3 space-y-2">
+            {pendingCalls.map((callInfo) => (
+              <div
+                key={callInfo.callSid}
+                className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 animate-pulse"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 animate-bounce">
+                      <Phone className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                        {callInfo.from}
+                      </p>
+                      <p className="text-xs text-purple-700 dark:text-purple-300">
+                        Incoming call
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onRejectCallBySid?.(callInfo.callSid)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <PhoneOff className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onAnswerCallBySid?.(callInfo.callSid, true)}
+                      className="h-8 px-3 bg-green-600 hover:bg-green-700 text-xs"
+                    >
+                      <PhoneCall className="h-3.5 w-3.5 mr-1" />
+                      {connectedCalls.length > 0 ? "Answer (Hold)" : "Answer"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}

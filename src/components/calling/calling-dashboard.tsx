@@ -53,17 +53,34 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
     convexOrg?._id ? { organizationId: convexOrg._id } : "skip"
   );
 
-  // Initialize Twilio Device
+  // Get max concurrent calls from org settings (default 3)
+  const maxConcurrentCalls = convexOrg?.settings?.maxConcurrentCalls ?? 3;
+
+  // Initialize Twilio Device with multi-call support
   const {
     isReady: twilioReady,
+    // Legacy single-call interface (for backward compatibility)
     activeCall: twilioActiveCall,
     callStatus: twilioCallStatus,
     error: twilioError,
+    // Multi-call state
+    getAllCalls,
+    getPendingCalls,
+    focusedCallSid,
+    callCount,
+    // Legacy operations
     answerCall,
     rejectCall,
     hangUp,
     toggleMute,
-  } = useTwilioDevice();
+    // Multi-call operations
+    answerCallBySid,
+    rejectCallBySid,
+    hangUpBySid,
+    holdCall,
+    unholdCall,
+    focusCall,
+  } = useTwilioDevice(maxConcurrentCalls);
 
   // Convex mutations
   const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
@@ -80,11 +97,17 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   useEffect(() => {
     if (!currentUser?._id || !convexOrg?._id) return;
 
+    // Determine status based on call count
+    const getStatus = () => {
+      if (callCount > 0) return "on_call";
+      return "available";
+    };
+
     // Initial heartbeat
     heartbeat({
       userId: currentUser._id,
       organizationId: convexOrg._id,
-      status: "available",
+      status: getStatus(),
       deviceInfo: {
         browser: typeof navigator !== "undefined" ? navigator.userAgent.split(" ").pop() || "Unknown" : "Unknown",
         os: typeof navigator !== "undefined" ? navigator.platform : "Unknown",
@@ -96,27 +119,29 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
       heartbeat({
         userId: currentUser._id,
         organizationId: convexOrg._id,
-        status: twilioActiveCall ? "on_call" : "available",
+        status: getStatus(),
       });
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [currentUser?._id, convexOrg?._id, heartbeat, twilioActiveCall]);
+  }, [currentUser?._id, convexOrg?._id, heartbeat, callCount]);
 
-  // Handle incoming Twilio call - sync to Convex
+  // Handle incoming Twilio calls - sync all to Convex
   useEffect(() => {
-    if (twilioActiveCall && convexOrg?._id) {
-      const params = twilioActiveCall.parameters;
-      if (params?.CallSid && params?.From && params?.To) {
+    if (!convexOrg?._id) return;
+
+    const allCalls = getAllCalls();
+    for (const callInfo of allCalls) {
+      if (callInfo.direction === "INCOMING") {
         createOrGetIncomingCall({
           organizationId: convexOrg._id,
-          twilioCallSid: params.CallSid,
-          from: params.From,
-          to: params.To,
+          twilioCallSid: callInfo.callSid,
+          from: callInfo.from,
+          to: callInfo.to,
         }).catch(console.error);
       }
     }
-  }, [twilioActiveCall, convexOrg?._id, createOrGetIncomingCall]);
+  }, [getAllCalls, convexOrg?._id, createOrGetIncomingCall]);
 
   // For now, show a placeholder since we need Convex organization ID
   if (!organizationId) {
@@ -151,10 +176,14 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
     try {
       // Check over.id directly (like working app) - not over.data.current?.type
       if (over.id === "parking-lot" && dragData?.type === "call" && !dragData?.isParked) {
-        console.log("🚗 PARKING CALL - drop detected on parking-lot");
+        console.log("PARKING CALL - drop detected on parking-lot");
 
-        // Use twilioActiveCall directly from hook (like working app)
-        if (!twilioActiveCall) {
+        // For multi-call mode, get the focused call
+        const allCalls = getAllCalls();
+        const focusedCall = allCalls.find(c => c.callSid === focusedCallSid);
+        const callToUse = focusedCall?.call || twilioActiveCall;
+
+        if (!callToUse) {
           console.error("No active call to park");
           return;
         }
@@ -165,8 +194,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         }
 
         // Get call info directly from Twilio SDK call
-        const callSid = twilioActiveCall.parameters.CallSid;
-        const callerNumber = twilioActiveCall.parameters.From || "Unknown";
+        const callSid = callToUse.parameters.CallSid;
+        const callerNumber = callToUse.parameters.From || "Unknown";
         const callerName = dragData?.call?.fromName || undefined;
 
         // Step 1: Add optimistic entry for immediate UI feedback
@@ -199,8 +228,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
           if (!holdResponse.ok) {
             const error = await holdResponse.json();
-            console.error("❌ Failed to park call - Status:", holdResponse.status);
-            console.error("❌ Error details:", JSON.stringify(error, null, 2));
+            console.error("Failed to park call - Status:", holdResponse.status);
+            console.error("Error details:", JSON.stringify(error, null, 2));
             alert(`Failed to park call: ${error.details || error.error || 'Unknown error'}`);
             removeOptimisticCall(tempId);
             setParkingInProgress(null);
@@ -208,24 +237,14 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           }
 
           const holdResult = await holdResponse.json();
-          console.log(`✅ Call parked successfully:`, holdResult);
+          console.log(`Call parked successfully:`, holdResult);
         } finally {
           // Step 3: Remove optimistic entry (real one arrives via Convex subscription)
           removeOptimisticCall(tempId);
           setParkingInProgress(null);
         }
 
-        // Step 4: The browser SDK call will disconnect automatically when the PSTN
-        // parent call is redirected to the conference. We don't need to manually
-        // disconnect it - this matches the working app pattern.
-        // The Twilio status callback will handle cleanup.
         console.log("Waiting for browser SDK call to disconnect naturally...");
-
-        // NOTE: If the call doesn't disconnect naturally within a few seconds,
-        // we may need to disconnect it manually. But try natural first.
-        // if (twilioActiveCall) {
-        //   twilioActiveCall.disconnect();
-        // }
       } else if (targetId.startsWith("user-")) {
         // Handle dropping a call on a user
         const targetUser = over.data.current?.user;
@@ -254,7 +273,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           const targetConvexUserId = targetId.replace("user-", "") as Id<"users">;
 
           // Create targeted ringing record BEFORE calling resume
-          // This tells the UI to show ringing only in this user's card
           if (convexOrg?._id) {
             try {
               await createTargetedRinging({
@@ -264,7 +282,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
                 callerName,
                 pstnCallSid,
               });
-              console.log(`🔔 Created targeted ringing for ${callerNumber} -> ${targetUser.name}`);
+              console.log(`Created targeted ringing for ${callerNumber} -> ${targetUser.name}`);
             } catch (e) {
               console.error("Failed to create targeted ringing record:", e);
             }
@@ -272,7 +290,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
           // Build the correct Twilio identity: orgId-userId (matches token generation)
           const targetTwilioIdentity = `${organizationId}-${targetUser.clerkUserId}`;
-          console.log(`📞 UNPARKING: ${pstnCallSid} -> ${targetUser.name} (identity: ${targetTwilioIdentity})`);
+          console.log(`UNPARKING: ${pstnCallSid} -> ${targetUser.name} (identity: ${targetTwilioIdentity})`);
 
           const resumeResponse = await fetch("/api/twilio/resume", {
             method: "POST",
@@ -290,12 +308,14 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             alert(`Failed to unpark call: ${error.error || "Unknown error"}`);
           } else {
             const result = await resumeResponse.json();
-            console.log("✅ Call unparked successfully:", result);
-            // The parking slot will be cleared when the conference ends (participant-leave event)
+            console.log("Call unparked successfully:", result);
           }
         } else {
           // TRANSFER: Transfer active call to another user
-          const callSid = twilioActiveCall?.parameters?.CallSid;
+          const allCalls = getAllCalls();
+          const focusedCall = allCalls.find(c => c.callSid === focusedCallSid);
+          const callToUse = focusedCall?.call || twilioActiveCall;
+          const callSid = callToUse?.parameters?.CallSid;
 
           if (!callSid) {
             console.error("Twilio call SID not found for transfer");
@@ -325,9 +345,10 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             const result = await transferResponse.json();
             console.log("Transfer initiated:", result);
 
-            // Disconnect local Twilio SDK call - caller is now on hold music
-            // The target agent will receive a new incoming call
-            if (twilioActiveCall) {
+            // Disconnect local Twilio SDK call
+            if (focusedCall) {
+              hangUpBySid(focusedCall.callSid);
+            } else if (twilioActiveCall) {
               twilioActiveCall.disconnect();
             }
           }
@@ -359,6 +380,13 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
                 Connecting...
               </Badge>
             )}
+            {/* Show call count */}
+            {callCount > 0 && (
+              <Badge variant="outline" className="gap-1">
+                <Phone className="h-3 w-3" />
+                {callCount} call{callCount !== 1 ? "s" : ""}
+              </Badge>
+            )}
             {twilioError && (
               <span className="text-sm text-destructive">{twilioError}</span>
             )}
@@ -377,6 +405,10 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               twilioCallStatus={twilioCallStatus}
               onAnswerTwilio={answerCall}
               onRejectTwilio={rejectCall}
+              pendingCalls={getPendingCalls()}
+              connectedCallCount={callCount - getPendingCalls().length}
+              onAnswerCallBySid={answerCallBySid}
+              onRejectCallBySid={rejectCallBySid}
             />
 
             {/* Main agent grid */}
@@ -390,6 +422,15 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
                 onToggleMute={toggleMute}
                 onAnswerTwilio={answerCall}
                 onRejectTwilio={rejectCall}
+                // Multi-call props
+                twilioCallsArray={getAllCalls()}
+                focusedCallSid={focusedCallSid}
+                onFocusCall={focusCall}
+                onHoldCall={holdCall}
+                onUnholdCall={unholdCall}
+                onHangUpBySid={hangUpBySid}
+                onAnswerCallBySid={answerCallBySid}
+                onRejectCallBySid={rejectCallBySid}
               />
             </div>
           </div>
@@ -425,6 +466,11 @@ interface IncomingCallsAreaProps {
   twilioCallStatus: "pending" | "connecting" | "open" | "closed" | null;
   onAnswerTwilio: () => void;
   onRejectTwilio: () => void;
+  // Multi-call props
+  pendingCalls: any[];
+  connectedCallCount: number;
+  onAnswerCallBySid?: (callSid: string, holdOthers?: boolean) => Promise<boolean>;
+  onRejectCallBySid?: (callSid: string) => void;
 }
 
 function IncomingCallsArea({
@@ -435,9 +481,12 @@ function IncomingCallsArea({
   twilioCallStatus,
   onAnswerTwilio,
   onRejectTwilio,
+  pendingCalls,
+  connectedCallCount,
+  onAnswerCallBySid,
+  onRejectCallBySid,
 }: IncomingCallsAreaProps) {
   // Query for active targeted ringing records
-  // If this call is targeted to a specific user, don't show global banner
   const targetedRinging = useQuery(
     api.targetedRinging.getActiveForOrg,
     convexOrgId ? { organizationId: convexOrgId } : "skip"
@@ -453,7 +502,39 @@ function IncomingCallsArea({
     onRejectTwilio();
   }, [onRejectTwilio, twilioCallStatus]);
 
-  // Only show if call status is "pending" (ringing)
+  // Multi-call mode: Use pendingCalls array
+  if (pendingCalls.length > 0) {
+    // Filter out targeted calls (they show in user cards instead)
+    const nonTargetedCalls = pendingCalls.filter(call => {
+      const isTargeted = targetedRinging?.some(
+        (tr) => tr.callerNumber === call.from && tr.status === "ringing"
+      );
+      return !isTargeted;
+    });
+
+    if (nonTargetedCalls.length === 0) return null;
+
+    return (
+      <div className="space-y-1">
+        {nonTargetedCalls.map((callInfo) => (
+          <IncomingCallPopup
+            key={callInfo.callSid}
+            call={{
+              _id: callInfo.callSid,
+              from: callInfo.from || "Unknown",
+              fromName: undefined,
+              startedAt: callInfo.startedAt,
+            }}
+            onAnswer={() => onAnswerCallBySid?.(callInfo.callSid, true)}
+            onDecline={() => onRejectCallBySid?.(callInfo.callSid)}
+            hasActiveCall={connectedCallCount > 0}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Legacy single-call mode
   const isIncomingCall = twilioActiveCall &&
     twilioActiveCall.direction === "INCOMING" &&
     twilioCallStatus === "pending";
@@ -461,14 +542,13 @@ function IncomingCallsArea({
   if (!isIncomingCall) return null;
 
   // Check if this incoming call is targeted to a specific user
-  // If so, don't show the global banner - it will show in the user's card instead
   const callerNumber = twilioActiveCall.parameters?.From;
   const isTargetedCall = targetedRinging?.some(
     (tr) => tr.callerNumber === callerNumber && tr.status === "ringing"
   );
 
   if (isTargetedCall) {
-    console.log(`📞 Incoming call from ${callerNumber} is targeted - hiding global banner`);
+    console.log(`Incoming call from ${callerNumber} is targeted - hiding global banner`);
     return null;
   }
 
@@ -495,9 +575,35 @@ interface AgentGridProps {
   onToggleMute?: () => boolean;
   onAnswerTwilio?: () => void;
   onRejectTwilio?: () => void;
+  // Multi-call props
+  twilioCallsArray?: any[];
+  focusedCallSid?: string | null;
+  onFocusCall?: (callSid: string) => Promise<boolean>;
+  onHoldCall?: (callSid: string) => Promise<boolean>;
+  onUnholdCall?: (callSid: string) => Promise<boolean>;
+  onHangUpBySid?: (callSid: string) => void;
+  onAnswerCallBySid?: (callSid: string, holdOthers?: boolean) => Promise<boolean>;
+  onRejectCallBySid?: (callSid: string) => void;
 }
 
-function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCall, onHangUp, onToggleMute, onAnswerTwilio, onRejectTwilio }: AgentGridProps) {
+function AgentGrid({
+  organizationId,
+  convexOrgId,
+  currentUserId,
+  twilioActiveCall,
+  onHangUp,
+  onToggleMute,
+  onAnswerTwilio,
+  onRejectTwilio,
+  twilioCallsArray,
+  focusedCallSid,
+  onFocusCall,
+  onHoldCall,
+  onUnholdCall,
+  onHangUpBySid,
+  onAnswerCallBySid,
+  onRejectCallBySid,
+}: AgentGridProps) {
   // Fetch users with their daily metrics from Convex
   const usersWithMetrics = useQuery(
     api.users.getByOrganizationWithMetrics,
@@ -574,6 +680,15 @@ function AgentGrid({ organizationId, convexOrgId, currentUserId, twilioActiveCal
             onToggleMute={isCurrentUser ? onToggleMute : undefined}
             onAnswerTwilio={isCurrentUser ? onAnswerTwilio : undefined}
             onRejectTwilio={isCurrentUser ? onRejectTwilio : undefined}
+            // Multi-call props (only for current user)
+            twilioCallsArray={isCurrentUser ? twilioCallsArray : undefined}
+            focusedCallSid={isCurrentUser ? focusedCallSid : undefined}
+            onFocusCall={isCurrentUser ? onFocusCall : undefined}
+            onHoldCall={isCurrentUser ? onHoldCall : undefined}
+            onUnholdCall={isCurrentUser ? onUnholdCall : undefined}
+            onHangUpBySid={isCurrentUser ? onHangUpBySid : undefined}
+            onAnswerCallBySid={isCurrentUser ? onAnswerCallBySid : undefined}
+            onRejectCallBySid={isCurrentUser ? onRejectCallBySid : undefined}
           />
         );
       })}

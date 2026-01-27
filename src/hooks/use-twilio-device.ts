@@ -4,22 +4,46 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Device, Call } from "@twilio/voice-sdk";
 import { useUser, useOrganization } from "@clerk/nextjs";
 
+export type CallStatus = "pending" | "connecting" | "open" | "closed";
+
+export interface CallInfo {
+  call: Call;
+  callSid: string;
+  status: CallStatus;
+  direction: "INCOMING" | "OUTGOING";
+  from: string;
+  to: string;
+  isHeld: boolean;
+  isMuted: boolean;
+  startedAt: number;
+  answeredAt?: number;
+}
+
 export interface TwilioDeviceState {
   device: Device | null;
   isReady: boolean;
   isConnecting: boolean;
+  // Multi-call state
+  calls: Map<string, CallInfo>;
+  focusedCallSid: string | null;
+  // Legacy single-call interface (for backward compatibility)
   activeCall: Call | null;
-  callStatus: "pending" | "connecting" | "open" | "closed" | null;
+  callStatus: CallStatus | null;
   error: string | null;
 }
 
-export function useTwilioDevice() {
+// Default max concurrent calls (can be overridden by org settings)
+const DEFAULT_MAX_CONCURRENT_CALLS = 3;
+
+export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURRENT_CALLS) {
   const { user } = useUser();
   const { organization } = useOrganization();
   const [state, setState] = useState<TwilioDeviceState>({
     device: null,
     isReady: false,
     isConnecting: false,
+    calls: new Map(),
+    focusedCallSid: null,
     activeCall: null,
     callStatus: null,
     error: null,
@@ -74,6 +98,98 @@ export function useTwilioDevice() {
     return fetchTokenWithRetry(1);
   }, [fetchTokenWithRetry]);
 
+  // Helper to update call info in state
+  const updateCallInfo = useCallback((callSid: string, updates: Partial<CallInfo>) => {
+    setState((prev) => {
+      const newCalls = new Map(prev.calls);
+      const existing = newCalls.get(callSid);
+      if (existing) {
+        newCalls.set(callSid, { ...existing, ...updates });
+      }
+
+      // Update legacy activeCall if this is the focused call
+      let activeCall = prev.activeCall;
+      let callStatus = prev.callStatus;
+      if (callSid === prev.focusedCallSid) {
+        const updated = newCalls.get(callSid);
+        activeCall = updated?.call || null;
+        callStatus = updated?.status || null;
+      }
+
+      return { ...prev, calls: newCalls, activeCall, callStatus };
+    });
+  }, []);
+
+  // Helper to remove call from state
+  const removeCall = useCallback((callSid: string) => {
+    setState((prev) => {
+      const newCalls = new Map(prev.calls);
+      newCalls.delete(callSid);
+
+      // Update focused call if the removed call was focused
+      let focusedCallSid = prev.focusedCallSid;
+      let activeCall = prev.activeCall;
+      let callStatus = prev.callStatus;
+
+      if (callSid === prev.focusedCallSid) {
+        // Focus the next available call, or null if none
+        const remainingCalls = Array.from(newCalls.values());
+        if (remainingCalls.length > 0) {
+          // Prefer non-held calls
+          const nonHeldCall = remainingCalls.find(c => !c.isHeld);
+          const nextCall = nonHeldCall || remainingCalls[0];
+          focusedCallSid = nextCall.callSid;
+          activeCall = nextCall.call;
+          callStatus = nextCall.status;
+        } else {
+          focusedCallSid = null;
+          activeCall = null;
+          callStatus = null;
+        }
+      }
+
+      return { ...prev, calls: newCalls, focusedCallSid, activeCall, callStatus };
+    });
+  }, []);
+
+  // Add a call to state
+  const addCall = useCallback((call: Call, callSid: string, direction: "INCOMING" | "OUTGOING") => {
+    setState((prev) => {
+      // Check if we've reached max concurrent calls
+      if (prev.calls.size >= maxConcurrentCalls) {
+        console.warn(`Max concurrent calls (${maxConcurrentCalls}) reached, rejecting new call`);
+        return prev;
+      }
+
+      const newCalls = new Map(prev.calls);
+      const callInfo: CallInfo = {
+        call,
+        callSid,
+        status: "pending",
+        direction,
+        from: call.parameters?.From || "Unknown",
+        to: call.parameters?.To || "Unknown",
+        isHeld: false,
+        isMuted: false,
+        startedAt: Date.now(),
+      };
+      newCalls.set(callSid, callInfo);
+
+      // If this is the first call or no call is focused, focus this one
+      const shouldFocus = !prev.focusedCallSid || prev.calls.size === 0;
+
+      return {
+        ...prev,
+        calls: newCalls,
+        focusedCallSid: shouldFocus ? callSid : prev.focusedCallSid,
+        activeCall: shouldFocus ? call : prev.activeCall,
+        callStatus: shouldFocus ? "pending" : prev.callStatus,
+      };
+    });
+
+    return true;
+  }, [maxConcurrentCalls]);
+
   // Initialize device
   const initializeDevice = useCallback(async () => {
     const token = await fetchTokenWithRetry(3);
@@ -95,11 +211,13 @@ export function useTwilioDevice() {
         codecPreferences: [Call.Codec.Opus, Call.Codec.PCMU],
         closeProtection: true,
         edge: "ashburn",
+        // MULTI-CALL: Allow incoming calls even when busy
+        allowIncomingWhileBusy: true,
       });
 
       // Register event handlers
       newDevice.on("registered", () => {
-        console.log("Twilio Device registered");
+        console.log("Twilio Device registered (multi-call enabled)");
         setState((prev) => ({
           ...prev,
           isReady: true,
@@ -116,34 +234,38 @@ export function useTwilioDevice() {
       });
 
       newDevice.on("incoming", (call: Call) => {
-        console.log("Incoming call from:", call.parameters.From);
-        setState((prev) => ({
-          ...prev,
-          activeCall: call,
-          callStatus: "pending",
-        }));
+        const callSid = call.parameters.CallSid;
+        console.log(`Incoming call from: ${call.parameters.From} (SID: ${callSid})`);
 
-        // Set up call event handlers
+        // Check if we can accept more calls
+        const currentCallCount = state.calls.size;
+        if (currentCallCount >= maxConcurrentCalls) {
+          console.warn(`Rejecting incoming call - max concurrent calls (${maxConcurrentCalls}) reached`);
+          call.reject();
+          return;
+        }
+
+        // Add the call to our multi-call state
+        const added = addCall(call, callSid, "INCOMING");
+        if (!added) {
+          call.reject();
+          return;
+        }
+
+        // Set up per-call event handlers
         call.on("accept", () => {
-          console.log("Call accepted, audio connected");
-          // Update call status to open - this will hide the incoming call popup
-          setState((prev) => ({
-            ...prev,
-            callStatus: "open",
-          }));
-          // Note: claim-call is handled in answerCall function to avoid duplicate API calls
+          console.log(`Call accepted: ${callSid}`);
+          updateCallInfo(callSid, {
+            status: "open",
+            answeredAt: Date.now(),
+          });
         });
 
         call.on("disconnect", () => {
-          console.log("Call disconnected");
-          setState((prev) => ({
-            ...prev,
-            activeCall: null,
-            callStatus: null,
-          }));
+          console.log(`Call disconnected: ${callSid}`);
+          removeCall(callSid);
 
           // Clean up the call in Convex database
-          const callSid = call.parameters.CallSid;
           if (callSid) {
             fetch("/api/twilio/end-call", {
               method: "POST",
@@ -161,21 +283,13 @@ export function useTwilioDevice() {
         });
 
         call.on("cancel", () => {
-          console.log("Call cancelled");
-          setState((prev) => ({
-            ...prev,
-            activeCall: null,
-            callStatus: null,
-          }));
+          console.log(`Call cancelled: ${callSid}`);
+          removeCall(callSid);
         });
 
         call.on("reject", () => {
-          console.log("Call rejected");
-          setState((prev) => ({
-            ...prev,
-            activeCall: null,
-            callStatus: null,
-          }));
+          console.log(`Call rejected: ${callSid}`);
+          removeCall(callSid);
         });
       });
 
@@ -216,13 +330,19 @@ export function useTwilioDevice() {
         error: "Failed to initialize Twilio device",
       }));
     }
-  }, [fetchTokenWithRetry]);
+  }, [fetchTokenWithRetry, addCall, updateCallInfo, removeCall, maxConcurrentCalls, state.calls.size]);
 
   // Make outbound call
   const makeCall = useCallback(
     async (to: string) => {
       if (!deviceRef.current || !state.isReady) {
         console.error("Device not ready");
+        return null;
+      }
+
+      // Check if we can make more calls
+      if (state.calls.size >= maxConcurrentCalls) {
+        console.error(`Cannot make call - max concurrent calls (${maxConcurrentCalls}) reached`);
         return null;
       }
 
@@ -236,17 +356,16 @@ export function useTwilioDevice() {
           },
         });
 
+        const callSid = call.parameters?.CallSid || `out-${Date.now()}`;
+        addCall(call, callSid, "OUTGOING");
+
         setState((prev) => ({
           ...prev,
-          activeCall: call,
           isConnecting: false,
         }));
 
         call.on("disconnect", () => {
-          setState((prev) => ({
-            ...prev,
-            activeCall: null,
-          }));
+          removeCall(callSid);
         });
 
         return call;
@@ -260,16 +379,81 @@ export function useTwilioDevice() {
         return null;
       }
     },
-    [state.isReady, organization]
+    [state.isReady, state.calls.size, organization, maxConcurrentCalls, addCall, removeCall]
   );
 
-  // Answer incoming call
+  // Answer a specific incoming call (by callSid)
+  const answerCallBySid = useCallback(async (callSid: string, holdOthers: boolean = true) => {
+    const callInfo = state.calls.get(callSid);
+    if (!callInfo || callInfo.status !== "pending") {
+      console.error(`Cannot answer call ${callSid} - not found or not pending`);
+      return false;
+    }
+
+    // If holdOthers is true, put current focused call on hold first
+    if (holdOthers && state.focusedCallSid && state.focusedCallSid !== callSid) {
+      const currentCall = state.calls.get(state.focusedCallSid);
+      if (currentCall && currentCall.status === "open" && !currentCall.isHeld) {
+        await holdCall(state.focusedCallSid);
+      }
+    }
+
+    // Accept the Twilio call
+    callInfo.call.accept();
+
+    // Update state to focus on this call
+    setState((prev) => {
+      const newCalls = new Map(prev.calls);
+      const updated = newCalls.get(callSid);
+      if (updated) {
+        updated.status = "open";
+        updated.answeredAt = Date.now();
+        newCalls.set(callSid, updated);
+      }
+      return {
+        ...prev,
+        calls: newCalls,
+        focusedCallSid: callSid,
+        activeCall: updated?.call || null,
+        callStatus: "open",
+      };
+    });
+
+    // Claim the call in the database
+    try {
+      const response = await fetch("/api/twilio/claim-call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ twilioCallSid: callSid }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log("Call claimed, inbound metrics incremented");
+      } else {
+        console.log("Call claim result:", result.reason);
+      }
+    } catch (error) {
+      console.error("Failed to claim call:", error);
+    }
+
+    return true;
+  }, [state.calls, state.focusedCallSid]);
+
+  // Legacy: Answer the first pending incoming call (backward compatibility)
   const answerCall = useCallback(async () => {
-    if (state.activeCall) {
-      // Accept the Twilio call
+    // Find the first pending incoming call
+    const pendingCall = Array.from(state.calls.values()).find(
+      c => c.direction === "INCOMING" && c.status === "pending"
+    );
+
+    if (pendingCall) {
+      return answerCallBySid(pendingCall.callSid, true);
+    }
+
+    // Legacy fallback for single activeCall
+    if (state.activeCall && state.callStatus === "pending") {
       state.activeCall.accept();
 
-      // Claim the call in the database to increment metrics
       const callSid = state.activeCall.parameters?.CallSid;
       if (callSid) {
         try {
@@ -280,36 +464,64 @@ export function useTwilioDevice() {
           });
           const result = await response.json();
           if (result.success) {
-            console.log("✅ Call claimed, inbound metrics incremented");
-          } else {
-            console.log("Call claim result:", result.reason);
+            console.log("Call claimed, inbound metrics incremented");
           }
         } catch (error) {
           console.error("Failed to claim call:", error);
         }
       }
     }
-  }, [state.activeCall]);
+  }, [state.calls, state.activeCall, state.callStatus, answerCallBySid]);
 
-  // Reject incoming call
+  // Reject a specific call
+  const rejectCallBySid = useCallback((callSid: string) => {
+    const callInfo = state.calls.get(callSid);
+    if (!callInfo) {
+      console.warn(`rejectCallBySid: call ${callSid} not found`);
+      return;
+    }
+
+    try {
+      if (callInfo.status === "pending") {
+        callInfo.call.reject();
+      } else {
+        callInfo.call.disconnect();
+      }
+    } catch (error) {
+      console.error("Error rejecting call:", error);
+      try {
+        callInfo.call.disconnect();
+      } catch (e) {
+        console.error("Disconnect also failed:", e);
+      }
+    }
+
+    removeCall(callSid);
+  }, [state.calls, removeCall]);
+
+  // Legacy: Reject the currently pending incoming call
   const rejectCall = useCallback(() => {
+    // Find the first pending incoming call
+    const pendingCall = Array.from(state.calls.values()).find(
+      c => c.direction === "INCOMING" && c.status === "pending"
+    );
+
+    if (pendingCall) {
+      rejectCallBySid(pendingCall.callSid);
+      return;
+    }
+
+    // Legacy fallback
     if (state.activeCall) {
       const callStatus = state.activeCall.status?.();
-      console.log("Rejecting call, current status:", callStatus);
-
       try {
-        // Only use reject() if call is still pending (ringing)
         if (callStatus === "pending") {
           state.activeCall.reject();
-          console.log("Call rejected via reject()");
         } else {
-          // If call is in any other state, use disconnect()
           state.activeCall.disconnect();
-          console.log("Call disconnected via disconnect()");
         }
       } catch (error) {
         console.error("Error rejecting call, trying disconnect:", error);
-        // Fallback to disconnect if reject fails
         try {
           state.activeCall.disconnect();
         } catch (e) {
@@ -318,28 +530,163 @@ export function useTwilioDevice() {
       }
 
       setState((prev) => ({ ...prev, activeCall: null, callStatus: null }));
-    } else {
-      console.warn("rejectCall called but no activeCall in state");
     }
-  }, [state.activeCall]);
+  }, [state.calls, state.activeCall, rejectCallBySid]);
 
-  // Hang up current call
+  // Hang up a specific call
+  const hangUpBySid = useCallback((callSid: string) => {
+    const callInfo = state.calls.get(callSid);
+    if (callInfo) {
+      callInfo.call.disconnect();
+      removeCall(callSid);
+    }
+  }, [state.calls, removeCall]);
+
+  // Legacy: Hang up the focused call
   const hangUp = useCallback(() => {
-    if (state.activeCall) {
+    if (state.focusedCallSid) {
+      hangUpBySid(state.focusedCallSid);
+    } else if (state.activeCall) {
       state.activeCall.disconnect();
       setState((prev) => ({ ...prev, activeCall: null, callStatus: null }));
     }
-  }, [state.activeCall]);
+  }, [state.focusedCallSid, state.activeCall, hangUpBySid]);
 
-  // Mute/unmute
+  // Put a call on hold (conference-based hold)
+  const holdCall = useCallback(async (callSid: string): Promise<boolean> => {
+    const callInfo = state.calls.get(callSid);
+    if (!callInfo || callInfo.isHeld) {
+      return false;
+    }
+
+    try {
+      // Call the hold API endpoint
+      const response = await fetch("/api/twilio/hold-call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          twilioCallSid: callSid,
+          action: "hold",
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to hold call:", await response.text());
+        return false;
+      }
+
+      // Update local state
+      updateCallInfo(callSid, { isHeld: true });
+      console.log(`Call ${callSid} placed on hold`);
+      return true;
+    } catch (error) {
+      console.error("Error holding call:", error);
+      return false;
+    }
+  }, [state.calls, updateCallInfo]);
+
+  // Resume a call from hold
+  const unholdCall = useCallback(async (callSid: string): Promise<boolean> => {
+    const callInfo = state.calls.get(callSid);
+    if (!callInfo || !callInfo.isHeld) {
+      return false;
+    }
+
+    try {
+      // Call the unhold API endpoint
+      const response = await fetch("/api/twilio/unhold", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          twilioCallSid: callSid,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to unhold call:", await response.text());
+        return false;
+      }
+
+      // Update local state
+      updateCallInfo(callSid, { isHeld: false });
+      console.log(`Call ${callSid} resumed from hold`);
+      return true;
+    } catch (error) {
+      console.error("Error unholding call:", error);
+      return false;
+    }
+  }, [state.calls, updateCallInfo]);
+
+  // Switch focus to a different call
+  const focusCall = useCallback(async (callSid: string) => {
+    const targetCall = state.calls.get(callSid);
+    if (!targetCall) {
+      console.error(`Cannot focus call ${callSid} - not found`);
+      return false;
+    }
+
+    // If there's a currently focused call that's not held, put it on hold
+    if (state.focusedCallSid && state.focusedCallSid !== callSid) {
+      const currentCall = state.calls.get(state.focusedCallSid);
+      if (currentCall && currentCall.status === "open" && !currentCall.isHeld) {
+        await holdCall(state.focusedCallSid);
+      }
+    }
+
+    // If the target call is on hold, unhold it
+    if (targetCall.isHeld) {
+      await unholdCall(callSid);
+    }
+
+    // Update focus
+    setState((prev) => ({
+      ...prev,
+      focusedCallSid: callSid,
+      activeCall: targetCall.call,
+      callStatus: targetCall.status,
+    }));
+
+    return true;
+  }, [state.calls, state.focusedCallSid, holdCall, unholdCall]);
+
+  // Toggle mute on a specific call
+  const toggleMuteBySid = useCallback((callSid: string) => {
+    const callInfo = state.calls.get(callSid);
+    if (callInfo) {
+      const isMuted = callInfo.call.isMuted();
+      callInfo.call.mute(!isMuted);
+      updateCallInfo(callSid, { isMuted: !isMuted });
+      return !isMuted;
+    }
+    return false;
+  }, [state.calls, updateCallInfo]);
+
+  // Legacy: Toggle mute on the focused call
   const toggleMute = useCallback(() => {
-    if (state.activeCall) {
+    if (state.focusedCallSid) {
+      return toggleMuteBySid(state.focusedCallSid);
+    } else if (state.activeCall) {
       const isMuted = state.activeCall.isMuted();
       state.activeCall.mute(!isMuted);
       return !isMuted;
     }
     return false;
-  }, [state.activeCall]);
+  }, [state.focusedCallSid, state.activeCall, toggleMuteBySid]);
+
+  // Get all calls as array (for UI rendering)
+  const getAllCalls = useCallback(() => {
+    return Array.from(state.calls.values());
+  }, [state.calls]);
+
+  // Get pending (ringing) calls
+  const getPendingCalls = useCallback(() => {
+    return Array.from(state.calls.values()).filter(c => c.status === "pending");
+  }, [state.calls]);
+
+  // Get active (connected) calls
+  const getActiveCalls = useCallback(() => {
+    return Array.from(state.calls.values()).filter(c => c.status === "open");
+  }, [state.calls]);
 
   // Initialize on mount
   useEffect(() => {
@@ -356,12 +703,33 @@ export function useTwilioDevice() {
   }, [user, organization, initializeDevice]);
 
   return {
+    // State
     ...state,
+    // Multi-call getters
+    getAllCalls,
+    getPendingCalls,
+    getActiveCalls,
+    callCount: state.calls.size,
+    // Core operations
     initializeDevice,
     makeCall,
+    // Answer operations
     answerCall,
+    answerCallBySid,
+    // Reject operations
     rejectCall,
+    rejectCallBySid,
+    // Hang up operations
     hangUp,
+    hangUpBySid,
+    // Hold operations
+    holdCall,
+    unholdCall,
+    focusCall,
+    // Mute operations
     toggleMute,
+    toggleMuteBySid,
+    // Max calls setting
+    maxConcurrentCalls,
   };
 }

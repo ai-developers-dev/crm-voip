@@ -16,6 +16,7 @@ import {
   Mic,
   MicOff,
   GripVertical,
+  Focus,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import type { Call } from "@twilio/voice-sdk";
@@ -33,6 +34,13 @@ interface ActiveCallCardProps {
   activeCall?: Call | null; // Twilio SDK Call object
   onEndCall?: () => void;
   compact?: boolean;
+  // Multi-call props
+  isFocused?: boolean;
+  isHeld?: boolean;
+  onFocus?: () => void;
+  onHold?: () => void;
+  onUnhold?: () => void;
+  showFocusControls?: boolean;
 }
 
 export function ActiveCallCard({
@@ -40,9 +48,14 @@ export function ActiveCallCard({
   activeCall,
   onEndCall,
   compact = false,
+  isFocused = true,
+  isHeld = false,
+  onFocus,
+  onHold,
+  onUnhold,
+  showFocusControls = false,
 }: ActiveCallCardProps) {
   const [isMuted, setIsMuted] = useState(false);
-  const [isHeld, setIsHeld] = useState(call.state === "on_hold");
   const [duration, setDuration] = useState(0);
 
   // Convex mutation to end call
@@ -58,7 +71,7 @@ export function ActiveCallCard({
         callerId: call.from,
         callerName: call.fromName,
         twilioCallSid: call.twilioCallSid,
-        isParked: false, // Explicitly mark as not parked (matches working app)
+        isParked: false,
       },
     });
 
@@ -107,12 +120,23 @@ export function ActiveCallCard({
   const handleHoldToggle = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      // Hold functionality requires Twilio REST API to update call
-      // For now, toggle local state - full implementation needs API route
-      setIsHeld(!isHeld);
-      console.log(`Call ${!isHeld ? "held" : "resumed"}`);
+      if (isHeld && onUnhold) {
+        onUnhold();
+      } else if (!isHeld && onHold) {
+        onHold();
+      }
     },
-    [isHeld]
+    [isHeld, onHold, onUnhold]
+  );
+
+  const handleFocus = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onFocus) {
+        onFocus();
+      }
+    },
+    [onFocus]
   );
 
   const handleEndCall = useCallback(
@@ -140,15 +164,27 @@ export function ActiveCallCard({
     [activeCall, call._id, endCallMutation, onEndCall]
   );
 
-  // Clean white card - no outer colored box
+  // Get status display
+  const getStatusDisplay = () => {
+    if (isHeld) return "On Hold";
+    if (!isFocused) return "Background";
+    return "Connected";
+  };
+
+  // Compact card for multi-call display
   if (compact) {
     return (
       <div
         ref={setNodeRef}
         style={style}
         className={cn(
-          "flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-slate-900 border shadow-sm touch-none select-none max-w-sm",
-          isDragging && "opacity-50 shadow-lg ring-2 ring-primary"
+          "flex items-center gap-3 p-3 rounded-lg border shadow-sm touch-none select-none max-w-sm transition-all",
+          isDragging && "opacity-50 shadow-lg ring-2 ring-primary",
+          isHeld
+            ? "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800"
+            : isFocused
+            ? "bg-white dark:bg-slate-900 border-primary"
+            : "bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-gray-700"
         )}
       >
         {/* Drag handle area */}
@@ -158,16 +194,70 @@ export function ActiveCallCard({
           className="flex items-center gap-2 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
         >
           <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <Phone className="h-4 w-4 text-primary flex-shrink-0" />
-          <span className="text-sm font-medium truncate">
-            {call.fromName || call.from}
-          </span>
+          <Phone
+            className={cn(
+              "h-4 w-4 flex-shrink-0",
+              isHeld
+                ? "text-yellow-600"
+                : isFocused
+                ? "text-primary"
+                : "text-muted-foreground"
+            )}
+          />
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-medium truncate">
+              {call.fromName || call.from}
+            </span>
+            {(isHeld || !isFocused) && (
+              <span
+                className={cn(
+                  "text-xs",
+                  isHeld ? "text-yellow-600" : "text-muted-foreground"
+                )}
+              >
+                {getStatusDisplay()}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Duration */}
         <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
           {formatDuration(duration)}
         </span>
+
+        {/* Focus button (only show if not focused and showFocusControls is true) */}
+        {showFocusControls && !isFocused && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0 flex-shrink-0"
+            onClick={handleFocus}
+            title="Switch to this call"
+          >
+            <Focus className="h-3.5 w-3.5 text-primary" />
+          </Button>
+        )}
+
+        {/* Hold button (only for focused calls) */}
+        {isFocused && (onHold || onUnhold) && (
+          <Button
+            variant={isHeld ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-7 w-7 p-0 flex-shrink-0",
+              isHeld && "bg-yellow-500 hover:bg-yellow-600"
+            )}
+            onClick={handleHoldToggle}
+            title={isHeld ? "Resume" : "Hold"}
+          >
+            {isHeld ? (
+              <Play className="h-3.5 w-3.5" />
+            ) : (
+              <Pause className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        )}
 
         {/* End call button */}
         <Button
@@ -183,13 +273,16 @@ export function ActiveCallCard({
     );
   }
 
+  // Full card (for single call display)
   return (
     <Card
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-grab active:cursor-grabbing",
-        isDragging && "ring-2 ring-primary shadow-lg"
+        "cursor-grab active:cursor-grabbing transition-all",
+        isDragging && "ring-2 ring-primary shadow-lg",
+        isHeld && "border-yellow-400 bg-yellow-50/50 dark:bg-yellow-950/20",
+        !isFocused && !isHeld && "opacity-75"
       )}
       {...listeners}
       {...attributes}
@@ -197,13 +290,25 @@ export function ActiveCallCard({
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Phone className="h-5 w-5 text-primary" />
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-full",
+                isHeld
+                  ? "bg-yellow-100 dark:bg-yellow-900/30"
+                  : "bg-primary/10"
+              )}
+            >
+              <Phone
+                className={cn(
+                  "h-5 w-5",
+                  isHeld ? "text-yellow-600" : "text-primary"
+                )}
+              />
             </div>
             <div>
               <p className="font-medium">{call.fromName || call.from}</p>
               <p className="text-sm text-muted-foreground">
-                {isHeld ? "On Hold" : "Connected"} • {formatDuration(duration)}
+                {getStatusDisplay()} {"\u2022"} {formatDuration(duration)}
               </p>
             </div>
           </div>
@@ -212,11 +317,25 @@ export function ActiveCallCard({
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-2">
+          {/* Focus button (for multi-call switching) */}
+          {showFocusControls && !isFocused && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleFocus}
+              title="Switch to this call"
+              className="border-primary text-primary hover:bg-primary/10"
+            >
+              <Focus className="h-4 w-4" />
+            </Button>
+          )}
+
           <Button
             variant={isMuted ? "destructive" : "secondary"}
             size="icon"
             onClick={handleMuteToggle}
             title={isMuted ? "Unmute" : "Mute"}
+            disabled={!isFocused || isHeld}
           >
             {isMuted ? (
               <MicOff className="h-4 w-4" />
@@ -230,8 +349,13 @@ export function ActiveCallCard({
             size="icon"
             onClick={handleHoldToggle}
             title={isHeld ? "Resume" : "Hold"}
+            className={cn(isHeld && "bg-yellow-500 hover:bg-yellow-600")}
           >
-            {isHeld ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+            {isHeld ? (
+              <Play className="h-4 w-4" />
+            ) : (
+              <Pause className="h-4 w-4" />
+            )}
           </Button>
 
           <Button
