@@ -95,6 +95,12 @@ export function CallingProvider({
   organizationId,
   maxConcurrentCalls: maxCallsProp,
 }: CallingProviderProps) {
+  // Debug: Log provider mount/unmount
+  useEffect(() => {
+    console.log("[CallingProvider] MOUNTED for org:", organizationId);
+    return () => console.log("[CallingProvider] UNMOUNTED");
+  }, [organizationId]);
+
   // Get the Convex organization from Clerk org ID
   const convexOrg = useQuery(
     api.organizations.getCurrent,
@@ -112,6 +118,19 @@ export function CallingProvider({
 
   // Initialize Twilio Device with multi-call support
   const twilioDevice = useTwilioDevice(maxConcurrentCalls);
+
+  // Debug: Log when calls change
+  useEffect(() => {
+    console.log("[CallingProvider] Calls changed:", {
+      callCount: twilioDevice.callCount,
+      isReady: twilioDevice.isReady,
+      calls: Array.from(twilioDevice.calls.entries()).map(([sid, info]) => ({
+        sid,
+        status: info.status,
+        direction: info.direction,
+      })),
+    });
+  }, [twilioDevice.calls, twilioDevice.callCount, twilioDevice.isReady]);
 
   // Convex mutations
   const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
@@ -169,6 +188,9 @@ export function CallingProvider({
       }
     }
   }, [twilioDevice.getAllCalls, convexOrg?._id, createOrGetIncomingCall]);
+
+  // Debug: Render-time log
+  console.log("[CallingProvider] RENDER - callCount:", twilioDevice.callCount, "isReady:", twilioDevice.isReady);
 
   const contextValue: CallingContextValue = {
     // Connection state
