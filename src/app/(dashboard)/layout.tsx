@@ -709,7 +709,21 @@ export default function DashboardLayout({
   const isOnboarding = pathname?.startsWith("/onboarding");
 
   // Check if organization has completed Twilio setup
-  const hasCallingEnabled = organization?.id && !isOnboarding && onboardingStatus?.twilioConfigured;
+  // IMPORTANT: Enable calling unless we EXPLICITLY know Twilio is NOT configured
+  // This keeps CallingProvider mounted during query loading and page navigation
+  const twilioExplicitlyDisabled = onboardingStatus?.twilioConfigured === false;
+  const hasCallingEnabled = Boolean(organization?.id && !isOnboarding && !twilioExplicitlyDisabled);
+
+  // Debug logging
+  console.log("[DashboardLayout] Calling check:", {
+    orgId: organization?.id,
+    isOnboarding,
+    onboardingStatusLoaded: onboardingStatus !== undefined,
+    twilioConfigured: onboardingStatus?.twilioConfigured,
+    twilioExplicitlyDisabled,
+    hasCallingEnabled,
+    pathname,
+  });
 
   // The inner content that will be wrapped conditionally
   const layoutContent = (
