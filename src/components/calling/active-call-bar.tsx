@@ -74,9 +74,11 @@ export function ActiveCallBar() {
     return null;
   }
 
-  // Don't show on the dashboard/calls page (full controls are already there)
+  // Don't show on the calls page (full controls are already there)
+  // This includes /dashboard and /admin/tenants/[id] (admin viewing tenant's calls)
   // Also don't show if no active calls
-  const isCallsPage = pathname === "/dashboard" || pathname?.startsWith("/dashboard");
+  const isCallsPage = pathname === "/dashboard" ||
+    (pathname?.startsWith("/admin/tenants/") && !pathname?.includes("/contacts") && !pathname?.includes("/sms") && !pathname?.includes("/settings") && !pathname?.includes("/calendar") && !pathname?.includes("/reports"));
   if (isCallsPage || activeCalls.length === 0 || !focusedCall) {
     return null;
   }
