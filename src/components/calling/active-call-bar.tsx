@@ -40,25 +40,19 @@ export function ActiveCallBar() {
   const pathname = usePathname();
   const [callDuration, setCallDuration] = useState(0);
 
-  // If no calling context, render nothing
-  if (!callingContext) {
-    return null;
-  }
+  // Extract values from context (with defaults for when context is null)
+  const getActiveCalls = callingContext?.getActiveCalls;
+  const focusedCallSid = callingContext?.focusedCallSid;
+  const toggleMuteBySid = callingContext?.toggleMuteBySid;
+  const holdCall = callingContext?.holdCall;
+  const unholdCall = callingContext?.unholdCall;
+  const hangUpBySid = callingContext?.hangUpBySid;
+  const calls = callingContext?.calls ?? new Map();
 
-  const {
-    getActiveCalls,
-    focusedCallSid,
-    toggleMuteBySid,
-    holdCall,
-    unholdCall,
-    hangUpBySid,
-    calls,
-  } = callingContext;
-
-  const activeCalls = getActiveCalls();
+  const activeCalls = getActiveCalls?.() ?? [];
   const focusedCall = focusedCallSid ? calls.get(focusedCallSid) : null;
 
-  // Update call duration every second
+  // Update call duration every second - MUST be called unconditionally
   useEffect(() => {
     if (!focusedCall?.answeredAt) {
       setCallDuration(0);
@@ -75,6 +69,11 @@ export function ActiveCallBar() {
     return () => clearInterval(interval);
   }, [focusedCall?.answeredAt]);
 
+  // If no calling context, render nothing
+  if (!callingContext) {
+    return null;
+  }
+
   // Don't show on the dashboard page (full controls are already there)
   // Also don't show if no active calls
   if (pathname === "/dashboard" || activeCalls.length === 0 || !focusedCall) {
@@ -82,7 +81,7 @@ export function ActiveCallBar() {
   }
 
   const handleToggleMute = () => {
-    if (focusedCallSid) {
+    if (focusedCallSid && toggleMuteBySid) {
       toggleMuteBySid(focusedCallSid);
     }
   };
@@ -90,14 +89,14 @@ export function ActiveCallBar() {
   const handleToggleHold = async () => {
     if (!focusedCallSid) return;
     if (focusedCall.isHeld) {
-      await unholdCall(focusedCallSid);
+      await unholdCall?.(focusedCallSid);
     } else {
-      await holdCall(focusedCallSid);
+      await holdCall?.(focusedCallSid);
     }
   };
 
   const handleHangUp = () => {
-    if (focusedCallSid) {
+    if (focusedCallSid && hangUpBySid) {
       hangUpBySid(focusedCallSid);
     }
   };
