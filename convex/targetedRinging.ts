@@ -22,6 +22,24 @@ export const create = mutation({
       await ctx.db.delete(record._id);
     }
 
+    // Also clean up any expired or old ringing records for this target user
+    // This prevents stale records from blocking new ones
+    const oldRecordsForUser = await ctx.db
+      .query("targetedRinging")
+      .withIndex("by_target_user", (q) =>
+        q.eq("targetUserId", args.targetUserId).eq("status", "ringing")
+      )
+      .collect();
+
+    const now = Date.now();
+    for (const record of oldRecordsForUser) {
+      // Delete if expired or older than 5 seconds
+      if (record.expiresAt < now || record.createdAt < now - 5000) {
+        await ctx.db.delete(record._id);
+        console.log(`🧹 Cleaned up old targetedRinging record for user ${args.targetUserId}`);
+      }
+    }
+
     // Create new targeted ringing record (expires in 30 seconds)
     const id = await ctx.db.insert("targetedRinging", {
       organizationId: args.organizationId,
