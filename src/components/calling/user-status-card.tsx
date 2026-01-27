@@ -413,52 +413,6 @@ export function UserStatusCard({
           </div>
         )}
 
-        {/* Multi-call mode: Show incoming calls that aren't targeted */}
-        {isMultiCallMode && pendingCalls.length > 0 && !targetedRinging && (
-          <div className="mt-3 space-y-2">
-            {pendingCalls.map((callInfo) => (
-              <div
-                key={callInfo.callSid}
-                className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 animate-pulse"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500 animate-bounce">
-                      <Phone className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                        {callInfo.from}
-                      </p>
-                      <p className="text-xs text-purple-700 dark:text-purple-300">
-                        Incoming call
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onRejectCallBySid?.(callInfo.callSid)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <PhoneOff className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => onAnswerCallBySid?.(callInfo.callSid, true)}
-                      className="h-8 px-3 bg-green-600 hover:bg-green-700 text-xs"
-                    >
-                      <PhoneCall className="h-3.5 w-3.5 mr-1" />
-                      {connectedCalls.length > 0 ? "Answer (Hold)" : "Answer"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Drop zone indicator */}
         {isOver && (
           <div className="mt-2 rounded-md border-2 border-dashed border-primary bg-primary/5 p-2 text-center text-xs text-primary">
