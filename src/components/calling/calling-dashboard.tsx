@@ -332,33 +332,6 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
       onDragEnd={handleDragEnd}
     >
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Status bar */}
-        <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {twilioReady ? (
-              <Badge variant="default" className="gap-1 bg-purple-600">
-                <Wifi className="h-3 w-3" />
-                Connected
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="gap-1">
-                <WifiOff className="h-3 w-3" />
-                Connecting...
-              </Badge>
-            )}
-            {/* Show call count */}
-            {callCount > 0 && (
-              <Badge variant="outline" className="gap-1">
-                <Phone className="h-3 w-3" />
-                {callCount} call{callCount !== 1 ? "s" : ""}
-              </Badge>
-            )}
-            {twilioError && (
-              <span className="text-sm text-destructive">{twilioError}</span>
-            )}
-          </div>
-        </div>
-
         <div className="flex flex-1 overflow-hidden">
           {/* Main content area */}
           <div className="flex-1 flex flex-col overflow-hidden">

@@ -163,36 +163,6 @@ export default function DashboardPage() {
           </Alert>
         )}
 
-      {/* Stats bar */}
-      <div className="border-b bg-muted/30 px-4 py-3">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-green-500" />
-            <span className="text-sm">
-              <span className="font-medium">0</span> Active Calls
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <PhoneIncoming className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm">
-              <span className="font-medium">0</span> Waiting
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-primary" />
-            <span className="text-sm">
-              <span className="font-medium">0</span> Agents Online
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              Avg Wait: 0:00
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Main calling dashboard */}
       <CallingDashboard organizationId={organization?.id} />
     </div>
