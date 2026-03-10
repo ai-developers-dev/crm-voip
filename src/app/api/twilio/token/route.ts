@@ -50,6 +50,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Use environment variables as fallback
+      console.log("Token generation using env vars:", {
+        accountSid: accountSid?.slice(0, 6) + "...",
+        apiKey: apiKey?.slice(0, 6) + "...",
+        apiSecretLength: apiSecret?.length,
+        twimlAppSid: twimlAppSid?.slice(0, 6) + "...",
+      });
       const token = new AccessToken(accountSid, apiKey, apiSecret, {
         identity: identity || `${orgId}-${userId}`,
         ttl: 14400, // 4 hours

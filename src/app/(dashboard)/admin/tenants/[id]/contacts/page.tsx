@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ContactListCompact } from "@/components/contacts/contact-list-compact";
 import { CommunicationsPane } from "@/components/contacts/communications-pane";
-import { ContactDetailsPlaceholder } from "@/components/contacts/contact-details-placeholder";
+import { ContactSideMenu, type PanelType } from "@/components/contacts/contact-side-menu";
+import { ContactPanelDrawer } from "@/components/contacts/contact-panel-drawer";
 import { ContactDialog } from "@/components/contacts/contact-dialog";
 
 type Contact = Doc<"contacts">;
@@ -30,6 +31,9 @@ export default function TenantContactsPage() {
 
   // Selected contact for viewing communications (separate from dialog)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  // Active panel state for side menu
+  const [activePanel, setActivePanel] = useState<PanelType | null>(null);
 
   // Check if user is a platform admin
   const isPlatformUser = useQuery(
@@ -57,6 +61,19 @@ export default function TenantContactsPage() {
   const handleNewContact = () => {
     setDialogContact(null);
     setIsDialogOpen(true);
+  };
+
+  const handleEditContact = (contact: Contact) => {
+    setDialogContact(contact);
+    setIsDialogOpen(true);
+  };
+
+  const deleteContact = useMutation(api.contacts.remove);
+  const handleDeleteContact = async (contact: Contact) => {
+    await deleteContact({ contactId: contact._id });
+    if (selectedContact?._id === contact._id) {
+      setSelectedContact(null);
+    }
   };
 
   if (!userLoaded || isPlatformUser === undefined) {
@@ -190,6 +207,8 @@ export default function TenantContactsPage() {
             selectedContactId={selectedContact?._id || null}
             onSelectContact={handleSelectContact}
             onNewContact={handleNewContact}
+            onEditContact={handleEditContact}
+            onDeleteContact={handleDeleteContact}
             isLoading={contacts === undefined}
           />
         </div>
@@ -202,9 +221,25 @@ export default function TenantContactsPage() {
           />
         </div>
 
-        {/* Column 3: Reserved/Placeholder */}
-        <div className="w-72 flex-shrink-0 bg-muted/30">
-          <ContactDetailsPlaceholder />
+        {/* Column 3: Panel + Icon Menu */}
+        <div className="flex flex-shrink-0">
+          {activePanel && selectedContact && (
+            <div className="w-80 border-r overflow-hidden">
+              <ContactPanelDrawer
+                type={activePanel}
+                contact={selectedContact}
+                organizationId={tenant._id}
+                onClose={() => setActivePanel(null)}
+              />
+            </div>
+          )}
+          <div className="w-14 border-l flex-shrink-0 bg-muted/30">
+            <ContactSideMenu
+              activePanel={activePanel}
+              onPanelChange={(panel) => setActivePanel(activePanel === panel ? null : panel)}
+              disabled={!selectedContact}
+            />
+          </div>
         </div>
       </div>
 

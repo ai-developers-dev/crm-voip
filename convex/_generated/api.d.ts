@@ -8,19 +8,32 @@
  * @module
  */
 
+import type * as agencyCarriers from "../agencyCarriers.js";
+import type * as agencyProducts from "../agencyProducts.js";
+import type * as agencyTypes from "../agencyTypes.js";
+import type * as appointments from "../appointments.js";
+import type * as calendarEvents from "../calendarEvents.js";
 import type * as callStats from "../callStats.js";
 import type * as calls from "../calls.js";
+import type * as carrierCommissions from "../carrierCommissions.js";
 import type * as contacts from "../contacts.js";
+import type * as documents from "../documents.js";
+import type * as emailAccounts from "../emailAccounts.js";
+import type * as emails from "../emails.js";
 import type * as holdMusic from "../holdMusic.js";
 import type * as http from "../http.js";
+import type * as notes from "../notes.js";
 import type * as organizations from "../organizations.js";
 import type * as parkingLot from "../parkingLot.js";
 import type * as pendingTransfers from "../pendingTransfers.js";
 import type * as phoneNumbers from "../phoneNumbers.js";
 import type * as platformUsers from "../platformUsers.js";
+import type * as policies from "../policies.js";
 import type * as presence from "../presence.js";
 import type * as sms from "../sms.js";
 import type * as targetedRinging from "../targetedRinging.js";
+import type * as tasks from "../tasks.js";
+import type * as tenantCommissions from "../tenantCommissions.js";
 import type * as userMetrics from "../userMetrics.js";
 import type * as users from "../users.js";
 
@@ -31,19 +44,32 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agencyCarriers: typeof agencyCarriers;
+  agencyProducts: typeof agencyProducts;
+  agencyTypes: typeof agencyTypes;
+  appointments: typeof appointments;
+  calendarEvents: typeof calendarEvents;
   callStats: typeof callStats;
   calls: typeof calls;
+  carrierCommissions: typeof carrierCommissions;
   contacts: typeof contacts;
+  documents: typeof documents;
+  emailAccounts: typeof emailAccounts;
+  emails: typeof emails;
   holdMusic: typeof holdMusic;
   http: typeof http;
+  notes: typeof notes;
   organizations: typeof organizations;
   parkingLot: typeof parkingLot;
   pendingTransfers: typeof pendingTransfers;
   phoneNumbers: typeof phoneNumbers;
   platformUsers: typeof platformUsers;
+  policies: typeof policies;
   presence: typeof presence;
   sms: typeof sms;
   targetedRinging: typeof targetedRinging;
+  tasks: typeof tasks;
+  tenantCommissions: typeof tenantCommissions;
   userMetrics: typeof userMetrics;
   users: typeof users;
 }>;

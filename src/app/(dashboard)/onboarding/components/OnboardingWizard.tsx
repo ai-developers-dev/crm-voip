@@ -13,6 +13,8 @@ import { WelcomeStep } from "./WelcomeStep";
 import { TwilioSetupStep } from "./TwilioSetupStep";
 import { TeamSetupStep } from "./TeamSetupStep";
 import { CallSettingsStep } from "./CallSettingsStep";
+import { BusinessSetupStep } from "./BusinessSetupStep";
+import { EmailSetupStep } from "./EmailSetupStep";
 import { CompletionStep } from "./CompletionStep";
 
 interface OnboardingWizardProps {
@@ -25,12 +27,15 @@ const STEPS = [
   { title: "Twilio Setup", description: "Connect your phone" },
   { title: "Team", description: "Add members" },
   { title: "Settings", description: "Configure calls" },
+  { title: "Business", description: "Agency setup" },
+  { title: "Email", description: "Connect email" },
   { title: "Complete", description: "All done!" },
 ];
 
 export function OnboardingWizard({ organizationName, currentStep: initialStep }: OnboardingWizardProps) {
   const [step, setStep] = useState(initialStep);
   const [twilioConfigured, setTwilioConfigured] = useState(false);
+  const [emailConfigured, setEmailConfigured] = useState(false);
   const { organization } = useOrganization();
   const router = useRouter();
 
@@ -150,8 +155,24 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
           />
         )}
         {step === 4 && (
+          <BusinessSetupStep
+            onNext={handleNext}
+            onBack={handleBack}
+            onSkip={handleNext}
+          />
+        )}
+        {step === 5 && (
+          <EmailSetupStep
+            onNext={handleNext}
+            onBack={handleBack}
+            onSkip={handleNext}
+            onConfigured={setEmailConfigured}
+          />
+        )}
+        {step === 6 && (
           <CompletionStep
             twilioConfigured={twilioConfigured}
+            emailConfigured={emailConfigured}
             onComplete={handleComplete}
             onBack={handleBack}
           />
@@ -159,7 +180,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
       </Card>
 
       {/* Skip all */}
-      {step < 4 && step > 0 && (
+      {step < 6 && step > 0 && (
         <div className="mt-4 text-center">
           <Button variant="ghost" size="sm" onClick={handleSkip}>
             Skip setup for now

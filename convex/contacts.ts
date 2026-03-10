@@ -232,8 +232,8 @@ export const getCommunicationsHistory = query({
       p.number.replace(/\D/g, "").slice(-10)
     );
 
-    // Fetch calls and messages in parallel
-    const [allCalls, allMessages] = await Promise.all([
+    // Fetch calls, messages, and emails in parallel
+    const [allCalls, allMessages, contactEmails] = await Promise.all([
       ctx.db
         .query("callHistory")
         .withIndex("by_organization", (q) =>
@@ -248,6 +248,14 @@ export const getCommunicationsHistory = query({
         )
         .order("desc")
         .collect(),
+      // Get emails linked to this contact
+      ctx.db
+        .query("emails")
+        .withIndex("by_contact", (q) =>
+          q.eq("contactId", args.contactId)
+        )
+        .order("desc")
+        .take(100),
     ]);
 
     // Filter calls by contactId or phone number match
@@ -304,10 +312,48 @@ export const getCommunicationsHistory = query({
       return false;
     });
 
+    // Also match emails by contact email address (if not already linked by contactId)
+    let emails = contactEmails;
+    if (contact.email) {
+      const emailsByAddress = await ctx.db
+        .query("emails")
+        .withIndex("by_organization", (q) =>
+          q.eq("organizationId", args.organizationId)
+        )
+        .order("desc")
+        .collect();
+
+      const contactEmailLower = contact.email.toLowerCase();
+      const seenEmailIds = new Set(contactEmails.map((e) => e._id));
+      const additionalEmails = emailsByAddress.filter((e) => {
+        if (seenEmailIds.has(e._id)) return false;
+        return (
+          e.from.toLowerCase() === contactEmailLower ||
+          e.to.some((addr) => addr.toLowerCase() === contactEmailLower)
+        );
+      });
+      emails = [...contactEmails, ...additionalEmails];
+    }
+
     // Return limited results (most recent 100 each)
     return {
       calls: calls.slice(0, 100),
       messages: messages.slice(0, 100),
+      emails: emails.slice(0, 100),
     };
+  },
+});
+
+export const toggleRead = mutation({
+  args: {
+    contactId: v.id("contacts"),
+  },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+    await ctx.db.patch(args.contactId, {
+      isRead: !contact.isRead,
+      updatedAt: Date.now(),
+    });
   },
 });

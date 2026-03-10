@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from "next/server";
+import Nylas from "nylas";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
+
+const nylas = new Nylas({
+  apiKey: process.env.NYLAS_API_KEY!,
+  apiUri: process.env.NYLAS_API_URI || "https://api.us.nylas.com",
+});
+
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const code = searchParams.get("code");
+  const state = searchParams.get("state");
+  const error = searchParams.get("error");
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+  if (error) {
+    console.error("Nylas OAuth error:", error);
+    return NextResponse.redirect(
+      `${appUrl}/settings?email_error=${encodeURIComponent(error)}`
+    );
+  }
+
+  if (!code || !state) {
+    return NextResponse.redirect(
+      `${appUrl}/settings?email_error=missing_code`
+    );
+  }
+
+  try {
+    const { organizationId, userId } = JSON.parse(state);
+
+    // Exchange code for grant
+    const callbackUrl = `${appUrl}/api/email/callback`;
+    const response = await nylas.auth.exchangeCodeForToken({
+      clientId: process.env.NYLAS_CLIENT_ID!,
+      redirectUri: callbackUrl,
+      code,
+    });
+
+    const grantId = response.grantId;
+    const email = response.email;
+
+    // Determine provider from email domain
+    let provider = "imap";
+    if (email) {
+      const domain = email.split("@")[1]?.toLowerCase();
+      if (domain === "gmail.com" || domain?.endsWith(".google.com") || domain?.includes("googlemail")) {
+        provider = "gmail";
+      } else if (domain === "outlook.com" || domain === "hotmail.com" || domain?.endsWith(".onmicrosoft.com") || domain === "live.com") {
+        provider = "outlook";
+      }
+    }
+
+    // Save to Convex
+    const emailAccountId = await convex.mutation(api.emailAccounts.create, {
+      organizationId: organizationId as Id<"organizations">,
+      userId: userId ? (userId as Id<"users">) : undefined,
+      email: email || "unknown",
+      provider,
+      nylasGrantId: grantId,
+    });
+
+    // Trigger initial calendar sync in the background (non-blocking)
+    fetch(`${appUrl}/api/email/calendar-sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        emailAccountId,
+        grantId,
+        organizationId,
+      }),
+    }).catch((err) => console.error("Calendar backfill trigger failed:", err));
+
+    return NextResponse.redirect(
+      `${appUrl}/settings?email_connected=true`
+    );
+  } catch (err) {
+    console.error("Nylas callback error:", err);
+    return NextResponse.redirect(
+      `${appUrl}/settings?email_error=${encodeURIComponent((err as Error).message)}`
+    );
+  }
+}

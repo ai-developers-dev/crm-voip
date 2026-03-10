@@ -1,33 +1,135 @@
 "use client";
 
+import { useMemo, useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../../convex/_generated/dataModel";
+import { CalendarView, type CalendarEvent } from "@/components/calendar/calendar-view";
+import { NewAppointmentDialog } from "@/components/calendar/new-appointment-dialog";
+import { EditAppointmentDialog } from "@/components/calendar/edit-appointment-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare,
+  Users, Calendar, BarChart3,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import {
+  startOfMonth, endOfMonth, subMonths, addMonths,
+} from "date-fns";
 
 export default function TenantCalendarPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoaded: userLoaded } = useUser();
   const tenantId = params.id as string;
+  const [selectedUserId, setSelectedUserId] = useState<string>("all");
+  const [showNewAppt, setShowNewAppt] = useState(false);
+  const [newApptDate, setNewApptDate] = useState<Date | undefined>();
+  const [editApptId, setEditApptId] = useState<Id<"appointments"> | null>(null);
 
-  // Check if user is a platform admin
+  const [viewRange] = useState(() => {
+    const now = new Date();
+    return {
+      start: subMonths(startOfMonth(now), 1).getTime(),
+      end: addMonths(endOfMonth(now), 1).getTime(),
+    };
+  });
+
   const isPlatformUser = useQuery(
     api.platformUsers.isPlatformUser,
     user?.id ? { clerkUserId: user.id } : "skip"
   );
 
-  // Get the tenant organization by ID
   const tenant = useQuery(
     api.organizations.getById,
     tenantId ? { organizationId: tenantId as Id<"organizations"> } : "skip"
   );
+
+  const tenantUsers = useQuery(
+    api.users.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+
+  const filterByUser = selectedUserId !== "all";
+  const filterUserId = filterByUser ? (selectedUserId as Id<"users">) : undefined;
+
+  // Calendar events — org-level or user-level
+  const orgCalendarEvents = useQuery(
+    api.calendarEvents.getByOrganization,
+    !filterByUser && tenant?._id
+      ? { organizationId: tenant._id, startDate: viewRange.start, endDate: viewRange.end }
+      : "skip"
+  );
+  const userCalendarEvents = useQuery(
+    api.calendarEvents.getByUser,
+    filterByUser && filterUserId
+      ? { userId: filterUserId, startDate: viewRange.start, endDate: viewRange.end }
+      : "skip"
+  );
+  const calendarEvents = filterByUser ? userCalendarEvents : orgCalendarEvents;
+
+  // Appointments — org-level or user-level
+  const orgAppointments = useQuery(
+    api.appointments.getByOrganization,
+    !filterByUser && tenant?._id
+      ? { organizationId: tenant._id, startDate: viewRange.start, endDate: viewRange.end }
+      : "skip"
+  );
+  const userAppointments = useQuery(
+    api.appointments.getByUser,
+    filterByUser && filterUserId
+      ? { userId: filterUserId, startDate: viewRange.start, endDate: viewRange.end }
+      : "skip"
+  );
+  const appointments = filterByUser ? userAppointments : orgAppointments;
+
+  const events: CalendarEvent[] = useMemo(() => {
+    const merged: CalendarEvent[] = [];
+
+    if (calendarEvents) {
+      for (const ce of calendarEvents) {
+        merged.push({
+          id: ce._id,
+          title: ce.title,
+          startTime: ce.startTime,
+          endTime: ce.endTime,
+          location: ce.location,
+          isAllDay: ce.isAllDay,
+          status: ce.status,
+          conferenceUrl: ce.conferenceUrl,
+          type: "synced",
+          attendees: ce.attendees,
+        });
+      }
+    }
+
+    if (appointments) {
+      for (const apt of appointments) {
+        merged.push({
+          id: apt._id,
+          title: apt.title,
+          startTime: apt.appointmentDate,
+          endTime: apt.endDate || apt.appointmentDate + 3600000,
+          location: apt.location,
+          status: apt.status,
+          type: "appointment",
+        });
+      }
+    }
+
+    return merged.sort((a, b) => a.startTime - b.startTime);
+  }, [calendarEvents, appointments]);
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
@@ -37,7 +139,6 @@ export default function TenantCalendarPage() {
     );
   }
 
-  // Only platform users can access this page
   if (!isPlatformUser) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
@@ -45,7 +146,7 @@ export default function TenantCalendarPage() {
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              You don't have permission to view tenant dashboards.
+              You don&apos;t have permission to view tenant dashboards.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -73,7 +174,7 @@ export default function TenantCalendarPage() {
           <CardHeader className="text-center">
             <CardTitle>Tenant Not Found</CardTitle>
             <CardDescription>
-              The tenant organization you're looking for doesn't exist.
+              The tenant organization you&apos;re looking for doesn&apos;t exist.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -151,20 +252,61 @@ export default function TenantCalendarPage() {
         </div>
       </div>
 
-      {/* Coming Soon Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Calendar className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <CardTitle>Calendar</CardTitle>
-            <CardDescription>
-              Calendar integration is coming soon. You'll be able to view scheduled calls and appointments for this tenant.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      {/* User filter */}
+      {tenantUsers && tenantUsers.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/10">
+          <span className="text-sm text-muted-foreground">Filter by user</span>
+          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+            <SelectTrigger className="w-52 h-8 text-sm">
+              <SelectValue placeholder="All Users" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Users</SelectItem>
+              {tenantUsers.map((u) => (
+                <SelectItem key={u._id} value={u._id}>
+                  {u.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Calendar */}
+      <div className="flex-1 relative">
+        <CalendarView
+          events={events}
+          loading={calendarEvents === undefined || appointments === undefined}
+          onDateClick={(date) => {
+            setNewApptDate(date);
+            setShowNewAppt(true);
+          }}
+          onEventClick={(event) => {
+            if (event.type === "appointment") {
+              setEditApptId(event.id as Id<"appointments">);
+            }
+          }}
+        />
       </div>
+
+      {/* New appointment dialog */}
+      {tenantUsers && tenantUsers.length > 0 && (
+        <NewAppointmentDialog
+          open={showNewAppt}
+          onOpenChange={setShowNewAppt}
+          organizationId={tenant._id}
+          userId={selectedUserId !== "all" ? (selectedUserId as Id<"users">) : tenantUsers[0]._id}
+          defaultDate={newApptDate}
+        />
+      )}
+
+      {/* Edit appointment dialog */}
+      <EditAppointmentDialog
+        open={!!editApptId}
+        onOpenChange={(open) => { if (!open) setEditApptId(null); }}
+        appointmentId={editApptId}
+        organizationId={tenant._id}
+      />
     </div>
   );
 }

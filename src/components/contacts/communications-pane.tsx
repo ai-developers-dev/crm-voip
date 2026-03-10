@@ -5,7 +5,9 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, ArrowDownLeft, ArrowUpRight, MessageCircle } from "lucide-react";
+import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, ArrowDownLeft, ArrowUpRight, MessageCircle, Mail, MailOpen } from "lucide-react";
+import { ContactActionBar } from "./contact-action-bar";
+import { ComposeBox } from "./compose-box";
 
 type Contact = Doc<"contacts">;
 
@@ -16,7 +18,7 @@ interface CommunicationsPaneProps {
 
 type CommunicationItem = {
   id: string;
-  type: "call" | "sms";
+  type: "call" | "sms" | "email";
   direction: "inbound" | "outbound";
   timestamp: number;
   // Call fields
@@ -25,6 +27,9 @@ type CommunicationItem = {
   // SMS fields
   body?: string;
   status?: string;
+  // Email fields
+  subject?: string;
+  snippet?: string;
 };
 
 function formatDuration(seconds: number): string {
@@ -83,6 +88,22 @@ function CommunicationIcon({ item }: { item: CommunicationItem }) {
     );
   }
 
+  // Email
+  if (item.type === "email") {
+    if (item.direction === "inbound") {
+      return (
+        <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+          <MailOpen className="h-4 w-4 text-amber-600" />
+        </div>
+      );
+    }
+    return (
+      <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-teal-100">
+        <Mail className="h-4 w-4 text-teal-600" />
+      </div>
+    );
+  }
+
   // SMS
   if (item.direction === "inbound") {
     return (
@@ -106,6 +127,9 @@ function CommunicationItemRow({ item }: { item: CommunicationItem }) {
       if (item.outcome === "missed") return "Missed Call";
       return item.direction === "inbound" ? "Incoming Call" : "Outgoing Call";
     }
+    if (item.type === "email") {
+      return item.direction === "inbound" ? "Email Received" : "Email Sent";
+    }
     return item.direction === "inbound" ? "SMS Received" : "SMS Sent";
   };
 
@@ -114,6 +138,13 @@ function CommunicationItemRow({ item }: { item: CommunicationItem }) {
       if (item.outcome === "missed") return "Not answered";
       if (item.duration !== undefined) return formatDuration(item.duration);
       return "Connected";
+    }
+    if (item.type === "email") {
+      const parts = [];
+      if (item.subject) parts.push(item.subject);
+      if (item.snippet) parts.push(`— ${item.snippet}`);
+      const text = parts.join(" ");
+      return text.length > 80 ? `${text.slice(0, 80)}...` : text;
     }
     // SMS - show preview
     if (item.body) {
@@ -173,6 +204,20 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
       });
     }
 
+    // Map emails
+    if (history.emails) {
+      for (const email of history.emails) {
+        items.push({
+          id: `email-${email._id}`,
+          type: "email",
+          direction: email.direction as "inbound" | "outbound",
+          timestamp: email.sentAt,
+          subject: email.subject,
+          snippet: email.snippet,
+        });
+      }
+    }
+
     // Sort by timestamp descending
     items.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -219,10 +264,15 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b px-4 py-3">
-        <h2 className="text-lg font-semibold">Communications</h2>
-        <p className="text-sm text-muted-foreground">
-          {contact.firstName} {contact.lastName}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Communications</h2>
+            <p className="text-sm text-muted-foreground">
+              {contact.firstName} {contact.lastName}
+            </p>
+          </div>
+          <ContactActionBar contact={contact} organizationId={organizationId} />
+        </div>
       </div>
 
       {/* Content */}
@@ -256,6 +306,9 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
           </p>
         </div>
       )}
+
+      {/* Compose Box */}
+      <ComposeBox contact={contact} organizationId={organizationId} />
     </div>
   );
 }

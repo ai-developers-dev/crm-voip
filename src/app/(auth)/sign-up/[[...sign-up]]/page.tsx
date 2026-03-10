@@ -20,7 +20,7 @@ export default function SignUpPage() {
       {/* Content */}
       <div className="flex flex-1 items-center justify-center p-4">
         <SignUp
-          afterSignUpUrl="/dashboard"
+          afterSignUpUrl="/get-started"
           appearance={{
             elements: {
               rootBox: "mx-auto",

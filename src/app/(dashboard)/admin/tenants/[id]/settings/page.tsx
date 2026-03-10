@@ -21,10 +21,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   Phone, Users, Settings, ArrowRight, CheckCircle, XCircle, Loader2,
-  ChevronRight, ArrowLeft, Eye, Building2, Pencil, AlertCircle
+  ChevronRight, ArrowLeft, Eye, Building2, Pencil, AlertCircle, Mail, Unplug, Trash2, Plus
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useMutation } from "convex/react";
 import { updateTenant, UpdateTenantData } from "../../../actions";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 
@@ -52,6 +53,16 @@ export default function TenantSettingsPage() {
     tenant?._id ? { organizationId: tenant._id } : "skip"
   );
 
+  // Email accounts for this tenant
+  const emailAccounts = useQuery(
+    api.emailAccounts.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+  const disconnectEmail = useMutation(api.emailAccounts.disconnect);
+  const removeEmail = useMutation(api.emailAccounts.remove);
+  const [isConnectingEmail, setIsConnectingEmail] = useState(false);
+  const [deletingEmailAccount, setDeletingEmailAccount] = useState<any>(null);
+
   // Edit dialog state
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -71,6 +82,40 @@ export default function TenantSettingsPage() {
     perUserPrice: 0,
     includedUsers: 1,
   });
+
+  const handleConnectEmailForTenant = async (provider?: "google" | "microsoft") => {
+    if (!tenant?._id) return;
+    setIsConnectingEmail(true);
+    try {
+      const res = await fetch("/api/email/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: tenant._id,
+          redirectUri: `${window.location.origin}/api/email/callback`,
+          provider,
+        }),
+      });
+      const data = await res.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    } catch (err) {
+      console.error("Failed to connect email:", err);
+    } finally {
+      setIsConnectingEmail(false);
+    }
+  };
+
+  const handleDeleteEmailAccount = async () => {
+    if (!deletingEmailAccount) return;
+    try {
+      await removeEmail({ emailAccountId: deletingEmailAccount._id });
+      setDeletingEmailAccount(null);
+    } catch (err) {
+      console.error("Failed to delete email account:", err);
+    }
+  };
 
   const openEditDialog = () => {
     if (!tenant) return;
@@ -293,6 +338,145 @@ export default function TenantSettingsPage() {
               </Link>
             </CardContent>
           </Card>
+
+          {/* Email Accounts */}
+          <Card className="hover:shadow-md transition-shadow md:col-span-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                    <Mail className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Email Accounts</CardTitle>
+                    <CardDescription>Connected email accounts for this tenant</CardDescription>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {emailAccounts && emailAccounts.some((a) => a.status === "active") ? (
+                    <Badge variant="default" className="gap-1 bg-green-600">
+                      <CheckCircle className="h-3 w-3" />
+                      {emailAccounts.filter((a) => a.status === "active").length} Connected
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="gap-1">
+                      <XCircle className="h-3 w-3" />
+                      None
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {emailAccounts === undefined ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : emailAccounts.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <p className="text-sm text-muted-foreground">
+                    No email accounts connected for this tenant.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleConnectEmailForTenant("google")}
+                      disabled={isConnectingEmail}
+                    >
+                      {isConnectingEmail ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      Connect Gmail
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleConnectEmailForTenant("microsoft")}
+                      disabled={isConnectingEmail}
+                    >
+                      {isConnectingEmail ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      Connect Outlook
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {emailAccounts.map((account) => (
+                    <div
+                      key={account._id}
+                      className="flex items-center justify-between rounded-md border px-3 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{account.email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          <span className="capitalize">{account.provider}</span>
+                          {" · "}
+                          <span className={account.status === "active" ? "text-green-600" : "text-red-500"}>
+                            {account.status}
+                          </span>
+                          {" · Connected "}
+                          {new Date(account.connectedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => disconnectEmail({ emailAccountId: account._id })}
+                        >
+                          <Unplug className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeletingEmailAccount(account)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleConnectEmailForTenant("google")}
+                      disabled={isConnectingEmail}
+                    >
+                      {isConnectingEmail ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      Connect Gmail
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleConnectEmailForTenant("microsoft")}
+                      disabled={isConnectingEmail}
+                    >
+                      {isConnectingEmail ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      Connect Outlook
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Organization Info */}
@@ -375,6 +559,22 @@ export default function TenantSettingsPage() {
           <HoldMusicUpload organizationId={tenant._id} />
         )}
       </div>
+
+      {/* Delete Email Account Dialog */}
+      <Dialog open={!!deletingEmailAccount} onOpenChange={(open) => { if (!open) setDeletingEmailAccount(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Email Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete <strong>{deletingEmailAccount?.email}</strong>? This will remove the account and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingEmailAccount(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteEmailAccount}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Tenant Dialog */}
       <Dialog open={isEditOpen} onOpenChange={(open) => {

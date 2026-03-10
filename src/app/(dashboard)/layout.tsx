@@ -9,7 +9,7 @@ import Link from "next/link";
 import {
   Phone, Settings, Building2, Shield, LogOut, UserCog,
   ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3, Users,
-  Wifi, WifiOff, RefreshCw
+  Wifi, WifiOff, RefreshCw, Calendar
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createTenant, updateTenant, CreateTenantData } from "./admin/actions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CallingProvider, useOptionalCallingContext } from "@/components/calling/calling-provider";
 import { GlobalIncomingBanner } from "@/components/calling/global-incoming-banner";
 import { ActiveCallBar } from "@/components/calling/active-call-bar";
@@ -34,6 +41,7 @@ function TenantSwitcher() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const tenants = useQuery(api.organizations.getAllTenants);
+  const agencyTypes = useQuery(api.agencyTypes.getActive);
   const { setActive } = useClerk();
   const router = useRouter();
 
@@ -42,7 +50,7 @@ function TenantSwitcher() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<CreateTenantData>({
+  const [editFormData, setEditFormData] = useState<CreateTenantData & { agencyTypeId?: string }>({
     businessName: "",
     streetAddress: "",
     city: "",
@@ -54,6 +62,7 @@ function TenantSwitcher() {
     basePlanPrice: 97,
     perUserPrice: 47,
     includedUsers: 1,
+    agencyTypeId: undefined,
   });
 
   // Add dialog state
@@ -61,7 +70,7 @@ function TenantSwitcher() {
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
-  const [formData, setFormData] = useState<CreateTenantData>({
+  const [formData, setFormData] = useState<CreateTenantData & { agencyTypeId?: string }>({
     businessName: "",
     streetAddress: "",
     city: "",
@@ -73,6 +82,7 @@ function TenantSwitcher() {
     basePlanPrice: 97,
     perUserPrice: 47,
     includedUsers: 1,
+    agencyTypeId: undefined,
   });
 
   const resetForm = () => {
@@ -88,6 +98,7 @@ function TenantSwitcher() {
       basePlanPrice: 97,
       perUserPrice: 47,
       includedUsers: 1,
+      agencyTypeId: undefined,
     });
     setCreateError(null);
     setCreateSuccess(null);
@@ -427,6 +438,37 @@ function TenantSwitcher() {
                 </div>
               </div>
               <div className="space-y-4 pt-4 border-t">
+                <h3 className="font-medium text-sm text-muted-foreground">Agency Type</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="agencyType">Agency Type</Label>
+                  <Select
+                    value={formData.agencyTypeId || ""}
+                    onValueChange={(value) => {
+                      const selectedType = agencyTypes?.find((t) => t._id === value);
+                      setFormData((prev) => ({
+                        ...prev,
+                        agencyTypeId: value || undefined,
+                        ...(selectedType?.monthlyBasePrice != null && { basePlanPrice: selectedType.monthlyBasePrice }),
+                        ...(selectedType?.perUserPrice != null && { perUserPrice: selectedType.perUserPrice }),
+                      }));
+                    }}
+                    disabled={isCreating || !!createSuccess}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an agency type (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {agencyTypes?.map((type) => (
+                        <SelectItem key={type._id} value={type._id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Selecting an agency type will auto-fill default pricing</p>
+                </div>
+              </div>
+              <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-medium text-sm text-muted-foreground">Plan & Pricing</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
@@ -589,14 +631,24 @@ function CustomUserButton({ roleLabel, isSuperAdmin }: { roleLabel: string | nul
           {/* Menu Items */}
           <div className="p-1">
             {isSuperAdmin && (
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
-              >
-                <Building2 className="h-4 w-4" />
-                Admin Dashboard
-              </Link>
+              <>
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Admin Dashboard
+                </Link>
+                <Link
+                  href="/admin/settings"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <Settings className="h-4 w-4" />
+                  Admin Settings
+                </Link>
+              </>
             )}
             <button
               onClick={() => {
@@ -670,8 +722,14 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       router.push("/sign-in");
+      return;
     }
-  }, [isLoaded, isSignedIn, router]);
+    // Redirect org-less users to setup (skip for platform admins)
+    if (isLoaded && isSignedIn && !organization && isSuperAdmin === false) {
+      router.push("/get-started");
+      return;
+    }
+  }, [isLoaded, isSignedIn, organization, isSuperAdmin, router]);
 
   // Redirect tenant admins to onboarding if needed
   useEffect(() => {
@@ -753,7 +811,13 @@ export default function DashboardLayout({
                 Contacts
               </Badge>
             </Link>
-            <Link href="/settings">
+            <Link href="/calendar">
+              <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
+                <Calendar className="h-3 w-3" />
+                Calendar
+              </Badge>
+            </Link>
+            <Link href={pathname?.startsWith("/admin") ? "/admin/settings" : "/settings"}>
               <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
                 <Settings className="h-3 w-3" />
                 Settings

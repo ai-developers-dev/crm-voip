@@ -21,11 +21,106 @@ export default defineSchema({
     .index("by_clerk_user_id", ["clerkUserId"])
     .index("by_email", ["email"]),
 
+  // ============================================
+  // AGENCY TYPE TABLES (Platform-level)
+  // ============================================
+
+  // Agency Types - Platform-level business categories
+  agencyTypes: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    monthlyBasePrice: v.optional(v.number()),
+    perUserPrice: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_active", ["isActive"])
+    .index("by_name", ["name"]),
+
+  // Agency Carriers - Companies/carriers per agency type
+  agencyCarriers: defineTable({
+    agencyTypeId: v.id("agencyTypes"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_agency_type", ["agencyTypeId"])
+    .index("by_agency_type_active", ["agencyTypeId", "isActive"]),
+
+  // Agency Products / Lines of Business - per carrier
+  agencyProducts: defineTable({
+    agencyTypeId: v.id("agencyTypes"),
+    carrierId: v.id("agencyCarriers"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_agency_type", ["agencyTypeId"])
+    .index("by_agency_type_active", ["agencyTypeId", "isActive"])
+    .index("by_carrier", ["carrierId"]),
+
+  // Carrier Commissions - Commission rates per carrier x product
+  carrierCommissions: defineTable({
+    agencyTypeId: v.id("agencyTypes"),
+    carrierId: v.id("agencyCarriers"),
+    productId: v.id("agencyProducts"),
+    commissionRate: v.number(),
+    renewalRate: v.number(),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_agency_type", ["agencyTypeId"])
+    .index("by_carrier", ["carrierId"])
+    .index("by_product", ["productId"])
+    .index("by_carrier_product", ["carrierId", "productId"]),
+
+  // Tenant's selected carriers (subset of agencyCarriers they work with)
+  tenantCarriers: defineTable({
+    organizationId: v.id("organizations"),
+    agencyTypeId: v.id("agencyTypes"),
+    carrierId: v.id("agencyCarriers"),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_organization_carrier", ["organizationId", "carrierId"]),
+
+  // Tenant's selected products/lines of business
+  tenantProducts: defineTable({
+    organizationId: v.id("organizations"),
+    agencyTypeId: v.id("agencyTypes"),
+    productId: v.id("agencyProducts"),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_organization_product", ["organizationId", "productId"]),
+
+  // Tenant-specific commission rates
+  tenantCommissions: defineTable({
+    organizationId: v.id("organizations"),
+    agencyTypeId: v.id("agencyTypes"),
+    carrierId: v.id("agencyCarriers"),
+    productId: v.id("agencyProducts"),
+    commissionRate: v.number(),
+    renewalRate: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_organization_carrier", ["organizationId", "carrierId"])
+    .index("by_carrier_product", ["organizationId", "carrierId", "productId"]),
+
   // Organizations (Tenants)
   organizations: defineTable({
     clerkOrgId: v.string(),
     name: v.string(),
     slug: v.string(),
+    agencyTypeId: v.optional(v.id("agencyTypes")),
     // isPlatformOrg: true means this is the SaaS owner's organization
     // Only one organization should have this set to true
     isPlatformOrg: v.optional(v.boolean()),
@@ -89,7 +184,8 @@ export default defineSchema({
   })
     .index("by_clerk_org_id", ["clerkOrgId"])
     .index("by_slug", ["slug"])
-    .index("by_is_platform", ["isPlatformOrg"]),
+    .index("by_is_platform", ["isPlatformOrg"])
+    .index("by_agency_type", ["agencyTypeId"]),
 
   // Users/Agents (Tenant Level)
   // These are users within a specific tenant organization
@@ -372,6 +468,7 @@ export default defineSchema({
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     assignedUserId: v.optional(v.id("users")),
+    isRead: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -516,6 +613,90 @@ export default defineSchema({
     .index("by_contact", ["contactId"])
     .index("by_status", ["organizationId", "status"]),
 
+  // Notes (contact-linked notes)
+  notes: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.id("contacts"),
+    content: v.string(),
+    createdByUserId: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_contact", ["contactId", "createdAt"])
+    .index("by_organization", ["organizationId"]),
+
+  // Appointments (scheduled meetings/calls)
+  appointments: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.optional(v.id("contacts")),
+    title: v.string(),
+    description: v.optional(v.string()),
+    appointmentDate: v.number(),
+    endDate: v.optional(v.number()),
+    location: v.optional(v.string()),
+    type: v.union(
+      v.literal("meeting"),
+      v.literal("call"),
+      v.literal("video"),
+      v.literal("other")
+    ),
+    status: v.union(
+      v.literal("scheduled"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+      v.literal("no_show")
+    ),
+    assignedToUserId: v.optional(v.id("users")),
+    createdByUserId: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_contact", ["contactId", "appointmentDate"])
+    .index("by_organization", ["organizationId"])
+    .index("by_date", ["organizationId", "appointmentDate"])
+    .index("by_assigned_user", ["assignedToUserId"]),
+
+  // Policies (insurance policies linked to contacts)
+  policies: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.id("contacts"),
+    policyNumber: v.string(),
+    carrier: v.string(),
+    type: v.union(
+      v.literal("home"),
+      v.literal("auto"),
+      v.literal("life"),
+      v.literal("health"),
+      v.literal("umbrella"),
+      v.literal("commercial"),
+      v.literal("other")
+    ),
+    status: v.union(
+      v.literal("active"),
+      v.literal("pending"),
+      v.literal("expired"),
+      v.literal("cancelled")
+    ),
+    premiumAmount: v.optional(v.number()),
+    premiumFrequency: v.optional(
+      v.union(
+        v.literal("monthly"),
+        v.literal("quarterly"),
+        v.literal("semi_annual"),
+        v.literal("annual")
+      )
+    ),
+    effectiveDate: v.optional(v.number()),
+    expirationDate: v.optional(v.number()),
+    description: v.optional(v.string()),
+    createdByUserId: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_contact", ["contactId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_status", ["organizationId", "status"]),
+
   // ============================================
   // USAGE & BILLING TABLES
   // ============================================
@@ -563,6 +744,111 @@ export default defineSchema({
   // ============================================
   // AUDIT & COMPLIANCE TABLES
   // ============================================
+
+  // Documents (linked to contacts)
+  documents: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.id("contacts"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    type: v.string(), // "contract", "id", "application", "claim", "correspondence", "other"
+    fileName: v.optional(v.string()),
+    fileUrl: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+    status: v.string(), // "draft", "final", "archived"
+    createdByUserId: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_contact", ["contactId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_type", ["organizationId", "type"]),
+
+  // ============================================
+  // EMAIL TABLES
+  // ============================================
+
+  // Email Accounts (Nylas-connected email accounts per tenant)
+  emailAccounts: defineTable({
+    organizationId: v.id("organizations"),
+    userId: v.optional(v.id("users")),
+    email: v.string(),
+    provider: v.string(), // "gmail", "outlook", "imap"
+    nylasGrantId: v.string(),
+    nylasAccountId: v.optional(v.string()),
+    status: v.string(), // "active", "disconnected", "error"
+    syncState: v.optional(v.string()), // "syncing", "synced", "error"
+    lastSyncAt: v.optional(v.number()),
+    connectedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_user", ["userId"])
+    .index("by_nylas_grant", ["nylasGrantId"])
+    .index("by_email", ["organizationId", "email"]),
+
+  // Emails (sent and received via Nylas)
+  emails: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.optional(v.id("contacts")),
+    emailAccountId: v.id("emailAccounts"),
+    nylasMessageId: v.optional(v.string()),
+    threadId: v.optional(v.string()),
+    direction: v.string(), // "inbound" | "outbound"
+    from: v.string(),
+    to: v.array(v.string()),
+    cc: v.optional(v.array(v.string())),
+    bcc: v.optional(v.array(v.string())),
+    subject: v.string(),
+    bodyPlain: v.optional(v.string()),
+    bodyHtml: v.optional(v.string()),
+    snippet: v.optional(v.string()),
+    hasAttachments: v.optional(v.boolean()),
+    attachments: v.optional(v.array(v.object({
+      fileName: v.string(),
+      contentType: v.string(),
+      size: v.number(),
+      nylasFileId: v.optional(v.string()),
+    }))),
+    status: v.string(), // "draft", "sent", "delivered", "failed"
+    sentAt: v.number(),
+    readAt: v.optional(v.number()),
+  })
+    .index("by_contact", ["contactId", "sentAt"])
+    .index("by_organization", ["organizationId", "sentAt"])
+    .index("by_thread", ["threadId"])
+    .index("by_nylas_message", ["nylasMessageId"])
+    .index("by_email_account", ["emailAccountId"]),
+
+  // Calendar Events (synced from Nylas - Google/Outlook calendars)
+  calendarEvents: defineTable({
+    organizationId: v.id("organizations"),
+    emailAccountId: v.id("emailAccounts"),
+    nylasEventId: v.string(),
+    nylasCalendarId: v.optional(v.string()),
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.number(),
+    endTime: v.number(),
+    location: v.optional(v.string()),
+    isAllDay: v.optional(v.boolean()),
+    status: v.string(), // "confirmed", "tentative", "cancelled"
+    busy: v.optional(v.boolean()),
+    conferenceUrl: v.optional(v.string()),
+    attendees: v.optional(v.array(v.object({
+      email: v.string(),
+      name: v.optional(v.string()),
+      status: v.string(), // "yes", "no", "maybe", "noreply"
+    }))),
+    recurringEventId: v.optional(v.string()),
+    contactId: v.optional(v.id("contacts")),
+    userId: v.optional(v.id("users")),
+    lastSyncedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId", "startTime"])
+    .index("by_user", ["userId", "startTime"])
+    .index("by_nylas_event", ["nylasEventId"])
+    .index("by_email_account", ["emailAccountId"])
+    .index("by_contact", ["contactId", "startTime"]),
 
   // Audit Log (for security & compliance)
   auditLog: defineTable({

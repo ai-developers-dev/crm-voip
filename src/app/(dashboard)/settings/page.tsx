@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useOrganization } from "@clerk/nextjs";
+import { useOrganization, useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,14 +20,17 @@ import {
 } from "@/components/ui/dialog";
 import {
   Phone, Users, ArrowRight, CheckCircle, XCircle, Loader2,
-  ChevronRight, Building2, Pencil, AlertCircle
+  ChevronRight, Building2, Pencil, AlertCircle, Mail, Unplug
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useMutation } from "convex/react";
 import { updateOwnOrganization, UpdateOwnOrganizationData } from "./actions";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 
 export default function SettingsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
+  const { user: clerkUser } = useUser();
 
   // Edit dialog state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -51,11 +54,64 @@ export default function SettingsPage() {
     organization?.id ? { clerkOrgId: organization.id } : "skip"
   );
 
+  // Get current Convex user
+  const convexUser = useQuery(
+    api.users.getByClerkId,
+    clerkUser?.id && convexOrg?._id
+      ? { clerkUserId: clerkUser.id, organizationId: convexOrg._id }
+      : "skip"
+  );
+
   // Get users count
   const users = useQuery(
     api.users.getByOrganization,
     convexOrg?._id ? { organizationId: convexOrg._id } : "skip"
   );
+
+  const isAdmin = convexUser?.role === "tenant_admin" || convexUser?.role === "supervisor";
+
+  // Email accounts — admins see all org accounts, agents see only their own
+  const allEmailAccounts = useQuery(
+    api.emailAccounts.getByOrganization,
+    isAdmin && convexOrg?._id ? { organizationId: convexOrg._id } : "skip"
+  );
+  const myEmailAccounts = useQuery(
+    api.emailAccounts.getByUser,
+    !isAdmin && convexUser?._id ? { userId: convexUser._id } : "skip"
+  );
+  const emailAccounts = isAdmin ? allEmailAccounts : myEmailAccounts;
+  const disconnectEmail = useMutation(api.emailAccounts.disconnect);
+  const [isConnectingEmail, setIsConnectingEmail] = useState(false);
+
+  const searchParams = useSearchParams();
+  const emailConnected = searchParams.get("email_connected");
+  const emailError = searchParams.get("email_error");
+
+  const handleConnectEmail = async (provider?: "google" | "microsoft") => {
+    if (!convexOrg?._id) return;
+    setIsConnectingEmail(true);
+    try {
+      const res = await fetch("/api/email/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId: convexOrg._id, userId: convexUser?._id, provider }),
+      });
+      const data = await res.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        console.error("No auth URL returned:", data);
+      }
+    } catch (err) {
+      console.error("Failed to connect email:", err);
+    } finally {
+      setIsConnectingEmail(false);
+    }
+  };
+
+  const handleDisconnectEmail = async (emailAccountId: string) => {
+    await disconnectEmail({ emailAccountId: emailAccountId as any });
+  };
 
   const openEditDialog = () => {
     setFormData({
@@ -142,6 +198,24 @@ export default function SettingsPage() {
         </p>
       </div>
 
+      {/* Email connection alerts */}
+      {emailConnected && (
+        <Alert className="bg-green-500/10 border-green-500/20">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700 dark:text-green-400">
+            Email account connected successfully!
+          </AlertDescription>
+        </Alert>
+      )}
+      {emailError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Failed to connect email: {emailError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Settings Cards */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Twilio Settings */}
@@ -211,6 +285,130 @@ export default function SettingsPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+
+        {/* Email Settings */}
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <Mail className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Email</CardTitle>
+                  <CardDescription>Send & Receive Email</CardDescription>
+                </div>
+              </div>
+              {emailAccounts && emailAccounts.some((a) => a.status === "active") ? (
+                <Badge variant="default" className="gap-1 bg-green-600">
+                  <CheckCircle className="h-3 w-3" />
+                  Connected
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="gap-1">
+                  <XCircle className="h-3 w-3" />
+                  Not Set Up
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {emailAccounts && emailAccounts.filter((a) => a.status === "active").length > 0 ? (
+              <div className="space-y-3">
+                {emailAccounts
+                  .filter((a) => a.status === "active")
+                  .map((account) => (
+                    <div
+                      key={account._id}
+                      className="flex items-center justify-between rounded-md border px-3 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{account.email}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {account.provider}
+                          {isAdmin && account.userId && (
+                            <span className="ml-2 text-muted-foreground/70">
+                              &middot; {users?.find((u) => u._id === account.userId)?.name || "Unknown user"}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive shrink-0"
+                        onClick={() => handleDisconnectEmail(account._id)}
+                      >
+                        <Unplug className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleConnectEmail("google")}
+                    disabled={isConnectingEmail}
+                  >
+                    {isConnectingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Connect Gmail
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleConnectEmail("microsoft")}
+                    disabled={isConnectingEmail}
+                  >
+                    {isConnectingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Connect Outlook
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Connect your Gmail or Outlook account to send and receive email within the CRM.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleConnectEmail("google")}
+                    disabled={isConnectingEmail}
+                  >
+                    {isConnectingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Connect Gmail
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => handleConnectEmail("microsoft")}
+                    disabled={isConnectingEmail}
+                  >
+                    {isConnectingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Connect Outlook
+                  </Button>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

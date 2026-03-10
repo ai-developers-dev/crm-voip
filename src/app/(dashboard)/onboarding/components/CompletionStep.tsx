@@ -2,15 +2,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, AlertTriangle, PartyPopper, Phone, Users, Settings } from "lucide-react";
+import { CheckCircle, AlertTriangle, PartyPopper, Phone, Users, Settings, Mail } from "lucide-react";
 
 interface CompletionStepProps {
   twilioConfigured: boolean;
+  emailConfigured?: boolean;
   onComplete: () => void;
   onBack: () => void;
 }
 
-export function CompletionStep({ twilioConfigured, onComplete, onBack }: CompletionStepProps) {
+export function CompletionStep({ twilioConfigured, emailConfigured, onComplete, onBack }: CompletionStepProps) {
   return (
     <div className="space-y-6">
       <div className="text-center py-4">
@@ -25,15 +26,28 @@ export function CompletionStep({ twilioConfigured, onComplete, onBack }: Complet
         </p>
       </div>
 
-      {/* Warning if Twilio not configured */}
-      {!twilioConfigured && (
-        <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <strong>Note:</strong> You skipped Twilio setup. Phone calls won&apos;t work until you
-            configure your Twilio credentials in Settings.
-          </AlertDescription>
-        </Alert>
+      {/* Warnings for skipped steps */}
+      {(!twilioConfigured || !emailConfigured) && (
+        <div className="space-y-2">
+          {!twilioConfigured && (
+            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <strong>Note:</strong> You skipped Twilio setup. Phone calls won&apos;t work until you
+                configure your Twilio credentials in Settings.
+              </AlertDescription>
+            </Alert>
+          )}
+          {!emailConfigured && (
+            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <strong>Note:</strong> You skipped email setup. You can connect your email account
+                anytime from Settings.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       )}
 
       {/* Summary */}
@@ -45,6 +59,12 @@ export function CompletionStep({ twilioConfigured, onComplete, onBack }: Complet
             title="Make your first call"
             description="Use the dashboard to dial out or receive incoming calls"
             configured={twilioConfigured}
+          />
+          <SummaryItem
+            icon={Mail}
+            title="Send & receive email"
+            description="Communicate with contacts via email in the CRM"
+            configured={!!emailConfigured}
           />
           <SummaryItem
             icon={Users}

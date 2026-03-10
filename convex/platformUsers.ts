@@ -243,3 +243,28 @@ export const deactivate = mutation({
     });
   },
 });
+
+// Mutation to delete a platform user
+export const remove = mutation({
+  args: {
+    requestingUserId: v.string(),
+    targetUserId: v.id("platformUsers"),
+  },
+  handler: async (ctx, args) => {
+    const requestingUser = await ctx.db
+      .query("platformUsers")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.requestingUserId))
+      .first();
+
+    if (!requestingUser || requestingUser.role !== "super_admin") {
+      throw new Error("Only super_admin can delete platform users");
+    }
+
+    const targetUser = await ctx.db.get(args.targetUserId);
+    if (targetUser?.clerkUserId === args.requestingUserId) {
+      throw new Error("Cannot delete yourself");
+    }
+
+    await ctx.db.delete(args.targetUserId);
+  },
+});

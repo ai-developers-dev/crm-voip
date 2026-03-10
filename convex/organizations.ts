@@ -105,6 +105,7 @@ export const createWithDetails = mutation({
       includedUsers: v.number(),
       billingEmail: v.optional(v.string()),
     }),
+    agencyTypeId: v.optional(v.id("agencyTypes")),
   },
   handler: async (ctx, args) => {
     // Check if already exists
@@ -118,6 +119,7 @@ export const createWithDetails = mutation({
       await ctx.db.patch(existing._id, {
         businessInfo: args.businessInfo,
         billing: args.billing,
+        ...(args.agencyTypeId !== undefined && { agencyTypeId: args.agencyTypeId }),
         updatedAt: Date.now(),
       });
       return existing._id;
@@ -132,6 +134,7 @@ export const createWithDetails = mutation({
       plan: "starter",
       businessInfo: args.businessInfo,
       billing: args.billing,
+      ...(args.agencyTypeId && { agencyTypeId: args.agencyTypeId }),
       settings: {
         recordingEnabled: false,
         maxConcurrentCalls: 5,
@@ -313,6 +316,7 @@ export const updateTenantDetails = mutation({
       includedUsers: v.number(),
       billingEmail: v.optional(v.string()),
     }),
+    agencyTypeId: v.optional(v.id("agencyTypes")),
   },
   handler: async (ctx, args) => {
     const org = await ctx.db.get(args.organizationId);
@@ -322,6 +326,7 @@ export const updateTenantDetails = mutation({
       name: args.name,
       businessInfo: args.businessInfo,
       billing: args.billing,
+      ...(args.agencyTypeId !== undefined && { agencyTypeId: args.agencyTypeId }),
       updatedAt: Date.now(),
     });
   },
@@ -537,7 +542,34 @@ export const deleteOrganization = mutation({
       await ctx.db.delete(contact._id);
     }
 
-    // 8. Finally delete the organization
+    // 8. Delete tenant carriers
+    const tenantCarriers = await ctx.db
+      .query("tenantCarriers")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+    for (const tc of tenantCarriers) {
+      await ctx.db.delete(tc._id);
+    }
+
+    // 9. Delete tenant products
+    const tenantProducts = await ctx.db
+      .query("tenantProducts")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+    for (const tp of tenantProducts) {
+      await ctx.db.delete(tp._id);
+    }
+
+    // 10. Delete tenant commissions
+    const tenantComms = await ctx.db
+      .query("tenantCommissions")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+    for (const tc of tenantComms) {
+      await ctx.db.delete(tc._id);
+    }
+
+    // 11. Finally delete the organization
     await ctx.db.delete(args.organizationId);
   },
 });
@@ -729,7 +761,7 @@ export const completeOnboarding = mutation({
       onboarding: {
         ...org.onboarding,
         completedAt: Date.now(),
-        currentStep: 4, // Final step
+        currentStep: 5, // Final step
       },
       updatedAt: Date.now(),
     });

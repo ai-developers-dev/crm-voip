@@ -1,21 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useOrganization } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useOrganization, useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Doc } from "../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users } from "lucide-react";
 import { ContactListCompact } from "@/components/contacts/contact-list-compact";
 import { CommunicationsPane } from "@/components/contacts/communications-pane";
-import { ContactDetailsPlaceholder } from "@/components/contacts/contact-details-placeholder";
+import { ContactSideMenu, type PanelType } from "@/components/contacts/contact-side-menu";
+import { ContactPanelDrawer } from "@/components/contacts/contact-panel-drawer";
 import { ContactDialog } from "@/components/contacts/contact-dialog";
 
 type Contact = Doc<"contacts">;
 
 export default function ContactsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
+  const { user } = useUser();
 
   // Dialog state (for create/edit)
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,6 +25,9 @@ export default function ContactsPage() {
 
   // Selected contact for viewing communications (separate from dialog)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  // Active panel state for side menu
+  const [activePanel, setActivePanel] = useState<PanelType | null>(null);
 
   // Get internal org ID from Clerk org ID
   const org = useQuery(
@@ -36,6 +41,12 @@ export default function ContactsPage() {
     org?._id ? { organizationId: org._id } : "skip"
   );
 
+  // Get current user for panel operations
+  const currentUser = useQuery(
+    api.users.getByClerkId,
+    user?.id && org?._id ? { clerkUserId: user.id, organizationId: org._id } : "skip"
+  );
+
   // Handle selecting a contact (for viewing)
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
@@ -44,6 +55,19 @@ export default function ContactsPage() {
   const handleNewContact = () => {
     setDialogContact(null);
     setIsDialogOpen(true);
+  };
+
+  const handleEditContact = (contact: Contact) => {
+    setDialogContact(contact);
+    setIsDialogOpen(true);
+  };
+
+  const deleteContact = useMutation(api.contacts.remove);
+  const handleDeleteContact = async (contact: Contact) => {
+    await deleteContact({ contactId: contact._id });
+    if (selectedContact?._id === contact._id) {
+      setSelectedContact(null);
+    }
   };
 
   // Loading state
@@ -121,6 +145,8 @@ export default function ContactsPage() {
             selectedContactId={selectedContact?._id || null}
             onSelectContact={handleSelectContact}
             onNewContact={handleNewContact}
+            onEditContact={handleEditContact}
+            onDeleteContact={handleDeleteContact}
             isLoading={contacts === undefined}
           />
         </div>
@@ -133,9 +159,29 @@ export default function ContactsPage() {
           />
         </div>
 
-        {/* Column 3: Reserved/Placeholder */}
-        <div className="w-72 flex-shrink-0 bg-muted/30">
-          <ContactDetailsPlaceholder />
+        {/* Column 3: Panel + Icon Menu */}
+        <div className="flex flex-shrink-0">
+          {/* Panel content (expands when active) */}
+          {activePanel && selectedContact && (
+            <div className="w-80 border-r overflow-hidden">
+              <ContactPanelDrawer
+                type={activePanel}
+                contact={selectedContact}
+                organizationId={org._id}
+                userId={currentUser?._id}
+                onClose={() => setActivePanel(null)}
+              />
+            </div>
+          )}
+
+          {/* Icon menu strip (always visible, right edge) */}
+          <div className="w-14 border-l flex-shrink-0 bg-muted/30">
+            <ContactSideMenu
+              activePanel={activePanel}
+              onPanelChange={(panel) => setActivePanel(activePanel === panel ? null : panel)}
+              disabled={!selectedContact}
+            />
+          </div>
         </div>
       </div>
 

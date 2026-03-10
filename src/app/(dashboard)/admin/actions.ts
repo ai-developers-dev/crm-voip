@@ -36,6 +36,8 @@ export interface CreateTenantData {
   basePlanPrice: number;
   perUserPrice: number;
   includedUsers: number;
+  // Agency type
+  agencyTypeId?: string;
 }
 
 export async function createTenant(data: CreateTenantData) {
@@ -87,6 +89,7 @@ export async function createTenant(data: CreateTenantData) {
         includedUsers: data.includedUsers,
         billingEmail: data.ownerEmail,
       },
+      agencyTypeId: data.agencyTypeId as any,
     });
 
     console.log(`Created organization in Convex with billing info`);
@@ -177,6 +180,7 @@ export interface UpdateTenantData {
   basePlanPrice: number;
   perUserPrice: number;
   includedUsers: number;
+  agencyTypeId?: string;
 }
 
 export async function updateTenant(data: UpdateTenantData) {
@@ -225,6 +229,7 @@ export async function updateTenant(data: UpdateTenantData) {
         includedUsers: data.includedUsers,
         billingEmail: data.ownerEmail,
       },
+      agencyTypeId: data.agencyTypeId as any,
     });
 
     return {
