@@ -23,6 +23,7 @@ import { useTwilioDevice } from "@/hooks/use-twilio-device";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { useParkingStore, generateTempParkingId } from "@/lib/stores/parking-store";
+import { DailyCallLog } from "./daily-call-log";
 
 interface CallingDashboardProps {
   organizationId?: string;
@@ -376,8 +377,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               onRejectCallBySid={rejectCallBySid}
             />
 
-            {/* Main agent grid */}
-            <div className="flex-1 overflow-auto p-4">
+            {/* Main agent grid + call log */}
+            <div className="flex-1 overflow-auto p-4 space-y-4">
               <AgentGrid
                 organizationId={organizationId}
                 convexOrgId={convexOrg?._id}
@@ -397,6 +398,20 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
                 onAnswerCallBySid={answerCallBySid}
                 onRejectCallBySid={rejectCallBySid}
               />
+
+              {/* Daily Call Log */}
+              {convexOrg?._id && (
+                <div className="max-w-4xl">
+                  <h3 className="text-sm font-medium text-muted-foreground px-3 pb-2">
+                    Today&apos;s Call Log
+                  </h3>
+                  <Card>
+                    <CardContent className="p-0">
+                      <DailyCallLog organizationId={convexOrg._id} />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </div>
 

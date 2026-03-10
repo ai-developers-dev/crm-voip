@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { Doc } from "./_generated/dataModel";
 
 /**
  * DEBUG: Get recent call history records to diagnose stats issues
@@ -260,6 +261,63 @@ export const getUsersWithStats = query({
           totalCalls: stats.inbound + stats.outbound,
           talkTimeSeconds: stats.talkTime,
         },
+      };
+    });
+  },
+});
+
+/**
+ * Get today's call log for an organization with user and contact details.
+ * Returns individual call records sorted by most recent first.
+ */
+export const getDailyCallLog = query({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const todayStart = getTodayStartTimestamp();
+
+    const calls = await ctx.db
+      .query("callHistory")
+      .withIndex("by_organization_date", (q) =>
+        q.eq("organizationId", args.organizationId).gte("startedAt", todayStart)
+      )
+      .order("desc")
+      .collect();
+
+    // Batch-fetch users and contacts
+    const userIds = [...new Set(calls.map((c) => c.handledByUserId).filter(Boolean))];
+    const contactIds = [...new Set(calls.map((c) => c.contactId).filter(Boolean))];
+
+    const [users, contacts] = await Promise.all([
+      Promise.all(userIds.map((id) => ctx.db.get(id!))),
+      Promise.all(contactIds.map((id) => ctx.db.get(id!))),
+    ]);
+
+    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u!]));
+    const contactMap = new Map(contacts.filter(Boolean).map((c) => [c!._id, c!]));
+
+    return calls.map((call) => {
+      const handler = call.handledByUserId ? userMap.get(call.handledByUserId) : null;
+      const contact = call.contactId ? contactMap.get(call.contactId) : null;
+
+      return {
+        _id: call._id,
+        twilioCallSid: call.twilioCallSid,
+        direction: call.direction,
+        outcome: call.outcome,
+        from: call.from,
+        fromName: call.fromName,
+        to: call.to,
+        toName: call.toName,
+        startedAt: call.startedAt,
+        endedAt: call.endedAt,
+        duration: call.duration,
+        talkTime: call.talkTime,
+        handledByName: handler?.name ?? null,
+        handledByUserId: call.handledByUserId ?? null,
+        contactId: call.contactId ?? null,
+        contactName: contact
+          ? `${contact.firstName} ${contact.lastName || ""}`.trim()
+          : null,
       };
     });
   },
