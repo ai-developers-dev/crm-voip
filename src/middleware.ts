@@ -5,7 +5,6 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/twilio/(.*)", // Twilio webhooks must be public
-  "/api/clerk-webhook", // Clerk webhooks must be public
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

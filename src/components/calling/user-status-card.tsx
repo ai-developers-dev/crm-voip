@@ -4,6 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
+import { statusColors } from "@/lib/style-constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,38 +48,6 @@ interface UserStatusCardProps {
   onRejectCallBySid?: (callSid: string) => void;
 }
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string; dotColor: string }> = {
-  available: {
-    label: "Available",
-    color: "text-purple-600",
-    bgColor: "bg-purple-100 dark:bg-purple-900/30",
-    dotColor: "bg-purple-500",
-  },
-  busy: {
-    label: "Busy",
-    color: "text-yellow-600",
-    bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
-    dotColor: "bg-yellow-500",
-  },
-  on_call: {
-    label: "On Call",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-    dotColor: "bg-primary",
-  },
-  on_break: {
-    label: "On Break",
-    color: "text-orange-600",
-    bgColor: "bg-orange-100 dark:bg-orange-900/30",
-    dotColor: "bg-orange-500",
-  },
-  offline: {
-    label: "Offline",
-    color: "text-gray-500",
-    bgColor: "bg-gray-100 dark:bg-gray-900/30",
-    dotColor: "bg-gray-400",
-  },
-};
 
 export function UserStatusCard({
   user,
@@ -230,7 +199,7 @@ export function UserStatusCard({
     return `${mins}m`;
   };
 
-  const status = statusConfig[user.status] || statusConfig.offline;
+  const status = statusColors[user.status as keyof typeof statusColors] || statusColors.offline;
   const hasActiveCalls = activeCalls.length > 0 || twilioCallConnected || connectedCalls.length > 0;
   const totalCallCount = isMultiCallMode ? connectedCalls.length : (twilioCallConnected ? 1 : 0);
 
@@ -252,12 +221,12 @@ export function UserStatusCard({
         hasActiveCalls && "border-primary border-2"
       )}
     >
-      <CardContent className="p-3">
+      <CardContent className="p-4">
         {/* Main horizontal bar layout */}
         <div className="flex items-center gap-3">
           {/* Avatar with status dot */}
           <div className="relative flex-shrink-0">
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-14 w-14 ring-2 ring-primary/20 shadow-md">
               <AvatarImage src={user.avatarUrl || undefined} />
               <AvatarFallback className={cn("text-sm", status.bgColor)}>
                 {user.name
@@ -282,7 +251,7 @@ export function UserStatusCard({
             <div className="flex items-center gap-2">
               <Badge
                 variant="secondary"
-                className={cn("text-xs px-1.5 py-0", status.bgColor, status.color)}
+                className="text-xs px-1.5 py-0"
               >
                 {status.label}
               </Badge>
@@ -296,7 +265,7 @@ export function UserStatusCard({
           </div>
 
           {/* Daily metrics */}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1" title="Inbound calls accepted today">
               <PhoneIncoming className="h-4 w-4 text-purple-600" />
               <span className="font-medium tabular-nums">
@@ -336,7 +305,7 @@ export function UserStatusCard({
                   <Phone className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-medium text-purple-900 dark:text-purple-100">
+                  <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
                     {targetedRinging.callerName || targetedRinging.callerNumber}
                   </p>
                   <p className="text-xs text-purple-700 dark:text-purple-300">

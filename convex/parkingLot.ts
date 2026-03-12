@@ -86,8 +86,6 @@ export const clearByConference = mutation({
     conferenceName: v.string(),
   },
   handler: async (ctx, args) => {
-    console.log(`🅿️ clearByConference called for: ${args.conferenceName}`);
-
     // Find parking slot by conference name
     const slots = await ctx.db
       .query("parkingLots")
@@ -95,20 +93,16 @@ export const clearByConference = mutation({
       .collect();
 
     if (slots.length === 0) {
-      console.log(`🅿️ No parking slot found for conference: ${args.conferenceName}`);
       return { success: false, reason: "not_found" };
     }
 
     const slot = slots[0];
-    console.log(`🅿️ Found parking slot ${slot.slotNumber} for conference: ${args.conferenceName}`);
 
     // Get the active call if exists
     const activeCall = slot.activeCallId ? await ctx.db.get(slot.activeCallId) : null;
 
     // Move call to history if it exists
     if (activeCall) {
-      console.log(`🅿️ Moving call ${activeCall._id} to history`);
-
       const talkTimeSeconds = activeCall.answeredAt
         ? Math.floor((Date.now() - activeCall.answeredAt) / 1000)
         : 0;
@@ -146,7 +140,6 @@ export const clearByConference = mutation({
       callerName: undefined,
     });
 
-    console.log(`✅ Parking slot ${slot.slotNumber} cleared`);
     return { success: true, slotNumber: slot.slotNumber };
   },
 });

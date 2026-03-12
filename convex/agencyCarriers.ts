@@ -22,12 +22,16 @@ export const create = mutation({
   args: {
     agencyTypeId: v.id("agencyTypes"),
     name: v.string(),
+    websiteUrl: v.optional(v.string()),
+    portalUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("agencyCarriers", {
       agencyTypeId: args.agencyTypeId,
       name: args.name,
+      ...(args.websiteUrl && { websiteUrl: args.websiteUrl }),
+      ...(args.portalUrl && { portalUrl: args.portalUrl }),
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -39,6 +43,8 @@ export const update = mutation({
   args: {
     id: v.id("agencyCarriers"),
     name: v.optional(v.string()),
+    websiteUrl: v.optional(v.string()),
+    portalUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
@@ -46,6 +52,8 @@ export const update = mutation({
 
     await ctx.db.patch(args.id, {
       ...(args.name !== undefined && { name: args.name }),
+      ...(args.websiteUrl !== undefined && { websiteUrl: args.websiteUrl || undefined }),
+      ...(args.portalUrl !== undefined && { portalUrl: args.portalUrl || undefined }),
       updatedAt: Date.now(),
     });
   },

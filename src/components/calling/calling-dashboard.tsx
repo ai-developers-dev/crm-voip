@@ -103,7 +103,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
             <Phone className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-medium">No Organization Selected</h3>
+            <h3 className="mt-4 text-sm font-medium">No Organization Selected</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Select an organization to view the calling dashboard.
             </p>
@@ -351,7 +351,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             />
 
             {/* Main agent grid + call log */}
-            <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="flex-1 overflow-auto p-6 space-y-6">
               <AgentGrid
                 organizationId={organizationId}
                 convexOrgId={convexOrg?._id}
@@ -599,7 +599,7 @@ function AgentGrid({
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
             <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-medium">No Agents Yet</h3>
+            <h3 className="mt-4 text-sm font-medium">No Agents Yet</h3>
             <p className="mt-2 text-sm text-muted-foreground">
               Go to Settings → Users to add team members.
             </p>
@@ -624,7 +624,7 @@ function AgentGrid({
   }
 
   return (
-    <div className="flex flex-col gap-2 max-w-4xl">
+    <div className="flex flex-col gap-3 max-w-4xl">
       {usersWithMetrics.map((user) => {
         // Pass Twilio call only to the current user's card
         const isCurrentUser = currentUserId && user._id === currentUserId;

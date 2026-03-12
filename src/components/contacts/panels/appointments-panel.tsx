@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppointmentFormDialog } from "./appointment-form-dialog";
+import { appointmentStatusColors } from "@/lib/style-constants";
 
 interface AppointmentsPanelProps {
   contact: Doc<"contacts">;
@@ -31,12 +32,6 @@ const typeLabels: Record<string, string> = {
   other: "Other",
 };
 
-const statusColors: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-  cancelled: "bg-red-100 text-red-700",
-  no_show: "bg-yellow-100 text-yellow-700",
-};
 
 export function AppointmentsPanel({ contact, organizationId, userId, onClose }: AppointmentsPanelProps) {
   const [search, setSearch] = useState("");
@@ -53,7 +48,7 @@ export function AppointmentsPanel({ contact, organizationId, userId, onClose }: 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <h3 className="font-semibold">Appointments</h3>
+        <h3 className="text-sm font-semibold">Appointments</h3>
         <div className="flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={() => { setEditingAppt(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4" />
@@ -111,14 +106,14 @@ export function AppointmentsPanel({ contact, organizationId, userId, onClose }: 
                 <p className="text-xs text-muted-foreground line-clamp-2">{appt.description}</p>
               )}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${statusColors[appt.status]}`}>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
                   {appt.status.replace("_", " ")}
                 </Badge>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                <Badge variant="outline" className="text-xs px-1.5 py-0">
                   {typeLabels[appt.type]}
                 </Badge>
                 {appt.location && (
-                  <span className="text-[10px] text-muted-foreground">{appt.location}</span>
+                  <span className="text-xs text-muted-foreground">{appt.location}</span>
                 )}
               </div>
             </div>

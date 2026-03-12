@@ -306,8 +306,8 @@ export function ActiveCallCard({
               />
             </div>
             <div>
-              <p className="font-medium">{call.fromName || call.from}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm font-medium">{call.fromName || call.from}</p>
+              <p className="text-xs text-muted-foreground">
                 {getStatusDisplay()} {"\u2022"} {formatDuration(duration)}
               </p>
             </div>

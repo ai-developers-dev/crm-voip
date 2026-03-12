@@ -47,6 +47,14 @@ export default function ContactsPage() {
     user?.id && org?._id ? { clerkUserId: user.id, organizationId: org._id } : "skip"
   );
 
+  // Check if platform admin
+  const isPlatformAdmin = useQuery(
+    api.platformUsers.isSuperAdmin,
+    user?.id ? { clerkUserId: user.id } : "skip"
+  );
+
+  const isAdmin = isPlatformAdmin || currentUser?.role === "tenant_admin";
+
   // Handle selecting a contact (for viewing)
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
@@ -73,7 +81,7 @@ export default function ContactsPage() {
   // Loading state
   if (!orgLoaded) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -82,7 +90,7 @@ export default function ContactsPage() {
   // No organization selected
   if (!organization) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -106,7 +114,7 @@ export default function ContactsPage() {
   // Loading organization data
   if (org === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -115,7 +123,7 @@ export default function ContactsPage() {
   // Organization not found in Convex
   if (org === null) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Organization Not Found</CardTitle>
@@ -129,10 +137,10 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Header */}
       <div className="border-b px-6 py-4">
-        <h1 className="text-2xl font-semibold">Contacts</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Contacts</h1>
         <p className="text-muted-foreground">Manage your organization&apos;s contacts</p>
       </div>
 
@@ -169,6 +177,7 @@ export default function ContactsPage() {
                 contact={selectedContact}
                 organizationId={org._id}
                 userId={currentUser?._id}
+                isAdmin={!!isAdmin}
                 onClose={() => setActivePanel(null)}
               />
             </div>

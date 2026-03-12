@@ -30,11 +30,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ChevronRight, Users, Loader2, ArrowLeft, Eye, Mail, Shield, Phone,
+  Users, Loader2, ArrowLeft, Eye, Mail, Shield, Phone,
   Plus, MoreHorizontal, Pencil, Trash2, UserPlus, AlertCircle, CheckCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { ImageUpload } from "@/components/settings/image-upload";
 
 export default function TenantUsersSettingsPage() {
   const params = useParams();
@@ -64,6 +65,9 @@ export default function TenantUsersSettingsPage() {
   const updateUser = useMutation(api.users.updateUser);
   const deleteUser = useMutation(api.users.deleteUser);
   const toggleStatus = useMutation(api.users.toggleStatus);
+  const generateAvatarUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
+  const saveUserAvatar = useMutation(api.users.saveUserAvatar);
+  const deleteUserAvatar = useMutation(api.users.deleteUserAvatar);
 
   // Dialog state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -78,7 +82,29 @@ export default function TenantUsersSettingsPage() {
     email: "",
     role: "agent" as "tenant_admin" | "supervisor" | "agent",
     extension: "",
+    agentCommissionSplit: "",
+    agentRenewalSplit: "",
   });
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!editingUser || !tenant?._id) return;
+    const uploadUrl = await generateAvatarUploadUrl({ organizationId: tenant._id });
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!response.ok) throw new Error("Upload failed");
+    const { storageId } = await response.json();
+    await saveUserAvatar({ userId: editingUser._id, storageId });
+    setEditingUser((prev: any) => prev ? { ...prev, avatarUrl: URL.createObjectURL(file) } : null);
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!editingUser) return;
+    await deleteUserAvatar({ userId: editingUser._id });
+    setEditingUser((prev: any) => prev ? { ...prev, avatarUrl: null } : null);
+  };
 
   const resetForm = () => {
     setFormData({
@@ -86,6 +112,8 @@ export default function TenantUsersSettingsPage() {
       email: "",
       role: "agent",
       extension: "",
+      agentCommissionSplit: "",
+      agentRenewalSplit: "",
     });
     setError(null);
     setSuccessMessage(null);
@@ -97,6 +125,8 @@ export default function TenantUsersSettingsPage() {
       email: u.email || "",
       role: u.role,
       extension: u.extension || "",
+      agentCommissionSplit: u.agentCommissionSplit != null ? String(u.agentCommissionSplit) : "",
+      agentRenewalSplit: u.agentRenewalSplit != null ? String(u.agentRenewalSplit) : "",
     });
     setEditingUser(u);
   };
@@ -150,6 +180,8 @@ export default function TenantUsersSettingsPage() {
         email: formData.email,
         role: formData.role,
         extension: formData.extension || undefined,
+        agentCommissionSplit: formData.agentCommissionSplit ? parseFloat(formData.agentCommissionSplit) : undefined,
+        agentRenewalSplit: formData.agentRenewalSplit ? parseFloat(formData.agentRenewalSplit) : undefined,
       });
       setEditingUser(null);
       resetForm();
@@ -190,7 +222,7 @@ export default function TenantUsersSettingsPage() {
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -199,7 +231,7 @@ export default function TenantUsersSettingsPage() {
   // Only platform users can access this page
   if (!isPlatformUser) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
@@ -219,7 +251,7 @@ export default function TenantUsersSettingsPage() {
 
   if (tenant === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -227,7 +259,7 @@ export default function TenantUsersSettingsPage() {
 
   if (tenant === null) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Tenant Not Found</CardTitle>
@@ -275,7 +307,7 @@ export default function TenantUsersSettingsPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
       {/* Impersonation Banner */}
       <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
         <Eye className="h-4 w-4 text-amber-600" />
@@ -295,33 +327,16 @@ export default function TenantUsersSettingsPage() {
       </Alert>
 
       <div className="p-6 max-w-4xl mx-auto space-y-6 flex-1">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/admin" className="hover:text-foreground transition-colors">
-            Admin
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link href={`/admin/tenants/${tenant._id}`} className="hover:text-foreground transition-colors">
-            {tenant.name}
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link href={`/admin/tenants/${tenant._id}/settings`} className="hover:text-foreground transition-colors">
-            Settings
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground font-medium">Users</span>
-        </nav>
-
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Team Members</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Team Members</h1>
             <p className="text-muted-foreground">
               Manage users for {tenant.name}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="text-base px-3 py-1">
+            <Badge variant="secondary" className="text-sm px-3 py-1">
               {users?.length ?? 0} users
             </Badge>
             <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
@@ -400,7 +415,6 @@ export default function TenantUsersSettingsPage() {
                       <TableCell>
                         <Badge
                           variant={u.status !== "offline" ? "default" : "secondary"}
-                          className={u.status !== "offline" ? "bg-green-600" : ""}
                         >
                           {u.status === "offline" ? "Offline" : u.status === "available" ? "Available" : u.status === "busy" ? "Busy" : "Away"}
                         </Badge>
@@ -464,24 +478,24 @@ export default function TenantUsersSettingsPage() {
         {users && users.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Role Distribution</CardTitle>
+              <CardTitle className="text-sm">Role Distribution</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <p className="text-2xl font-bold text-primary">
+                  <p className="text-lg font-bold text-primary">
                     {users.filter(u => u.role === "tenant_admin").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Admins</p>
                 </div>
                 <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-lg font-bold text-blue-600">
                     {users.filter(u => u.role === "supervisor").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Supervisors</p>
                 </div>
                 <div className="text-center p-4 bg-muted/30 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-lg font-bold text-green-600">
                     {users.filter(u => u.role === "agent").length}
                   </p>
                   <p className="text-sm text-muted-foreground">Agents</p>
@@ -552,6 +566,34 @@ export default function TenantUsersSettingsPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, extension: e.target.value }))}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="commission-split">Agent Commission %</Label>
+                <Input
+                  id="commission-split"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  placeholder="e.g. 50"
+                  value={formData.agentCommissionSplit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="renewal-split">Agent Renewal %</Label>
+                <Input
+                  id="renewal-split"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  placeholder="e.g. 50"
+                  value={formData.agentRenewalSplit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -582,6 +624,19 @@ export default function TenantUsersSettingsPage() {
               </Alert>
             )}
             <div className="space-y-4 py-4">
+              {/* Profile Photo */}
+              <div className="space-y-2">
+                <Label>Profile Photo</Label>
+                <ImageUpload
+                  currentImageUrl={editingUser?.avatarUrl}
+                  onUpload={handleAvatarUpload}
+                  onDelete={handleAvatarDelete}
+                  label="Profile Photo"
+                  description="Upload a profile photo (PNG, JPG). Shown in the calling dashboard and user menu."
+                  previewShape="circle"
+                  previewSize="h-16 w-16"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Name</Label>
                 <Input
@@ -621,6 +676,34 @@ export default function TenantUsersSettingsPage() {
                   value={formData.extension}
                   onChange={(e) => setFormData(prev => ({ ...prev, extension: e.target.value }))}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-commission-split">Agent Commission %</Label>
+                <Input
+                  id="edit-commission-split"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  placeholder="e.g. 50"
+                  value={formData.agentCommissionSplit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-renewal-split">Agent Renewal %</Label>
+                <Input
+                  id="edit-renewal-split"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  placeholder="e.g. 50"
+                  value={formData.agentRenewalSplit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
               </div>
             </div>
             <DialogFooter>

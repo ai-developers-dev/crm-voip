@@ -98,16 +98,16 @@ export default function StatsPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Call Statistics</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Call Statistics</h1>
         <p className="text-muted-foreground">
           Today&apos;s call activity for {convexOrg.name}
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Calls</CardTitle>
@@ -115,6 +115,7 @@ export default function StatsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalCalls}</div>
+            <p className="text-xs text-muted-foreground">calls today</p>
           </CardContent>
         </Card>
 
@@ -127,6 +128,7 @@ export default function StatsPage() {
             <div className="text-2xl font-bold text-green-600">
               {stats.inboundAnswered}
             </div>
+            <p className="text-xs text-muted-foreground">answered today</p>
           </CardContent>
         </Card>
 
@@ -139,6 +141,7 @@ export default function StatsPage() {
             <div className="text-2xl font-bold text-red-600">
               {stats.inboundMissed}
             </div>
+            <p className="text-xs text-muted-foreground">missed today</p>
           </CardContent>
         </Card>
 
@@ -151,9 +154,13 @@ export default function StatsPage() {
             <div className="text-2xl font-bold text-blue-600">
               {stats.outbound}
             </div>
+            <p className="text-xs text-muted-foreground">outbound today</p>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Talk Time Card */}
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Talk Time</CardTitle>
@@ -163,6 +170,7 @@ export default function StatsPage() {
             <div className="text-2xl font-bold">
               {formatTalkTime(stats.totalTalkTime)}
             </div>
+            <p className="text-xs text-muted-foreground">total duration today</p>
           </CardContent>
         </Card>
       </div>
@@ -245,22 +253,8 @@ export default function StatsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          user.status === "available"
-                            ? "default"
-                            : user.status === "on_call"
-                            ? "secondary"
-                            : "outline"
-                        }
-                        className={
-                          user.status === "available"
-                            ? "bg-green-100 text-green-700"
-                            : user.status === "on_call"
-                            ? "bg-blue-100 text-blue-700"
-                            : ""
-                        }
-                      >
+                      <Badge variant="default">
+
                         {user.status.replace("_", " ")}
                       </Badge>
                     </TableCell>

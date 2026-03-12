@@ -229,7 +229,6 @@ export const receiveMessage = mutation({
       .first();
 
     if (!phoneConfig) {
-      console.error(`Inbound SMS to unconfigured number: ${args.to}`);
       return { success: false, reason: "phone_not_configured" };
     }
 
@@ -335,7 +334,6 @@ export const updateStatus = mutation({
       .first();
 
     if (!message) {
-      console.log(`Message not found for status update: ${args.twilioMessageSid}`);
       return { success: false, reason: "message_not_found" };
     }
 

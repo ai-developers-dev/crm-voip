@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, ArrowDownLeft, ArrowUpRight, MessageCircle, Mail, MailOpen } from "lucide-react";
 import { ContactActionBar } from "./contact-action-bar";
 import { ComposeBox } from "./compose-box";
+import { commTypeColors } from "@/lib/style-constants";
 
 type Contact = Doc<"contacts">;
 
@@ -68,22 +69,25 @@ function getDateGroup(timestamp: number): string {
 function CommunicationIcon({ item }: { item: CommunicationItem }) {
   if (item.type === "call") {
     if (item.outcome === "missed") {
+      const colors = commTypeColors["call-missed"];
       return (
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
-          <PhoneMissed className="h-4 w-4 text-red-500" />
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full ${colors.bg}`}>
+          <PhoneMissed className={`h-4 w-4 ${colors.icon}`} />
         </div>
       );
     }
     if (item.direction === "inbound") {
+      const colors = commTypeColors["call-inbound"];
       return (
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-          <PhoneIncoming className="h-4 w-4 text-green-600" />
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full ${colors.bg}`}>
+          <PhoneIncoming className={`h-4 w-4 ${colors.icon}`} />
         </div>
       );
     }
+    const colors = commTypeColors["call-outbound"];
     return (
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-        <PhoneOutgoing className="h-4 w-4 text-blue-600" />
+      <div className={`flex h-8 w-8 items-center justify-center rounded-full ${colors.bg}`}>
+        <PhoneOutgoing className={`h-4 w-4 ${colors.icon}`} />
       </div>
     );
   }
@@ -91,32 +95,36 @@ function CommunicationIcon({ item }: { item: CommunicationItem }) {
   // Email
   if (item.type === "email") {
     if (item.direction === "inbound") {
+      const colors = commTypeColors["email-inbound"];
       return (
-        <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
-          <MailOpen className="h-4 w-4 text-amber-600" />
+        <div className={`relative flex h-8 w-8 items-center justify-center rounded-full ${colors.bg}`}>
+          <MailOpen className={`h-4 w-4 ${colors.icon}`} />
         </div>
       );
     }
+    const colors = commTypeColors["email-outbound"];
     return (
-      <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-teal-100">
-        <Mail className="h-4 w-4 text-teal-600" />
+      <div className={`relative flex h-8 w-8 items-center justify-center rounded-full ${colors.bg}`}>
+        <Mail className={`h-4 w-4 ${colors.icon}`} />
       </div>
     );
   }
 
   // SMS
   if (item.direction === "inbound") {
+    const colors = commTypeColors["sms-inbound"];
     return (
-      <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
-        <MessageSquare className="h-4 w-4 text-purple-600" />
-        <ArrowDownLeft className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-purple-600" />
+      <div className={`relative flex h-8 w-8 items-center justify-center rounded-full ${colors.bg}`}>
+        <MessageSquare className={`h-4 w-4 ${colors.icon}`} />
+        <ArrowDownLeft className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 ${colors.icon}`} />
       </div>
     );
   }
+  const colors = commTypeColors["sms-outbound"];
   return (
-    <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
-      <MessageSquare className="h-4 w-4 text-indigo-600" />
-      <ArrowUpRight className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-indigo-600" />
+    <div className={`relative flex h-8 w-8 items-center justify-center rounded-full ${colors.bg}`}>
+      <MessageSquare className={`h-4 w-4 ${colors.icon}`} />
+      <ArrowUpRight className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 ${colors.icon}`} />
     </div>
   );
 }
@@ -241,7 +249,7 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         <div className="rounded-full bg-muted p-4 mb-4">
           <MessageCircle className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-medium">Select a Contact</h3>
+        <h3 className="text-sm font-medium">Select a Contact</h3>
         <p className="text-muted-foreground mt-1 max-w-sm">
           Choose a contact from the list to view their communication history including calls and messages.
         </p>
@@ -266,7 +274,7 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
       <div className="border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Communications</h2>
+            <h2 className="text-sm font-semibold">Communications</h2>
             <p className="text-sm text-muted-foreground">
               {contact.firstName} {contact.lastName}
             </p>

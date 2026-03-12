@@ -200,7 +200,6 @@ export const addToOrganization = internalMutation({
       .first();
 
     if (!org) {
-      console.error(`Organization not found: ${args.clerkOrgId}`);
       return null;
     }
 
@@ -322,6 +321,8 @@ export const updateUser = mutation({
     )),
     extension: v.optional(v.string()),
     directNumber: v.optional(v.string()),
+    agentCommissionSplit: v.optional(v.number()),
+    agentRenewalSplit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { userId, ...updates } = args;
@@ -461,32 +462,66 @@ export const createUser = mutation({
   },
 });
 
-// Mutation to increment call count (inbound or outbound)
-// Stores counts directly on user for real-time display
-export const incrementCallCount = mutation({
+// Generate a signed upload URL for user avatar
+export const generateAvatarUploadUrl = mutation({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) {
+      throw new Error("Organization not found");
+    }
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Save uploaded avatar to a user record
+export const saveUserAvatar = mutation({
   args: {
     userId: v.id("users"),
-    direction: v.union(v.literal("inbound"), v.literal("outbound")),
+    storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
 
-    const today = new Date().toISOString().split("T")[0];
-    const isNewDay = user.lastCallCountReset !== today;
+    // Delete old avatar if it exists
+    if (user.avatarStorageId) {
+      await ctx.storage.delete(user.avatarStorageId);
+    }
 
-    // Reset counts if it's a new day
-    const currentInbound = isNewDay ? 0 : (user.todayInboundCalls || 0);
-    const currentOutbound = isNewDay ? 0 : (user.todayOutboundCalls || 0);
+    const url = await ctx.storage.getUrl(args.storageId);
+    if (!url) {
+      throw new Error("Failed to get URL for uploaded file");
+    }
 
     await ctx.db.patch(args.userId, {
-      todayInboundCalls: args.direction === "inbound" ? currentInbound + 1 : currentInbound,
-      todayOutboundCalls: args.direction === "outbound" ? currentOutbound + 1 : currentOutbound,
-      lastCallCountReset: today,
+      avatarStorageId: args.storageId,
+      avatarUrl: url,
       updatedAt: Date.now(),
     });
 
-    console.log(`📞 Incremented ${args.direction} call count for user ${args.userId}`);
+    return { success: true, url };
+  },
+});
+
+// Delete a user's avatar from storage
+export const deleteUserAvatar = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    if (user.avatarStorageId) {
+      await ctx.storage.delete(user.avatarStorageId);
+    }
+
+    await ctx.db.patch(args.userId, {
+      avatarStorageId: undefined,
+      avatarUrl: undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
   },
 });
 

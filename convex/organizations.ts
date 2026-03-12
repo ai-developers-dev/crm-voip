@@ -542,7 +542,32 @@ export const deleteOrganization = mutation({
       await ctx.db.delete(contact._id);
     }
 
-    // 8. Delete tenant carriers
+    // 8. Delete sales and sale line items
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+    for (const sale of sales) {
+      const saleItems = await ctx.db
+        .query("saleLineItems")
+        .withIndex("by_sale", (q) => q.eq("saleId", sale._id))
+        .collect();
+      for (const item of saleItems) {
+        await ctx.db.delete(item._id);
+      }
+      await ctx.db.delete(sale._id);
+    }
+
+    // 8b. Delete sale types
+    const saleTypesDelete = await ctx.db
+      .query("saleTypes")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+    for (const st of saleTypesDelete) {
+      await ctx.db.delete(st._id);
+    }
+
+    // 9. Delete tenant carriers
     const tenantCarriers = await ctx.db
       .query("tenantCarriers")
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
@@ -569,7 +594,16 @@ export const deleteOrganization = mutation({
       await ctx.db.delete(tc._id);
     }
 
-    // 11. Finally delete the organization
+    // 11. Delete sales goals
+    const salesGoals = await ctx.db
+      .query("salesGoals")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+    for (const goal of salesGoals) {
+      await ctx.db.delete(goal._id);
+    }
+
+    // 12. Finally delete the organization
     await ctx.db.delete(args.organizationId);
   },
 });
@@ -588,14 +622,11 @@ export const deleteFromClerk = internalMutation({
       .first();
 
     if (!org) {
-      // Organization may have already been deleted via the admin dashboard
-      console.log(`Organization with clerkOrgId ${args.clerkOrgId} not found, may already be deleted`);
       return;
     }
 
     // Prevent deleting platform org via webhook
     if (org.isPlatformOrg) {
-      console.error("Attempted to delete platform organization via webhook - blocked");
       return;
     }
 
@@ -664,10 +695,42 @@ export const deleteFromClerk = internalMutation({
       await ctx.db.delete(contact._id);
     }
 
-    // 8. Finally delete the organization
-    await ctx.db.delete(organizationId);
+    // 8. Delete sales and sale line items
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_organization", (q) => q.eq("organizationId", organizationId))
+      .collect();
+    for (const sale of sales) {
+      const saleItems = await ctx.db
+        .query("saleLineItems")
+        .withIndex("by_sale", (q) => q.eq("saleId", sale._id))
+        .collect();
+      for (const item of saleItems) {
+        await ctx.db.delete(item._id);
+      }
+      await ctx.db.delete(sale._id);
+    }
 
-    console.log(`Organization ${org.name} (${args.clerkOrgId}) deleted via Clerk webhook`);
+    // 8b. Delete sale types
+    const saleTypesCleanup = await ctx.db
+      .query("saleTypes")
+      .withIndex("by_organization", (q) => q.eq("organizationId", organizationId))
+      .collect();
+    for (const st of saleTypesCleanup) {
+      await ctx.db.delete(st._id);
+    }
+
+    // 9. Delete sales goals
+    const salesGoals = await ctx.db
+      .query("salesGoals")
+      .withIndex("by_organization", (q) => q.eq("organizationId", organizationId))
+      .collect();
+    for (const goal of salesGoals) {
+      await ctx.db.delete(goal._id);
+    }
+
+    // 10. Finally delete the organization
+    await ctx.db.delete(organizationId);
   },
 });
 

@@ -20,17 +20,27 @@ import {
 } from "@/components/ui/dialog";
 import {
   Phone, Users, ArrowRight, CheckCircle, XCircle, Loader2,
-  ChevronRight, Building2, Pencil, AlertCircle, Mail, Unplug
+  Building2, Pencil, AlertCircle, Mail, Unplug, Briefcase,
+  Music, Settings, ImageIcon
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
+import { cn } from "@/lib/utils";
+import { Id } from "../../../../convex/_generated/dataModel";
 import { updateOwnOrganization, UpdateOwnOrganizationData } from "./actions";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
+import { SalesGoalsManager } from "@/components/settings/sales-goals-manager";
+import { ImageUpload } from "@/components/settings/image-upload";
+import { SettingsRow } from "@/components/settings/settings-row";
 
 export default function SettingsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
   const { user: clerkUser } = useUser();
+
+  // Expandable row state
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const toggleRow = (key: string) => setExpandedRow((prev) => (prev === key ? null : key));
 
   // Edit dialog state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -82,6 +92,33 @@ export default function SettingsPage() {
   const emailAccounts = isAdmin ? allEmailAccounts : myEmailAccounts;
   const disconnectEmail = useMutation(api.emailAccounts.disconnect);
   const [isConnectingEmail, setIsConnectingEmail] = useState(false);
+
+  // Logo upload
+  const logoUrl = useQuery(
+    api.logoUpload.getLogoUrl,
+    convexOrg?._id ? { organizationId: convexOrg._id } : "skip"
+  );
+  const generateLogoUploadUrl = useMutation(api.logoUpload.generateUploadUrl);
+  const saveLogo = useMutation(api.logoUpload.saveLogo);
+  const deleteLogo = useMutation(api.logoUpload.deleteLogo);
+
+  const handleLogoUpload = async (file: File) => {
+    if (!convexOrg?._id) return;
+    const uploadUrl = await generateLogoUploadUrl({ organizationId: convexOrg._id });
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!response.ok) throw new Error("Upload failed");
+    const { storageId } = await response.json();
+    await saveLogo({ organizationId: convexOrg._id, storageId });
+  };
+
+  const handleLogoDelete = async () => {
+    if (!convexOrg?._id) return;
+    await deleteLogo({ organizationId: convexOrg._id });
+  };
 
   const searchParams = useSearchParams();
   const emailConnected = searchParams.get("email_connected");
@@ -156,7 +193,7 @@ export default function SettingsPage() {
 
   if (!orgLoaded || convexOrg === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -164,7 +201,7 @@ export default function SettingsPage() {
 
   if (!organization) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>No Organization Selected</CardTitle>
@@ -181,18 +218,9 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/dashboard" className="hover:text-foreground transition-colors">
-          Dashboard
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground font-medium">Settings</span>
-      </nav>
-
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Settings - {organization.name}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Settings - {organization.name}</h1>
         <p className="text-muted-foreground">
           Manage your organization settings
         </p>
@@ -216,223 +244,186 @@ export default function SettingsPage() {
         </Alert>
       )}
 
-      {/* Settings Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Twilio Settings */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
-                  <Phone className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Twilio</CardTitle>
-                  <CardDescription>Voice & Phone Settings</CardDescription>
-                </div>
-              </div>
-              {twilioConfigured ? (
-                <Badge variant="default" className="gap-1 bg-green-600">
-                  <CheckCircle className="h-3 w-3" />
-                  Configured
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="gap-1">
-                  <XCircle className="h-3 w-3" />
-                  Not Set Up
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Configure your Twilio credentials to enable voice calling features.
-            </p>
-            <Link href="/settings/twilio">
-              <Button variant="outline" className="w-full">
-                Configure Twilio
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {/* Settings Rows */}
+      <div className="space-y-2">
+        {/* Twilio */}
+        <SettingsRow
+          icon={<Phone className="h-4 w-4 text-red-600" />}
+          label="Twilio"
+          summary={twilioConfigured ? "Configured" : "Not Set Up"}
+          badge={twilioConfigured
+            ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Configured</Badge>
+            : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />Not Set Up</Badge>
+          }
+          isExpanded={expandedRow === "twilio"}
+          onToggle={() => toggleRow("twilio")}
+        >
+          <p className="text-sm text-muted-foreground mb-3">
+            Configure your Twilio credentials to enable voice calling features.
+          </p>
+          <Link href="/settings/twilio">
+            <Button variant="outline" size="sm">
+              Configure Twilio
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </Link>
+        </SettingsRow>
 
-        {/* User Management */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Users</CardTitle>
-                  <CardDescription>Team Management</CardDescription>
-                </div>
-              </div>
-              <Badge variant="secondary">
-                {users?.length ?? 0} users
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Manage your team members, invite new users, and assign roles.
-            </p>
-            <Link href="/settings/users">
-              <Button variant="outline" className="w-full">
-                Manage Users
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* Users */}
+        <SettingsRow
+          icon={<Users className="h-4 w-4 text-blue-600" />}
+          label="Users"
+          summary={`${users?.length ?? 0} users`}
+          badge={<Badge variant="secondary">{users?.length ?? 0} users</Badge>}
+          isExpanded={expandedRow === "users"}
+          onToggle={() => toggleRow("users")}
+        >
+          <p className="text-sm text-muted-foreground mb-3">
+            Manage your team members, invite new users, and assign roles.
+          </p>
+          <Link href="/settings/users">
+            <Button variant="outline" size="sm">
+              Manage Users
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </Link>
+        </SettingsRow>
 
-        {/* Email Settings */}
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                  <Mail className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Email</CardTitle>
-                  <CardDescription>Send & Receive Email</CardDescription>
-                </div>
-              </div>
-              {emailAccounts && emailAccounts.some((a) => a.status === "active") ? (
-                <Badge variant="default" className="gap-1 bg-green-600">
-                  <CheckCircle className="h-3 w-3" />
-                  Connected
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="gap-1">
-                  <XCircle className="h-3 w-3" />
-                  Not Set Up
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {emailAccounts && emailAccounts.filter((a) => a.status === "active").length > 0 ? (
-              <div className="space-y-3">
-                {emailAccounts
-                  .filter((a) => a.status === "active")
-                  .map((account) => (
-                    <div
-                      key={account._id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{account.email}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {account.provider}
-                          {isAdmin && account.userId && (
-                            <span className="ml-2 text-muted-foreground/70">
-                              &middot; {users?.find((u) => u._id === account.userId)?.name || "Unknown user"}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive shrink-0"
-                        onClick={() => handleDisconnectEmail(account._id)}
-                      >
-                        <Unplug className="h-4 w-4" />
-                      </Button>
+        {/* Carriers */}
+        <SettingsRow
+          icon={<Briefcase className="h-4 w-4 text-purple-600" />}
+          label="Carriers"
+          summary="Lines of Business"
+          isExpanded={expandedRow === "carriers"}
+          onToggle={() => toggleRow("carriers")}
+        >
+          <p className="text-sm text-muted-foreground mb-3">
+            Select your carriers, lines of business, and configure commission rates.
+          </p>
+          <Link href="/settings/carriers">
+            <Button variant="outline" size="sm">
+              Manage Carriers
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </Link>
+        </SettingsRow>
+
+        {/* Sales Goals */}
+        {convexOrg?._id && (
+          <SettingsRow
+            icon={<Settings className="h-4 w-4 text-green-600" />}
+            label="Sales Goals"
+            summary="Daily, Weekly, Monthly targets"
+            isExpanded={expandedRow === "goals"}
+            onToggle={() => toggleRow("goals")}
+          >
+            <SalesGoalsManager organizationId={convexOrg._id} />
+          </SettingsRow>
+        )}
+
+        {/* Email */}
+        <SettingsRow
+          icon={<Mail className="h-4 w-4 text-amber-600" />}
+          label="Email"
+          summary={emailAccounts && emailAccounts.some((a) => a.status === "active")
+            ? `${emailAccounts.filter((a) => a.status === "active").length} connected`
+            : "Not connected"
+          }
+          badge={emailAccounts && emailAccounts.some((a) => a.status === "active")
+            ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Connected</Badge>
+            : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />Not Set Up</Badge>
+          }
+          isExpanded={expandedRow === "email"}
+          onToggle={() => toggleRow("email")}
+        >
+          {emailAccounts && emailAccounts.filter((a) => a.status === "active").length > 0 ? (
+            <div className="space-y-2">
+              {emailAccounts
+                .filter((a) => a.status === "active")
+                .map((account) => (
+                  <div key={account._id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{account.email}</p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {account.provider}
+                        {isAdmin && account.userId && (
+                          <span className="ml-2 text-muted-foreground/70">
+                            &middot; {users?.find((u) => u._id === account.userId)?.name || "Unknown user"}
+                          </span>
+                        )}
+                      </p>
                     </div>
-                  ))}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => handleConnectEmail("google")}
-                    disabled={isConnectingEmail}
-                  >
-                    {isConnectingEmail ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Connect Gmail
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => handleConnectEmail("microsoft")}
-                    disabled={isConnectingEmail}
-                  >
-                    {isConnectingEmail ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Connect Outlook
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Connect your Gmail or Outlook account to send and receive email within the CRM.
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => handleConnectEmail("google")}
-                    disabled={isConnectingEmail}
-                  >
-                    {isConnectingEmail ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Connect Gmail
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => handleConnectEmail("microsoft")}
-                    disabled={isConnectingEmail}
-                  >
-                    {isConnectingEmail ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    Connect Outlook
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Organization Info */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Building2 className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">Organization Info</CardTitle>
-                <CardDescription>Your business contact details</CardDescription>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive shrink-0" onClick={() => handleDisconnectEmail(account._id)}>
+                      <Unplug className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              <div className="flex gap-2 mt-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmail("google")} disabled={isConnectingEmail}>
+                  {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                  Connect Gmail
+                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmail("microsoft")} disabled={isConnectingEmail}>
+                  {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                  Connect Outlook
+                </Button>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={openEditDialog}>
-              <Pencil className="h-4 w-4 mr-2" />
+          ) : (
+            <div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Connect your Gmail or Outlook account to send and receive email within the CRM.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleConnectEmail("google")} disabled={isConnectingEmail}>
+                  {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                  Connect Gmail
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleConnectEmail("microsoft")} disabled={isConnectingEmail}>
+                  {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                  Connect Outlook
+                </Button>
+              </div>
+            </div>
+          )}
+        </SettingsRow>
+
+        {/* Agency Logo */}
+        {convexOrg?._id && (
+          <SettingsRow
+            icon={<ImageIcon className="h-4 w-4 text-indigo-600" />}
+            label="Agency Logo"
+            summary={logoUrl ? "Custom logo uploaded" : "Using default"}
+            isExpanded={expandedRow === "logo"}
+            onToggle={() => toggleRow("logo")}
+          >
+            <ImageUpload
+              currentImageUrl={logoUrl}
+              onUpload={handleLogoUpload}
+              onDelete={handleLogoDelete}
+              label="Agency Logo"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              description="Upload your agency logo (PNG, JPG, WebP, SVG). Recommended size: 200x200px. Replaces the default VoIP CRM text in the header."
+              previewShape="rounded"
+              previewSize="h-12 w-auto max-w-[200px]"
+            />
+          </SettingsRow>
+        )}
+
+        {/* Agency Info */}
+        <SettingsRow
+          icon={<Building2 className="h-4 w-4 text-primary" />}
+          label="Agency"
+          summary="Business details"
+          action={
+            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openEditDialog(); }}>
+              <Pencil className="h-3.5 w-3.5 mr-1.5" />
               Edit
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+          }
+          isExpanded={expandedRow === "org"}
+          onToggle={() => toggleRow("org")}
+        >
           {convexOrg?.businessInfo ? (
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -473,13 +464,21 @@ export default function SettingsPage() {
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </SettingsRow>
 
-      {/* Hold Music Upload */}
-      {convexOrg?._id && (
-        <HoldMusicUpload organizationId={convexOrg._id} />
-      )}
+        {/* Hold Music */}
+        {convexOrg?._id && (
+          <SettingsRow
+            icon={<Music className="h-4 w-4 text-teal-600" />}
+            label="Hold Music"
+            summary="Custom hold music"
+            isExpanded={expandedRow === "holdmusic"}
+            onToggle={() => toggleRow("holdmusic")}
+          >
+            <HoldMusicUpload organizationId={convexOrg._id} />
+          </SettingsRow>
+        )}
+      </div>
 
       {/* Edit Organization Dialog */}
       <Dialog open={isEditOpen} onOpenChange={(open) => {

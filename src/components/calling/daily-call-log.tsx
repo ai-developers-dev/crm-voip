@@ -13,6 +13,7 @@ import {
   Clock,
   ExternalLink,
 } from "lucide-react";
+import { callDirectionColors } from "@/lib/style-constants";
 
 interface DailyCallLogProps {
   organizationId: Id<"organizations">;
@@ -60,7 +61,7 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
         return (
           <div
             key={call._id}
-            className={`flex items-center gap-3 px-3 py-2 text-sm ${
+            className={`flex items-center gap-3 px-3 py-2 ${
               hasContact
                 ? "cursor-pointer hover:bg-muted/50 transition-colors"
                 : ""
@@ -74,11 +75,11 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
             {/* Direction/outcome icon */}
             <div className="shrink-0">
               {isMissed ? (
-                <PhoneMissed className="h-4 w-4 text-red-500" />
+                <PhoneMissed className={`h-4 w-4 ${callDirectionColors.missed.icon}`} />
               ) : isInbound ? (
-                <PhoneIncoming className="h-4 w-4 text-green-500" />
+                <PhoneIncoming className={`h-4 w-4 ${callDirectionColors.inbound.icon}`} />
               ) : (
-                <PhoneOutgoing className="h-4 w-4 text-blue-500" />
+                <PhoneOutgoing className={`h-4 w-4 ${callDirectionColors.outbound.icon}`} />
               )}
             </div>
 
@@ -86,8 +87,8 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`font-medium truncate ${
-                    isMissed ? "text-red-600 dark:text-red-400" : ""
+                  className={`text-sm font-medium truncate ${
+                    isMissed ? callDirectionColors.missedText : ""
                   }`}
                 >
                   {callerDisplay}

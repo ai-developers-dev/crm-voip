@@ -82,7 +82,7 @@ export function ConversationList({
       {/* Header */}
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-lg">Messages</h2>
+          <h2 className="text-sm font-semibold">Messages</h2>
           <Button
             variant="outline"
             size="sm"
@@ -127,7 +127,7 @@ export function ConversationList({
                   <div className="flex-1 min-w-0">
                     {/* Contact Name or Phone */}
                     <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">
+                      <span className="text-sm font-medium truncate">
                         {conversation.contactName ||
                           formatPhoneDisplay(conversation.customerPhoneNumber)}
                       </span>

@@ -9,7 +9,7 @@ import Link from "next/link";
 import {
   Phone, Settings, Building2, Shield, LogOut, UserCog,
   ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3, Users,
-  Wifi, WifiOff, RefreshCw, Calendar
+  Wifi, WifiOff, RefreshCw, Calendar, TrendingUp
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -521,7 +521,7 @@ function ConnectionStatus() {
   // Show reconnecting state with a distinct indicator
   if (isReconnecting) {
     return (
-      <Badge variant="secondary" className="gap-1 text-xs bg-yellow-500/20 text-yellow-700 border-yellow-500/30">
+      <Badge variant="secondary" className="gap-1 text-xs">
         <RefreshCw className="h-3 w-3 animate-spin" />
         Reconnecting
       </Badge>
@@ -548,7 +548,7 @@ function ConnectionStatus() {
 
   if (isReady) {
     return (
-      <Badge variant="default" className="gap-1 text-xs bg-green-600 hover:bg-green-700">
+      <Badge variant="default" className="gap-1 text-xs">
         <Wifi className="h-3 w-3" />
         Ready
       </Badge>
@@ -563,7 +563,7 @@ function ConnectionStatus() {
   );
 }
 
-function CustomUserButton({ roleLabel, isSuperAdmin }: { roleLabel: string | null; isSuperAdmin: boolean }) {
+function CustomUserButton({ roleLabel, isSuperAdmin, convexAvatarUrl }: { roleLabel: string | null; isSuperAdmin: boolean; convexAvatarUrl?: string | null }) {
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const [open, setOpen] = useState(false);
@@ -593,7 +593,7 @@ function CustomUserButton({ roleLabel, isSuperAdmin }: { roleLabel: string | nul
         className="flex items-center justify-center rounded-full overflow-hidden hover:opacity-80 transition-opacity"
       >
         <Avatar className="h-8 w-8">
-          <AvatarImage src={user.imageUrl} alt={user.fullName || "User"} />
+          <AvatarImage src={convexAvatarUrl || user.imageUrl} alt={user.fullName || "User"} />
           <AvatarFallback className="bg-primary text-primary-foreground text-sm">
             {initials}
           </AvatarFallback>
@@ -606,7 +606,7 @@ function CustomUserButton({ roleLabel, isSuperAdmin }: { roleLabel: string | nul
           <div className="p-4 border-b border-border">
             <div className="flex items-start gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.imageUrl} alt={user.fullName || "User"} />
+                <AvatarImage src={convexAvatarUrl || user.imageUrl} alt={user.fullName || "User"} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
                   {initials}
                 </AvatarFallback>
@@ -719,6 +719,12 @@ export default function DashboardLayout({
       : "skip"
   );
 
+  // Logo URL for the current organization
+  const orgLogoUrl = useQuery(
+    api.logoUpload.getLogoUrl,
+    currentOrg?._id ? { organizationId: currentOrg._id } : "skip"
+  );
+
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       router.push("/sign-in");
@@ -784,10 +790,20 @@ export default function DashboardLayout({
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <Phone className="h-4 w-4 text-primary" />
-              </div>
-              <span className="text-base font-semibold">VoIP CRM</span>
+              {orgLogoUrl && !(pathname === "/admin" || pathname?.startsWith("/admin/settings")) ? (
+                <img
+                  src={orgLogoUrl}
+                  alt={currentOrg?.name || "Logo"}
+                  className="h-10 max-w-[200px] object-contain"
+                />
+              ) : (
+                <>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Phone className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-base font-semibold">VoIP CRM</span>
+                </>
+              )}
             </Link>
             {isSuperAdmin && (
               <>
@@ -799,31 +815,42 @@ export default function DashboardLayout({
           <div className="flex items-center gap-3">
             {/* Connection status indicator */}
             <ConnectionStatus />
-            <Link href="/stats">
-              <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
-                <BarChart3 className="h-3 w-3" />
-                Stats
-              </Badge>
-            </Link>
-            <Link href="/contacts">
-              <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
-                <Users className="h-3 w-3" />
-                Contacts
-              </Badge>
-            </Link>
-            <Link href="/calendar">
-              <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
-                <Calendar className="h-3 w-3" />
-                Calendar
-              </Badge>
-            </Link>
-            <Link href={pathname?.startsWith("/admin") ? "/admin/settings" : "/settings"}>
-              <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors border-border/60">
-                <Settings className="h-3 w-3" />
-                Settings
-              </Badge>
-            </Link>
-            <CustomUserButton roleLabel={roleLabel} isSuperAdmin={isSuperAdmin === true} />
+            {/* Hide nav badges when viewing admin tenant pages — tenant has its own inline nav */}
+            {!pathname?.startsWith("/admin/tenants/") && (
+              <>
+                <Link href="/stats">
+                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <BarChart3 className="h-3 w-3" />
+                    Stats
+                  </Badge>
+                </Link>
+                <Link href="/reports">
+                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <TrendingUp className="h-3 w-3" />
+                    Reports
+                  </Badge>
+                </Link>
+                <Link href="/contacts">
+                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Users className="h-3 w-3" />
+                    Contacts
+                  </Badge>
+                </Link>
+                <Link href="/calendar">
+                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Calendar className="h-3 w-3" />
+                    Calendar
+                  </Badge>
+                </Link>
+                <Link href={pathname?.startsWith("/admin") ? "/admin/settings" : "/settings"}>
+                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Settings className="h-3 w-3" />
+                    Settings
+                  </Badge>
+                </Link>
+              </>
+            )}
+            <CustomUserButton roleLabel={roleLabel} isSuperAdmin={isSuperAdmin === true} convexAvatarUrl={currentUser?.avatarUrl} />
           </div>
         </div>
       </header>

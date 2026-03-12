@@ -38,7 +38,7 @@ export function NotesPanel({ contact, organizationId, userId, onClose }: NotesPa
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <h3 className="font-semibold">Notes</h3>
+        <h3 className="text-sm font-semibold">Notes</h3>
         <div className="flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={() => { setEditingNote(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4" />
@@ -86,7 +86,7 @@ export function NotesPanel({ contact, organizationId, userId, onClose }: NotesPa
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {new Date(note.createdAt).toLocaleDateString()} at {new Date(note.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>

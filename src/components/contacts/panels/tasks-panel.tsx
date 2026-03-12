@@ -54,7 +54,7 @@ export function TasksPanel({ contact, organizationId, userId, onClose }: TasksPa
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <h3 className="font-semibold">Tasks</h3>
+        <h3 className="text-sm font-semibold">Tasks</h3>
         <div className="flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={() => { setEditingTask(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4" />
@@ -111,14 +111,14 @@ export function TasksPanel({ contact, organizationId, userId, onClose }: TasksPa
                 <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
               )}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${priorityColors[task.priority]}`}>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
                   {task.priority}
                 </Badge>
-                <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${statusColors[task.status]}`}>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
                   {task.status.replace("_", " ")}
                 </Badge>
                 {task.dueDate && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     Due {new Date(task.dueDate).toLocaleDateString()}
                   </span>
                 )}

@@ -33,10 +33,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronRight, Users, Loader2, Plus, MoreHorizontal, Pencil, Trash2, UserPlus, AlertCircle, Mail } from "lucide-react";
-import Link from "next/link";
+import { Users, Loader2, Plus, MoreHorizontal, Pencil, Trash2, UserPlus, AlertCircle, Mail } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { addUserToOrganization, removeUserFromOrganization } from "../../admin/actions";
+import { ImageUpload } from "@/components/settings/image-upload";
 
 export default function UsersSettingsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
@@ -51,6 +52,8 @@ export default function UsersSettingsPage() {
     email: "",
     role: "agent" as "tenant_admin" | "supervisor" | "agent",
     extension: "",
+    agentCommissionSplit: "",
+    agentRenewalSplit: "",
   });
 
   // Get the Convex organization
@@ -69,6 +72,9 @@ export default function UsersSettingsPage() {
   const updateUser = useMutation(api.users.updateUser);
   const deleteUserMutation = useMutation(api.users.deleteUser);
   const toggleStatus = useMutation(api.users.toggleStatus);
+  const generateAvatarUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
+  const saveUserAvatar = useMutation(api.users.saveUserAvatar);
+  const deleteUserAvatar = useMutation(api.users.deleteUserAvatar);
 
   // State for success messages
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -122,6 +128,8 @@ export default function UsersSettingsPage() {
         email: formData.email,
         role: formData.role,
         extension: formData.extension || undefined,
+        agentCommissionSplit: formData.agentCommissionSplit ? parseFloat(formData.agentCommissionSplit) : undefined,
+        agentRenewalSplit: formData.agentRenewalSplit ? parseFloat(formData.agentRenewalSplit) : undefined,
       });
       setEditingUser(null);
       resetForm();
@@ -160,12 +168,35 @@ export default function UsersSettingsPage() {
     }
   };
 
+  const handleAvatarUpload = async (file: File) => {
+    if (!editingUser || !convexOrg?._id) return;
+    const uploadUrl = await generateAvatarUploadUrl({ organizationId: convexOrg._id });
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!response.ok) throw new Error("Upload failed");
+    const { storageId } = await response.json();
+    await saveUserAvatar({ userId: editingUser._id, storageId });
+    // Update local editing state so preview refreshes
+    setEditingUser((prev: any) => prev ? { ...prev, avatarUrl: URL.createObjectURL(file) } : null);
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!editingUser) return;
+    await deleteUserAvatar({ userId: editingUser._id });
+    setEditingUser((prev: any) => prev ? { ...prev, avatarUrl: null } : null);
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
       email: "",
       role: "agent",
       extension: "",
+      agentCommissionSplit: "",
+      agentRenewalSplit: "",
     });
   };
 
@@ -175,13 +206,15 @@ export default function UsersSettingsPage() {
       email: user.email,
       role: user.role,
       extension: user.extension || "",
+      agentCommissionSplit: user.agentCommissionSplit != null ? String(user.agentCommissionSplit) : "",
+      agentRenewalSplit: user.agentRenewalSplit != null ? String(user.agentRenewalSplit) : "",
     });
     setEditingUser(user);
   };
 
   if (!orgLoaded || convexOrg === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -189,7 +222,7 @@ export default function UsersSettingsPage() {
 
   if (!organization) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>No Organization Selected</CardTitle>
@@ -218,23 +251,10 @@ export default function UsersSettingsPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/dashboard" className="hover:text-foreground transition-colors">
-          Dashboard
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link href="/settings" className="hover:text-foreground transition-colors">
-          Settings
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground font-medium">Users</span>
-      </nav>
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
+          <h1 className="text-lg font-semibold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">
             Manage your team members and their roles
           </p>
@@ -307,6 +327,34 @@ export default function UsersSettingsPage() {
                     onChange={(e) => setFormData(prev => ({ ...prev, extension: e.target.value }))}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="commission-split">Agent Commission %</Label>
+                  <Input
+                    id="commission-split"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    placeholder="e.g. 50"
+                    value={formData.agentCommissionSplit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="renewal-split">Agent Renewal %</Label>
+                  <Input
+                    id="renewal-split"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    placeholder="e.g. 50"
+                    value={formData.agentRenewalSplit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -355,6 +403,7 @@ export default function UsersSettingsPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Commission</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Available</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
@@ -366,12 +415,15 @@ export default function UsersSettingsPage() {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={roleColors[user.role]}>
+                      <Badge variant="secondary">
                         {user.role === "tenant_admin" ? "Admin" : user.role}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.agentCommissionSplit != null ? `${user.agentCommissionSplit}%` : "—"}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={statusColors[user.status]}>
+                      <Badge variant="secondary">
                         {user.status.replace("_", " ")}
                       </Badge>
                     </TableCell>
@@ -422,6 +474,19 @@ export default function UsersSettingsPage() {
           </DialogHeader>
           <form onSubmit={handleEditUser}>
             <div className="space-y-4 py-4">
+              {/* Profile Photo */}
+              <div className="space-y-2">
+                <Label>Profile Photo</Label>
+                <ImageUpload
+                  currentImageUrl={editingUser?.avatarUrl}
+                  onUpload={handleAvatarUpload}
+                  onDelete={handleAvatarDelete}
+                  label="Profile Photo"
+                  description="Upload a profile photo (PNG, JPG). Shown in the calling dashboard and user menu."
+                  previewShape="circle"
+                  previewSize="h-16 w-16"
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Name</Label>
                 <Input
@@ -462,6 +527,34 @@ export default function UsersSettingsPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, extension: e.target.value }))}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-commission-split">Agent Commission %</Label>
+                <Input
+                  id="edit-commission-split"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  placeholder="e.g. 50"
+                  value={formData.agentCommissionSplit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-renewal-split">Agent Renewal %</Label>
+                <Input
+                  id="edit-renewal-split"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  placeholder="e.g. 50"
+                  value={formData.agentRenewalSplit}
+                  onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>
@@ -488,7 +581,7 @@ export default function UsersSettingsPage() {
       {/* Info Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">How User Invitations Work</CardTitle>
+          <CardTitle className="text-sm">How User Invitations Work</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <p>

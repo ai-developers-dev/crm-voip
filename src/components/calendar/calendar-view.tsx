@@ -22,6 +22,7 @@ import {
 } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { calendarEventColors } from "@/lib/style-constants";
 
 export type CalendarEvent = {
   id: string;
@@ -71,7 +72,7 @@ export function CalendarView({ events, onEventClick, onDateClick, loading }: Cal
   }, [currentDate, viewMode]);
 
   return (
-    <div className="flex flex-col h-full px-12">
+    <div className="flex flex-col h-full px-6">
       {/* Toolbar */}
       <div className="flex items-center justify-between py-3 border-b">
         <div className="flex items-center gap-2">
@@ -86,7 +87,7 @@ export function CalendarView({ events, onEventClick, onDateClick, loading }: Cal
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <h2 className="text-lg font-semibold">{headerLabel}</h2>
+          <h2 className="text-sm font-semibold">{headerLabel}</h2>
         </div>
         <div className="flex items-center gap-1 rounded-lg border p-0.5">
           {(["month", "week", "day"] as const).map((mode) => (
@@ -210,9 +211,7 @@ function MonthView({
                   <button
                     key={event.id}
                     className={`w-full text-left text-xs leading-snug px-1 py-0.5 rounded truncate ${
-                      event.type === "synced"
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                      event.type === "synced" ? calendarEventColors.synced : calendarEventColors.appointment
                     }`}
                     onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
                   >
@@ -280,7 +279,7 @@ function WeekView({
           <div className="border-r">
             {hours.map((hour) => (
               <div key={hour} className="h-[60px] pr-2 flex items-start justify-end">
-                <span className="text-[10px] text-muted-foreground -mt-2">
+                <span className="text-xs text-muted-foreground -mt-2">
                   {hour === 0 ? "" : format(new Date(2000, 0, 1, hour), "h a")}
                 </span>
               </div>
@@ -303,10 +302,10 @@ function WeekView({
                   return (
                     <button
                       key={event.id}
-                      className={`absolute left-0.5 right-1 rounded px-1.5 py-0.5 text-[11px] leading-tight overflow-hidden ${
+                      className={`absolute left-0.5 right-1 rounded px-1.5 py-0.5 text-xs leading-tight overflow-hidden ${
                         event.type === "synced"
-                          ? "bg-emerald-100 text-emerald-800 border-l-2 border-emerald-500 dark:bg-emerald-900/40 dark:text-emerald-300"
-                          : "bg-blue-100 text-blue-800 border-l-2 border-blue-500 dark:bg-blue-900/40 dark:text-blue-300"
+                          ? `${calendarEventColors.synced} border-l-2 border-emerald-500`
+                          : `${calendarEventColors.appointment} border-l-2 border-blue-500`
                       }`}
                       style={{
                         top: `${topMinutes}px`,
@@ -364,9 +363,7 @@ function DayView({
             <button
               key={event.id}
               className={`w-full text-left text-xs px-2 py-1 rounded ${
-                event.type === "synced"
-                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                event.type === "synced" ? calendarEventColors.synced : calendarEventColors.appointment
               }`}
               onClick={() => onEventClick(event)}
             >
@@ -381,7 +378,7 @@ function DayView({
           <div className="border-r">
             {hours.map((hour) => (
               <div key={hour} className="h-[60px] pr-2 flex items-start justify-end">
-                <span className="text-[10px] text-muted-foreground -mt-2">
+                <span className="text-xs text-muted-foreground -mt-2">
                   {hour === 0 ? "" : format(new Date(2000, 0, 1, hour), "h a")}
                 </span>
               </div>
@@ -401,8 +398,8 @@ function DayView({
                   key={event.id}
                   className={`absolute left-1 right-4 rounded px-2 py-1 text-xs overflow-hidden ${
                     event.type === "synced"
-                      ? "bg-emerald-100 text-emerald-800 border-l-2 border-emerald-500 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      : "bg-blue-100 text-blue-800 border-l-2 border-blue-500 dark:bg-blue-900/40 dark:text-blue-300"
+                      ? `${calendarEventColors.synced} border-l-2 border-emerald-500`
+                      : `${calendarEventColors.appointment} border-l-2 border-blue-500`
                   }`}
                   style={{
                     top: `${topMinutes}px`,

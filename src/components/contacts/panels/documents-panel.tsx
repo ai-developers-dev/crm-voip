@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DocumentFormDialog } from "./document-form-dialog";
+import { documentStatusColors } from "@/lib/style-constants";
 
 interface DocumentsPanelProps {
   contact: Doc<"contacts">;
@@ -33,11 +34,6 @@ const typeLabels: Record<string, string> = {
   other: "Other",
 };
 
-const statusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700",
-  final: "bg-green-100 text-green-700",
-  archived: "bg-yellow-100 text-yellow-700",
-};
 
 export function DocumentsPanel({ contact, organizationId, userId, onClose }: DocumentsPanelProps) {
   const [search, setSearch] = useState("");
@@ -60,7 +56,7 @@ export function DocumentsPanel({ contact, organizationId, userId, onClose }: Doc
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b px-4 py-3">
-        <h3 className="font-semibold">Documents</h3>
+        <h3 className="text-sm font-semibold">Documents</h3>
         <div className="flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={() => { setEditingDocument(null); setDialogOpen(true); }}>
             <Plus className="h-4 w-4" />
@@ -114,20 +110,20 @@ export function DocumentsPanel({ contact, organizationId, userId, onClose }: Doc
                 </DropdownMenu>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${statusColors[doc.status]}`}>
+                <Badge variant="secondary" className="text-xs px-1.5 py-0">
                   {doc.status}
                 </Badge>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                <Badge variant="outline" className="text-xs px-1.5 py-0">
                   {typeLabels[doc.type] || doc.type}
                 </Badge>
                 {doc.fileSize != null && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {formatFileSize(doc.fileSize)}
                   </span>
                 )}
               </div>
               {doc.description && (
-                <p className="text-[10px] text-muted-foreground line-clamp-2">{doc.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{doc.description}</p>
               )}
             </div>
           ))}

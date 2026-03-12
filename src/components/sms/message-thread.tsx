@@ -131,7 +131,7 @@ export function MessageThread({
       {/* Thread Header */}
       <div className="p-4 border-b flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">
+          <h3 className="text-sm font-semibold">
             {conversation.contactName ||
               formatPhoneDisplay(conversation.customerPhoneNumber)}
           </h3>
@@ -233,7 +233,7 @@ export function MessageThread({
                   )}
 
                   {/* Message Body */}
-                  <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                  <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
                 </div>
 
                 {/* Message Meta */}
@@ -294,7 +294,7 @@ export function MessageThreadEmpty() {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </div>
-      <h3 className="font-medium text-lg">No conversation selected</h3>
+      <h3 className="font-medium text-sm">No conversation selected</h3>
       <p className="text-sm mt-1">
         Select a conversation from the list or start a new one
       </p>

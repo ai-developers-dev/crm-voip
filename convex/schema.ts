@@ -43,6 +43,8 @@ export default defineSchema({
     agencyTypeId: v.id("agencyTypes"),
     name: v.string(),
     description: v.optional(v.string()),
+    websiteUrl: v.optional(v.string()),
+    portalUrl: v.optional(v.string()), // Agent portal login/dashboard URL
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -57,6 +59,19 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     isActive: v.boolean(),
+    coverageFields: v.optional(v.array(v.object({
+      key: v.string(),
+      label: v.string(),
+      placeholder: v.optional(v.string()),
+      type: v.optional(v.union(
+        v.literal("text"),
+        v.literal("currency"),
+        v.literal("number"),
+        v.literal("select"),
+      )),
+      options: v.optional(v.array(v.string())),
+      apiFieldName: v.optional(v.string()),
+    }))),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -168,6 +183,8 @@ export default defineSchema({
       recordingEnabled: v.boolean(),
       holdMusicUrl: v.optional(v.string()),
       holdMusicStorageId: v.optional(v.id("_storage")), // Convex storage ID for uploaded MP3
+      logoStorageId: v.optional(v.id("_storage")), // Convex storage ID for agency logo
+      logoUrl: v.optional(v.string()),
       maxConcurrentCalls: v.number(),
       // Per-tenant Twilio credentials
       twilioCredentials: v.optional(v.object({
@@ -177,6 +194,15 @@ export default defineSchema({
         apiSecret: v.optional(v.string()),
         twimlAppSid: v.optional(v.string()),
         isConfigured: v.boolean(),
+      })),
+      // Deprecated: goals now in salesGoals table. Kept for existing data.
+      salesGoals: v.optional(v.object({
+        dailyPremium: v.optional(v.number()),
+        weeklyPremium: v.optional(v.number()),
+        monthlyPremium: v.optional(v.number()),
+        dailyPolicies: v.optional(v.number()),
+        weeklyPolicies: v.optional(v.number()),
+        monthlyPolicies: v.optional(v.number()),
       })),
     }),
     createdAt: v.number(),
@@ -195,6 +221,7 @@ export default defineSchema({
     email: v.string(),
     name: v.string(),
     avatarUrl: v.optional(v.string()),
+    avatarStorageId: v.optional(v.id("_storage")), // Convex storage ID for profile photo
     role: v.union(
       v.literal("tenant_admin"),  // Can manage their organization
       v.literal("supervisor"),    // Can manage agents, view reports
@@ -202,6 +229,8 @@ export default defineSchema({
     ),
     extension: v.optional(v.string()),
     directNumber: v.optional(v.string()),
+    agentCommissionSplit: v.optional(v.number()), // Percentage of agency commission the agent receives
+    agentRenewalSplit: v.optional(v.number()), // Percentage of agency renewal commission the agent receives
     status: v.union(
       v.literal("available"),
       v.literal("busy"),
@@ -209,10 +238,10 @@ export default defineSchema({
       v.literal("on_break"),
       v.literal("offline")
     ),
-    // Daily call counts (stored directly on user for simplicity)
+    // Deprecated: metrics now in userDailyMetrics table. Kept for existing data.
     todayInboundCalls: v.optional(v.number()),
     todayOutboundCalls: v.optional(v.number()),
-    lastCallCountReset: v.optional(v.string()), // "YYYY-MM-DD" for daily reset
+    lastCallCountReset: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -252,7 +281,7 @@ export default defineSchema({
   activeCalls: defineTable({
     organizationId: v.id("organizations"),
     twilioCallSid: v.string(),
-    conferenceSid: v.optional(v.string()),
+    conferenceSid: v.optional(v.string()), // Deprecated: kept for existing data
     direction: v.union(v.literal("inbound"), v.literal("outbound")),
 
     // Caller information
@@ -293,11 +322,7 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_organization_state", ["organizationId", "state"])
     .index("by_twilio_sid", ["twilioCallSid"])
-    .index("by_conference_sid", ["conferenceSid"])
-    .index("by_assigned_user", ["assignedUserId"])
-    .index("by_parking_slot", ["organizationId", "parkingSlot"])
-    // New index for caller ID lookup
-    .index("by_organization_from", ["organizationId", "from"]),
+    .index("by_assigned_user", ["assignedUserId"]),
 
   // Call History (Historical records)
   callHistory: defineTable({
@@ -349,9 +374,6 @@ export default defineSchema({
     .index("by_user_date", ["handledByUserId", "startedAt"])
     .index("by_contact", ["contactId"])
     .index("by_twilio_sid", ["twilioCallSid"])
-    // New indexes for phone number lookups and reporting
-    .index("by_organization_from", ["organizationId", "from"])
-    .index("by_organization_to", ["organizationId", "to"])
     .index("by_org_outcome_date", ["organizationId", "outcome", "startedAt"]),
 
   // Parking Lots (Call parking slots)
@@ -362,7 +384,7 @@ export default defineSchema({
     activeCallId: v.optional(v.id("activeCalls")),
     parkedByUserId: v.optional(v.id("users")),
     parkedAt: v.optional(v.number()),
-    holdMusicUrl: v.optional(v.string()),
+    holdMusicUrl: v.optional(v.string()), // Deprecated: org-level holdMusicUrl used instead
     conferenceName: v.optional(v.string()), // Twilio conference name for parking
     pstnCallSid: v.optional(v.string()), // The PSTN caller's call SID (needed for unparking)
     callerNumber: v.optional(v.string()),
@@ -537,7 +559,6 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_organization", ["organizationId"])
-    .index("by_organization_status", ["organizationId", "status"])
     .index("by_assigned_user", ["assignedUserId"])
     .index("by_phone_numbers", ["organizationId", "customerPhoneNumber", "businessPhoneNumber"])
     .index("by_contact", ["contactId"])
@@ -765,6 +786,62 @@ export default defineSchema({
     .index("by_type", ["organizationId", "type"]),
 
   // ============================================
+  // SALES TABLES
+  // ============================================
+
+  // Sale Types (tenant-configurable: New Business, Rewrite, Agent of Record, etc.)
+  saleTypes: defineTable({
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    isActive: v.boolean(),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"]),
+
+  // Sales (linked to contacts, one carrier per sale, multiple line items)
+  sales: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.id("contacts"),
+    userId: v.id("users"), // agent who entered the sale
+    carrierId: v.id("agencyCarriers"),
+    saleTypeId: v.optional(v.id("saleTypes")),
+    policyNumber: v.optional(v.string()),
+    effectiveDate: v.number(), // timestamp
+    endDate: v.number(), // auto-calculated from effectiveDate + term
+    term: v.number(), // months (6, 12, 24, 36)
+    totalPremium: v.number(), // sum of all line item premiums
+    status: v.union(
+      v.literal("active"),
+      v.literal("cancelled"),
+      v.literal("pending")
+    ),
+    notes: v.optional(v.string()),
+    // Coverage details - dynamic keys defined per LOB in agencyProducts.coverageFields
+    coverages: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_contact", ["contactId"])
+    .index("by_user", ["userId"])
+    .index("by_carrier", ["carrierId"])
+    .index("by_organization_user", ["organizationId", "userId"])
+    .index("by_organization_date", ["organizationId", "effectiveDate"]),
+
+  // Sale Line Items (each line of business + premium within a sale)
+  saleLineItems: defineTable({
+    saleId: v.id("sales"),
+    organizationId: v.id("organizations"),
+    productId: v.id("agencyProducts"), // line of business
+    premium: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_sale", ["saleId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_product", ["productId"]),
+
+  // ============================================
   // EMAIL TABLES
   // ============================================
 
@@ -869,4 +946,21 @@ export default defineSchema({
     .index("by_user", ["userId", "timestamp"])
     .index("by_action", ["action", "timestamp"])
     .index("by_entity", ["entityType", "entityId"]),
+
+  // Sales Goals - Month-specific targets per organization
+  salesGoals: defineTable({
+    organizationId: v.id("organizations"),
+    month: v.number(), // 0-11
+    year: v.number(),
+    dailyPremium: v.optional(v.number()),
+    weeklyPremium: v.optional(v.number()),
+    monthlyPremium: v.optional(v.number()),
+    dailyPolicies: v.optional(v.number()),
+    weeklyPolicies: v.optional(v.number()),
+    monthlyPolicies: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_org_year_month", ["organizationId", "year", "month"]),
 });

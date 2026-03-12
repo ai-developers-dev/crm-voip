@@ -10,8 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ChevronRight, Phone, Loader2, CheckCircle, Eye, EyeOff, Save } from "lucide-react";
-import Link from "next/link";
+import { Phone, Loader2, CheckCircle, Eye, EyeOff, Save } from "lucide-react";
 
 export default function TwilioSettingsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
@@ -89,7 +88,7 @@ export default function TwilioSettingsPage() {
 
   if (!orgLoaded || convexOrg === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -97,7 +96,7 @@ export default function TwilioSettingsPage() {
 
   if (!organization) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>No Organization Selected</CardTitle>
@@ -114,22 +113,9 @@ export default function TwilioSettingsPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/dashboard" className="hover:text-foreground transition-colors">
-          Dashboard
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link href="/settings" className="hover:text-foreground transition-colors">
-          Settings
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground font-medium">Twilio</span>
-      </nav>
-
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Twilio Settings</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Twilio Settings</h1>
         <p className="text-muted-foreground">
           Configure your Twilio credentials for voice calling
         </p>
@@ -297,7 +283,7 @@ export default function TwilioSettingsPage() {
       {/* Help Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Need Help?</CardTitle>
+          <CardTitle className="text-sm">Need Help?</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>To find your Twilio credentials:</p>

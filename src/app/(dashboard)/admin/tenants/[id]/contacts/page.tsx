@@ -7,8 +7,9 @@ import { api } from "../../../../../../../convex/_generated/api";
 import { Id, Doc } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3 } from "lucide-react";
+import {
+  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ContactListCompact } from "@/components/contacts/contact-list-compact";
@@ -78,7 +79,7 @@ export default function TenantContactsPage() {
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -87,7 +88,7 @@ export default function TenantContactsPage() {
   // Only platform users can access this page
   if (!isPlatformUser) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
@@ -107,7 +108,7 @@ export default function TenantContactsPage() {
 
   if (tenant === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -115,7 +116,7 @@ export default function TenantContactsPage() {
 
   if (tenant === null) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Tenant Not Found</CardTitle>
@@ -137,63 +138,29 @@ export default function TenantContactsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {/* Impersonation Banner */}
-      <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
-        <Eye className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="flex items-center justify-between">
-          <span className="text-amber-700 dark:text-amber-400">
-            <strong>Viewing as:</strong> {tenant.name} ({tenant.plan} plan)
-          </span>
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="border-amber-500/30 hover:bg-amber-500/10">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Admin
-            </Button>
-          </Link>
-        </AlertDescription>
-      </Alert>
-
+    <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Navigation Menu */}
       <div className="border-b bg-muted/30 px-4 py-2">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Phone className="h-4 w-4" />
-                Calls
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/sms`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                SMS
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><MessageSquare className="h-4 w-4" />SMS</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/contacts`}>
-              <Button variant="secondary" size="sm" className="gap-2">
-                <Users className="h-4 w-4" />
-                Contacts
-              </Button>
+              <Button variant="secondary" size="sm" className="gap-2"><Users className="h-4 w-4" />Contacts</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/calendar`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Calendar
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Reports
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button>
             </Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}>
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
+            <Button variant="outline" size="sm"><Settings className="h-4 w-4 mr-2" />Settings</Button>
           </Link>
         </div>
       </div>
@@ -229,6 +196,7 @@ export default function TenantContactsPage() {
                 type={activePanel}
                 contact={selectedContact}
                 organizationId={tenant._id}
+                isAdmin={true}
                 onClose={() => setActivePanel(null)}
               />
             </div>

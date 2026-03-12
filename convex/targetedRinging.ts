@@ -36,7 +36,6 @@ export const create = mutation({
       // Delete if expired or older than 5 seconds
       if (record.expiresAt < now || record.createdAt < now - 5000) {
         await ctx.db.delete(record._id);
-        console.log(`🧹 Cleaned up old targetedRinging record for user ${args.targetUserId}`);
       }
     }
 
@@ -52,7 +51,6 @@ export const create = mutation({
       expiresAt: Date.now() + 30000, // 30 second timeout
     });
 
-    console.log(`🔔 Created targeted ringing for ${args.callerNumber} -> user ${args.targetUserId}`);
     return id;
   },
 });
@@ -69,15 +67,6 @@ export const getForUser = query({
         q.eq("targetUserId", args.userId).eq("status", "ringing")
       )
       .first();
-
-    // Debug logging
-    if (record) {
-      console.log(`🎯 getForUser(${args.userId}): Found record`, {
-        callerNumber: record.callerNumber,
-        status: record.status,
-        expired: record.expiresAt < Date.now(),
-      });
-    }
 
     // Check if expired
     if (record && record.expiresAt < Date.now()) {
@@ -120,7 +109,6 @@ export const setAgentCallSid = mutation({
       .first();
 
     if (!record) {
-      console.log(`No ringing targetedRinging found for PSTN SID: ${args.pstnCallSid}`);
       return { success: false, reason: "not_found" };
     }
 
@@ -128,7 +116,6 @@ export const setAgentCallSid = mutation({
       agentCallSid: args.agentCallSid,
     });
 
-    console.log(`📞 Updated targetedRinging with agentCallSid: ${args.agentCallSid}`);
     return { success: true };
   },
 });
@@ -148,7 +135,6 @@ export const accept = mutation({
       status: "accepted",
     });
 
-    console.log(`✅ Targeted call accepted: ${record.callerNumber}`);
     return { success: true };
   },
 });
@@ -168,7 +154,6 @@ export const decline = mutation({
       status: "declined",
     });
 
-    console.log(`❌ Targeted call declined: ${record.callerNumber}`);
     return { success: true, pstnCallSid: record.pstnCallSid };
   },
 });

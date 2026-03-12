@@ -1,21 +1,39 @@
 "use client";
 
+import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3 } from "lucide-react";
+import {
+  ArrowLeft, Loader2, BarChart3, Settings, Phone, MessageSquare, Users, Calendar, Download
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { SalesReportDashboard, MonthPicker } from "@/components/reports/sales-report-dashboard";
+import { CallReportDashboard } from "@/components/reports/call-report-dashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function TenantReportsPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoaded: userLoaded } = useUser();
   const tenantId = params.id as string;
+  const [now] = useState(() => new Date());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
+  const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth();
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear((y) => y - 1); }
+    else { setSelectedMonth((m) => m - 1); }
+  };
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear((y) => y + 1); }
+    else { setSelectedMonth((m) => m + 1); }
+  };
 
   // Check if user is a platform admin
   const isPlatformUser = useQuery(
@@ -31,7 +49,7 @@ export default function TenantReportsPage() {
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -40,7 +58,7 @@ export default function TenantReportsPage() {
   // Only platform users can access this page
   if (!isPlatformUser) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
@@ -60,7 +78,7 @@ export default function TenantReportsPage() {
 
   if (tenant === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -68,7 +86,7 @@ export default function TenantReportsPage() {
 
   if (tenant === null) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Tenant Not Found</CardTitle>
@@ -90,80 +108,82 @@ export default function TenantReportsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {/* Impersonation Banner */}
-      <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
-        <Eye className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="flex items-center justify-between">
-          <span className="text-amber-700 dark:text-amber-400">
-            <strong>Viewing as:</strong> {tenant.name} ({tenant.plan} plan)
-          </span>
-          <Link href="/admin">
-            <Button variant="outline" size="sm" className="border-amber-500/30 hover:bg-amber-500/10">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Admin
-            </Button>
-          </Link>
-        </AlertDescription>
-      </Alert>
-
+    <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Navigation Menu */}
       <div className="border-b bg-muted/30 px-4 py-2">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Phone className="h-4 w-4" />
-                Calls
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/sms`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                SMS
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><MessageSquare className="h-4 w-4" />SMS</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/contacts`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Users className="h-4 w-4" />
-                Contacts
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><Users className="h-4 w-4" />Contacts</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/calendar`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Calendar
-              </Button>
+              <Button variant="ghost" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
-              <Button variant="secondary" size="sm" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Reports
-              </Button>
+              <Button variant="secondary" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button>
             </Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}>
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
+            <Button variant="outline" size="sm"><Settings className="h-4 w-4 mr-2" />Settings</Button>
           </Link>
         </div>
       </div>
 
-      {/* Coming Soon Content */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <Card className="max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <BarChart3 className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <CardTitle>Reports</CardTitle>
-            <CardDescription>
-              Reporting and analytics are coming soon. You'll be able to view call metrics, agent performance, and other insights for this tenant.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      {/* Reports Content */}
+      <div className="flex-1 overflow-auto p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Reports</h1>
+            <p className="text-sm text-muted-foreground">{tenant.name}</p>
+          </div>
+          <MonthPicker
+            month={selectedMonth}
+            year={selectedYear}
+            onPrev={handlePrevMonth}
+            onNext={handleNextMonth}
+            disableNext={isCurrentMonth}
+          />
+        </div>
+
+        <Tabs defaultValue="sales">
+          <TabsList>
+            <TabsTrigger value="sales">Sales Reports</TabsTrigger>
+            <TabsTrigger value="calls">Call Reporting</TabsTrigger>
+            <TabsTrigger value="downloads">Agency Downloads</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sales" className="mt-4">
+            <SalesReportDashboard
+              organizationId={tenant._id}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+            />
+          </TabsContent>
+
+          <TabsContent value="calls" className="mt-4">
+            <CallReportDashboard
+              organizationId={tenant._id}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+            />
+          </TabsContent>
+
+          <TabsContent value="downloads" className="mt-4">
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Download className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium">Agency Downloads</p>
+                <p className="text-xs text-muted-foreground mt-1">Export reports and documents. Coming soon.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

@@ -17,7 +17,6 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.error("CLERK_WEBHOOK_SECRET is not set");
       return new Response("Server configuration error", { status: 500 });
     }
 
@@ -39,13 +38,11 @@ http.route({
         "svix-timestamp": svix_timestamp,
         "svix-signature": svix_signature,
       });
-    } catch (err) {
-      console.error("Webhook verification failed:", err);
+    } catch {
       return new Response("Invalid signature", { status: 400 });
     }
 
     const eventType = event.type;
-    console.log(`Received Clerk webhook: ${eventType}`);
 
     try {
       switch (eventType) {
@@ -160,8 +157,7 @@ http.route({
       }
 
       return new Response("OK", { status: 200 });
-    } catch (error) {
-      console.error("Error processing webhook:", error);
+    } catch {
       return new Response("Internal server error", { status: 500 });
     }
   }),

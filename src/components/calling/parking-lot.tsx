@@ -118,7 +118,7 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
     >
       <div className="flex items-center gap-2 mb-4">
         <ParkingSquare className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold">Parking Lot</h2>
+        <h2 className="text-sm font-semibold">Parking Lot</h2>
         {parkingInProgress && (
           <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
         )}

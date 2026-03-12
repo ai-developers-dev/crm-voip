@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Loader2, Plus, ArrowLeft, Pencil, Trash2, ChevronRight,
+  Loader2, Plus, ArrowLeft, Pencil, Trash2,
   Building2, ToggleLeft, ToggleRight, Briefcase, Package, Grid3X3
 } from "lucide-react";
 import Link from "next/link";
@@ -225,7 +225,7 @@ export default function AgencyTypeDetailPage() {
   // --- Loading / Auth states ---
   if (!userLoaded || isSuperAdmin === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -233,7 +233,7 @@ export default function AgencyTypeDetailPage() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
@@ -248,7 +248,7 @@ export default function AgencyTypeDetailPage() {
 
   if (agencyType === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -256,7 +256,7 @@ export default function AgencyTypeDetailPage() {
 
   if (agencyType === null) {
     return (
-      <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Agency Type Not Found</CardTitle>
@@ -273,23 +273,10 @@ export default function AgencyTypeDetailPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/admin" className="hover:text-foreground transition-colors">
-          Admin
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link href="/admin/settings" className="hover:text-foreground transition-colors">
-          Platform Settings
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground font-medium">{agencyType.name}</span>
-      </nav>
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">{agencyType.name}</h1>
+          <h1 className="text-lg font-semibold tracking-tight">{agencyType.name}</h1>
           <Badge variant={agencyType.isActive ? "default" : "secondary"}>
             {agencyType.isActive ? "Active" : "Inactive"}
           </Badge>
@@ -327,7 +314,7 @@ export default function AgencyTypeDetailPage() {
               <dl className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
                 <div>
                   <dt className="text-muted-foreground mb-1">Name</dt>
-                  <dd className="font-medium text-lg">{agencyType.name}</dd>
+                  <dd className="font-medium text-sm">{agencyType.name}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground mb-1">Description</dt>
@@ -374,7 +361,7 @@ export default function AgencyTypeDetailPage() {
                 <div className="flex items-center gap-3">
                   <Briefcase className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <CardTitle className="text-lg">Carriers</CardTitle>
+                    <CardTitle className="text-sm">Carriers</CardTitle>
                     <CardDescription>Companies/carriers this agency type represents</CardDescription>
                   </div>
                 </div>
@@ -440,7 +427,7 @@ export default function AgencyTypeDetailPage() {
                 <div className="flex items-center gap-3">
                   <Package className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <CardTitle className="text-lg">Products</CardTitle>
+                    <CardTitle className="text-sm">Products</CardTitle>
                     <CardDescription>Services/products this agency type sells</CardDescription>
                   </div>
                 </div>
@@ -505,7 +492,7 @@ export default function AgencyTypeDetailPage() {
               <div className="flex items-center gap-3">
                 <Grid3X3 className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <CardTitle className="text-lg">Commission Rates</CardTitle>
+                  <CardTitle className="text-sm">Commission Rates</CardTitle>
                   <CardDescription>Commission and renewal rates per carrier-product combination. Click a cell to set rates.</CardDescription>
                 </div>
               </div>

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ChevronRight, Phone, Loader2, CheckCircle, Eye, EyeOff, Save, ArrowLeft } from "lucide-react";
+import { Phone, Loader2, CheckCircle, Eye, EyeOff, Save, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
@@ -101,7 +101,7 @@ export default function TenantTwilioSettingsPage() {
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -110,7 +110,7 @@ export default function TenantTwilioSettingsPage() {
   // Only platform users can access this page
   if (!isPlatformUser) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
@@ -130,7 +130,7 @@ export default function TenantTwilioSettingsPage() {
 
   if (tenant === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -138,7 +138,7 @@ export default function TenantTwilioSettingsPage() {
 
   if (tenant === null) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Tenant Not Found</CardTitle>
@@ -162,7 +162,7 @@ export default function TenantTwilioSettingsPage() {
   const isConfigured = existingCreds?.isConfigured ?? false;
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
       {/* Impersonation Banner */}
       <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
         <Eye className="h-4 w-4 text-amber-600" />
@@ -182,26 +182,9 @@ export default function TenantTwilioSettingsPage() {
       </Alert>
 
       <div className="p-6 max-w-2xl mx-auto space-y-6 flex-1">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/admin" className="hover:text-foreground transition-colors">
-            Admin
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link href={`/admin/tenants/${tenant._id}`} className="hover:text-foreground transition-colors">
-            {tenant.name}
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link href={`/admin/tenants/${tenant._id}/settings`} className="hover:text-foreground transition-colors">
-            Settings
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground font-medium">Twilio</span>
-        </nav>
-
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Twilio Settings</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Twilio Settings</h1>
           <p className="text-muted-foreground">
             Configure Twilio credentials for {tenant.name}
           </p>
@@ -369,7 +352,7 @@ export default function TenantTwilioSettingsPage() {
         {/* Help Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Need Help?</CardTitle>
+            <CardTitle className="text-sm">Need Help?</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>To find Twilio credentials:</p>

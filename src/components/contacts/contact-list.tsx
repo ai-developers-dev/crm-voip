@@ -131,7 +131,7 @@ export function ContactList({
             </div>
             {contacts.length === 0 ? (
               <>
-                <h3 className="text-lg font-medium">No contacts yet</h3>
+                <h3 className="text-sm font-medium">No contacts yet</h3>
                 <p className="text-muted-foreground mt-1 mb-4">
                   Add your first contact to get started.
                 </p>
@@ -142,7 +142,7 @@ export function ContactList({
               </>
             ) : (
               <>
-                <h3 className="text-lg font-medium">No matches found</h3>
+                <h3 className="text-sm font-medium">No matches found</h3>
                 <p className="text-muted-foreground mt-1">
                   Try a different search term.
                 </p>
@@ -168,7 +168,7 @@ export function ContactList({
                       {/* Contact info */}
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium">
+                          <h4 className="text-sm font-medium">
                             {contact.firstName} {contact.lastName}
                           </h4>
                           {contact.company && (

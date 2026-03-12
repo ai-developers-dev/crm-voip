@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { normalizePhone } from "./lib/phone";
 
 // Phone number validator used across all contact mutations
 const phoneNumberValidator = v.object({
@@ -38,33 +39,7 @@ export const getById = query({
   },
 });
 
-// Search contacts by phone number (for caller ID)
-export const searchByPhone = query({
-  args: {
-    organizationId: v.id("organizations"),
-    phoneNumber: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const contacts = await ctx.db
-      .query("contacts")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-      .collect();
-
-    // Normalize the search phone number (remove non-digits, get last 10 digits)
-    const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
-
-    // Find contact with matching phone number
-    return (
-      contacts.find((c) =>
-        c.phoneNumbers.some(
-          (p) => p.number.replace(/\D/g, "").slice(-10) === normalized
-        )
-      ) || null
-    );
-  },
-});
-
-// Lookup contact by phone number (alias for caller ID integration)
+// Lookup contact by phone number (for caller ID integration)
 export const lookupByPhone = query({
   args: {
     organizationId: v.id("organizations"),
@@ -76,11 +51,11 @@ export const lookupByPhone = query({
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
       .collect();
 
-    const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
+    const normalized = normalizePhone(args.phoneNumber);
     return (
       contacts.find((c) =>
         c.phoneNumbers.some(
-          (p) => p.number.replace(/\D/g, "").slice(-10) === normalized
+          (p) => normalizePhone(p.number) === normalized
         )
       ) || null
     );
@@ -229,7 +204,7 @@ export const getCommunicationsHistory = query({
 
     // Get all phone numbers for the contact (normalized to last 10 digits)
     const contactPhones = contact.phoneNumbers.map((p) =>
-      p.number.replace(/\D/g, "").slice(-10)
+      normalizePhone(p.number)
     );
 
     // Fetch calls, messages, and emails in parallel
@@ -271,8 +246,8 @@ export const getCommunicationsHistory = query({
       }
 
       // Check phone number match (from or to)
-      const fromNormalized = call.from.replace(/\D/g, "").slice(-10);
-      const toNormalized = call.to.replace(/\D/g, "").slice(-10);
+      const fromNormalized = normalizePhone(call.from);
+      const toNormalized = normalizePhone(call.to);
 
       if (
         contactPhones.includes(fromNormalized) ||
@@ -298,8 +273,8 @@ export const getCommunicationsHistory = query({
       }
 
       // Check phone number match (from or to)
-      const fromNormalized = msg.from.replace(/\D/g, "").slice(-10);
-      const toNormalized = msg.to.replace(/\D/g, "").slice(-10);
+      const fromNormalized = normalizePhone(msg.from);
+      const toNormalized = normalizePhone(msg.to);
 
       if (
         contactPhones.includes(fromNormalized) ||

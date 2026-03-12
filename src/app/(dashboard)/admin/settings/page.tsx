@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
@@ -26,19 +26,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Loader2, Plus, Pencil, Trash2, ChevronRight,
-  Building2, Truck, FileText, ToggleLeft, ToggleRight, Users, Shield
+  Loader2, Plus, Pencil, Trash2,
+  ToggleLeft, ToggleRight, Shield, ChevronDown,
+  Building, Users, Briefcase
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { SettingsRow } from "@/components/settings/settings-row";
 
 export default function AdminSettingsPage() {
   const { user, isLoaded: userLoaded } = useUser();
@@ -78,6 +71,10 @@ export default function AdminSettingsPage() {
   const updatePlatformUserRole = useMutation(api.platformUsers.updateRole);
   const removePlatformUser = useMutation(api.platformUsers.remove);
 
+  // Section expand state
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const toggleSection = (key: string) => setExpandedSection((prev) => (prev === key ? null : key));
+
   // Shared dialog state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -89,14 +86,46 @@ export default function AdminSettingsPage() {
   // Carrier dialog
   const [carrierDialog, setCarrierDialog] = useState<{ mode: "add" | "edit"; item?: any } | null>(null);
   const [carrierName, setCarrierName] = useState("");
+  const [carrierUrl, setCarrierUrl] = useState("");
+  const [carrierPortalUrl, setCarrierPortalUrl] = useState("");
   const [carrierAgencyTypeId, setCarrierAgencyTypeId] = useState("");
   const [deletingCarrier, setDeletingCarrier] = useState<any>(null);
 
   // Product/LOB dialog
   const [productDialog, setProductDialog] = useState<{ mode: "add" | "edit"; item?: any } | null>(null);
   const [productName, setProductName] = useState("");
-  const [productCarrierId, setProductCarrierId] = useState("");
+  const [productCarrierIds, setProductCarrierIds] = useState<string[]>([]);
   const [deletingProduct, setDeletingProduct] = useState<any>(null);
+  const [preselectedCarrierId, setPreselectedCarrierId] = useState<string | null>(null);
+  const [productCoverageFields, setProductCoverageFields] = useState<
+    { key: string; label: string; placeholder: string; type: string; options: string; apiFieldName: string }[]
+  >([]);
+
+  const toCamelCase = (str: string) =>
+    str.trim().toLowerCase().replace(/[^a-zA-Z0-9\s]/g, "")
+      .replace(/\s+(.)/g, (_, c: string) => c.toUpperCase());
+
+  // Expand/collapse state for carriers
+  const [expandedCarrierIds, setExpandedCarrierIds] = useState<Set<string>>(new Set());
+  const toggleExpandCarrier = (id: string) => {
+    setExpandedCarrierIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // Group products by carrier
+  const productsByCarrier = useMemo(() => {
+    const map = new Map<string, typeof allProducts>();
+    if (!allProducts) return map;
+    for (const product of allProducts) {
+      const list = map.get(product.carrierId) ?? [];
+      list.push(product);
+      map.set(product.carrierId, list);
+    }
+    return map;
+  }, [allProducts]);
 
   // Agency Type handlers
   const openAddAgencyType = () => {
@@ -139,11 +168,15 @@ export default function AdminSettingsPage() {
   // Carrier handlers
   const openAddCarrier = () => {
     setCarrierName("");
+    setCarrierUrl("");
+    setCarrierPortalUrl("");
     setCarrierAgencyTypeId("");
     setCarrierDialog({ mode: "add" });
   };
   const openEditCarrier = (item: any) => {
     setCarrierName(item.name);
+    setCarrierUrl(item.websiteUrl ?? "");
+    setCarrierPortalUrl(item.portalUrl ?? "");
     setCarrierAgencyTypeId(item.agencyTypeId);
     setCarrierDialog({ mode: "edit", item });
   };
@@ -153,11 +186,18 @@ export default function AdminSettingsPage() {
     setIsSubmitting(true);
     try {
       if (carrierDialog?.mode === "edit") {
-        await updateCarrier({ id: carrierDialog.item._id, name: carrierName });
+        await updateCarrier({
+          id: carrierDialog.item._id,
+          name: carrierName,
+          websiteUrl: carrierUrl.trim() || undefined,
+          portalUrl: carrierPortalUrl.trim() || undefined,
+        });
       } else {
         await createCarrier({
           agencyTypeId: carrierAgencyTypeId as Id<"agencyTypes">,
           name: carrierName,
+          websiteUrl: carrierUrl.trim() || undefined,
+          portalUrl: carrierPortalUrl.trim() || undefined,
         });
       }
       setCarrierDialog(null);
@@ -183,30 +223,79 @@ export default function AdminSettingsPage() {
   // Product/LOB handlers
   const openAddProduct = () => {
     setProductName("");
-    setProductCarrierId("");
+    setProductCarrierIds([]);
+    setPreselectedCarrierId(null);
+    setProductCoverageFields([]);
+    setProductDialog({ mode: "add" });
+  };
+  const openAddProductForCarrier = (carrierId: string) => {
+    setProductName("");
+    setProductCarrierIds([carrierId]);
+    setPreselectedCarrierId(carrierId);
+    setProductCoverageFields([]);
     setProductDialog({ mode: "add" });
   };
   const openEditProduct = (item: any) => {
     setProductName(item.name);
-    setProductCarrierId(item.carrierId);
+    setProductCarrierIds([item.carrierId]);
+    setProductCoverageFields(
+      (item.coverageFields ?? []).map((f: any) => ({
+        key: f.key ?? "",
+        label: f.label ?? "",
+        placeholder: f.placeholder ?? "",
+        type: f.type ?? "text",
+        options: (f.options ?? []).join(", "),
+        apiFieldName: f.apiFieldName ?? "",
+      }))
+    );
     setProductDialog({ mode: "edit", item });
+  };
+  const toggleProductCarrier = (carrierId: string) => {
+    setProductCarrierIds((prev) =>
+      prev.includes(carrierId)
+        ? prev.filter((id) => id !== carrierId)
+        : [...prev, carrierId]
+    );
   };
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productCarrierId) return;
+    if (productCarrierIds.length === 0) return;
     setIsSubmitting(true);
     try {
-      if (productDialog?.mode === "edit") {
-        await updateProduct({ id: productDialog.item._id, name: productName });
-      } else {
-        // Look up the carrier to get its agencyTypeId
-        const carrier = allCarriers?.find((c) => c._id === productCarrierId);
-        if (!carrier) return;
-        await createProduct({
-          agencyTypeId: carrier.agencyTypeId,
-          carrierId: productCarrierId as Id<"agencyCarriers">,
-          name: productName,
+      const validCoverageFields = productCoverageFields
+        .filter((f) => f.label.trim())
+        .map((f) => {
+          const fieldType = f.type || "text";
+          return {
+            key: f.key || toCamelCase(f.label),
+            label: f.label.trim(),
+            ...(f.placeholder.trim() && { placeholder: f.placeholder.trim() }),
+            ...(fieldType !== "text" && { type: fieldType as "text" | "currency" | "number" | "select" }),
+            ...(fieldType === "select" && f.options.trim() && {
+              options: f.options.split(",").map((o) => o.trim()).filter(Boolean),
+            }),
+            ...(f.apiFieldName.trim() && { apiFieldName: f.apiFieldName.trim() }),
+          };
         });
+
+      if (productDialog?.mode === "edit") {
+        await updateProduct({
+          id: productDialog.item._id,
+          name: productName,
+          coverageFields: validCoverageFields,
+        });
+      } else {
+        // Create one product per selected carrier
+        for (const carrierId of productCarrierIds) {
+          const carrier = allCarriers?.find((c) => c._id === carrierId);
+          if (!carrier) continue;
+          await createProduct({
+            agencyTypeId: carrier.agencyTypeId,
+            carrierId: carrierId as Id<"agencyCarriers">,
+            name: productName,
+            coverageFields: validCoverageFields,
+          });
+        }
       }
       setProductDialog(null);
     } catch (error) {
@@ -298,7 +387,7 @@ export default function AdminSettingsPage() {
 
   if (!userLoaded || isSuperAdmin === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -306,7 +395,7 @@ export default function AdminSettingsPage() {
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex min-h-[calc(100vh-3rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
@@ -321,244 +410,197 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/admin" className="hover:text-foreground transition-colors">
-          Admin
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground font-medium">Platform Settings</span>
-      </nav>
-
+    <div className="p-6 max-w-5xl mx-auto space-y-5">
       <div>
-        <h1 className="text-3xl font-bold">Platform Settings</h1>
-        <p className="text-muted-foreground">Manage agency types, carriers, and lines of business</p>
+        <h1 className="text-lg font-semibold tracking-tight">Platform Settings</h1>
+        <p className="text-sm text-muted-foreground">Manage agency types, carriers, and lines of business</p>
       </div>
 
-      {/* 2x2 Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Settings Rows */}
+      <div className="space-y-2">
 
         {/* ====== AGENCY TYPES ====== */}
-        <Card className="flex flex-col">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                  <Building2 className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Agency Types</CardTitle>
-                  <CardDescription className="text-xs">Business categories</CardDescription>
-                </div>
-              </div>
-              <Button size="sm" onClick={openAddAgencyType}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add
-              </Button>
+        <SettingsRow
+          icon={<Building className="h-4 w-4 text-orange-600" />}
+          label="Agency Types"
+          summary={`${agencyTypes?.length ?? 0} types`}
+          action={
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={openAddAgencyType}>
+              <Plus className="h-3 w-3 mr-1" />
+              Add
+            </Button>
+          }
+          isExpanded={expandedSection === "agency-types"}
+          onToggle={() => toggleSection("agency-types")}
+        >
+          {agencyTypes === undefined ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 pt-0">
-            {agencyTypes === undefined ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : agencyTypes.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p className="text-sm">No agency types yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {agencyTypes.map((type) => {
-                  const carrierCount = allCarriers?.filter((c) => c.agencyTypeId === type._id).length ?? 0;
-                  return (
-                    <div key={type._id} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="font-medium text-sm truncate">{type.name}</span>
-                        <Badge variant={type.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                          {type.isActive ? "Active" : "Off"}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">{carrierCount} carriers</span>
-                      </div>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditAgencyType(type)}><Pencil className="h-3 w-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleActiveAgencyType({ id: type._id })}>{type.isActive ? <ToggleRight className="h-3 w-3" /> : <ToggleLeft className="h-3 w-3" />}</Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingAgencyType(type)}><Trash2 className="h-3 w-3" /></Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          ) : agencyTypes.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No agency types yet.</p>
+          ) : (
+            <div className="space-y-0.5">
+              {agencyTypes.map((type) => (
+                <div key={type._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50 group -mx-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm font-medium truncate">{type.name}</span>
+                    <Badge variant={type.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
+                      {type.isActive ? "Active" : "Off"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditAgencyType(type)}><Pencil className="h-2.5 w-2.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleActiveAgencyType({ id: type._id })}>{type.isActive ? <ToggleRight className="h-2.5 w-2.5" /> : <ToggleLeft className="h-2.5 w-2.5" />}</Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeletingAgencyType(type)}><Trash2 className="h-2.5 w-2.5" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SettingsRow>
 
-        {/* ====== CARRIERS ====== */}
-        <Card className="flex flex-col">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
-                  <Truck className="h-4 w-4 text-blue-500" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Carriers</CardTitle>
-                  <CardDescription className="text-xs">Associated to agency types</CardDescription>
-                </div>
-              </div>
-              <Button size="sm" onClick={openAddCarrier} disabled={!agencyTypes || agencyTypes.length === 0}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add
-              </Button>
+        {/* ====== CARRIERS & LINES OF BUSINESS ====== */}
+        <SettingsRow
+          icon={<Briefcase className="h-4 w-4 text-purple-600" />}
+          label="Carriers & LOB"
+          summary={`${allCarriers?.length ?? 0} carriers`}
+          action={
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={openAddCarrier} disabled={!agencyTypes || agencyTypes.length === 0}>
+              <Plus className="h-3 w-3 mr-1" />
+              Add Carrier
+            </Button>
+          }
+          isExpanded={expandedSection === "carriers"}
+          onToggle={() => toggleSection("carriers")}
+        >
+          {allCarriers === undefined ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 pt-0">
-            {allCarriers === undefined ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : allCarriers.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p className="text-sm">No carriers yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {allCarriers.map((carrier) => {
-                  const lobCount = allProducts?.filter((p) => p.carrierId === carrier._id).length ?? 0;
-                  return (
-                    <div key={carrier._id} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="font-medium text-sm truncate">{carrier.name}</span>
-                        <Badge variant={carrier.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+          ) : allCarriers.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No carriers yet. Add an agency type first, then add carriers.</p>
+          ) : (
+            <div className="space-y-px">
+              {allCarriers.map((carrier) => {
+                const isExpanded = expandedCarrierIds.has(carrier._id);
+                const carrierProducts = productsByCarrier.get(carrier._id) ?? [];
+                return (
+                  <div key={carrier._id}>
+                    <div
+                      className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 group cursor-pointer -mx-2"
+                      onClick={() => toggleExpandCarrier(carrier._id)}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`} />
+                        <span className="text-sm font-medium truncate">{carrier.name}</span>
+                        <Badge variant={carrier.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
                           {carrier.isActive ? "Active" : "Off"}
                         </Badge>
-                        <span className="text-xs text-muted-foreground truncate">{getAgencyTypeName(carrier.agencyTypeId)}</span>
-                        <span className="text-xs text-muted-foreground">{lobCount} LOB</span>
+                        <span className="text-[11px] text-muted-foreground shrink-0">{carrierProducts.length} LOB</span>
                       </div>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditCarrier(carrier)}><Pencil className="h-3 w-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleActiveCarrier({ id: carrier._id })}>{carrier.isActive ? <ToggleRight className="h-3 w-3" /> : <ToggleLeft className="h-3 w-3" />}</Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingCarrier(carrier)}><Trash2 className="h-3 w-3" /></Button>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditCarrier(carrier)}><Pencil className="h-2.5 w-2.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleActiveCarrier({ id: carrier._id })}>{carrier.isActive ? <ToggleRight className="h-2.5 w-2.5" /> : <ToggleLeft className="h-2.5 w-2.5" />}</Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeletingCarrier(carrier)}><Trash2 className="h-2.5 w-2.5" /></Button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ====== LINES OF BUSINESS ====== */}
-        <Card className="flex flex-col">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-500/10">
-                  <FileText className="h-4 w-4 text-green-500" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Lines of Business</CardTitle>
-                  <CardDescription className="text-xs">Associated to carriers</CardDescription>
-                </div>
-              </div>
-              <Button size="sm" onClick={openAddProduct} disabled={!allCarriers || allCarriers.length === 0}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 pt-0">
-            {allProducts === undefined ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : allProducts.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p className="text-sm">No lines of business yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {allProducts.map((product) => (
-                  <div key={product._id} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 group">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="font-medium text-sm truncate">{product.name}</span>
-                      <Badge variant={product.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
-                        {product.isActive ? "Active" : "Off"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground truncate">{getCarrierName(product.carrierId)}</span>
-                    </div>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditProduct(product)}><Pencil className="h-3 w-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleActiveProduct({ id: product._id })}>{product.isActive ? <ToggleRight className="h-3 w-3" /> : <ToggleLeft className="h-3 w-3" />}</Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(product)}><Trash2 className="h-3 w-3" /></Button>
+                    <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
+                      <div className="ml-4 pl-4 py-1 space-y-px border-l-2 border-border/50">
+                        {carrierProducts.length === 0 ? (
+                          <p className="text-xs text-muted-foreground py-2 px-2">No lines of business yet.</p>
+                        ) : (
+                          carrierProducts.map((product) => {
+                            const fieldCount = (product as any).coverageFields?.length ?? 0;
+                            return (
+                              <div key={product._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/30 group/lob">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-sm truncate">{product.name}</span>
+                                  <Badge variant={product.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
+                                    {product.isActive ? "Active" : "Off"}
+                                  </Badge>
+                                  {fieldCount > 0 && (
+                                    <span className="text-[10px] text-muted-foreground shrink-0">{fieldCount} {fieldCount === 1 ? "field" : "fields"}</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover/lob:opacity-100 transition-opacity shrink-0">
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditProduct(product)}><Pencil className="h-2.5 w-2.5" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleActiveProduct({ id: product._id })}>{product.isActive ? <ToggleRight className="h-2.5 w-2.5" /> : <ToggleLeft className="h-2.5 w-2.5" />}</Button>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeletingProduct(product)}><Trash2 className="h-2.5 w-2.5" /></Button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 text-muted-foreground"
+                          onClick={() => openAddProductForCarrier(carrier._id)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add LOB
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                );
+              })}
+            </div>
+          )}
+        </SettingsRow>
 
         {/* ====== PLATFORM USERS ====== */}
-        <Card className="flex flex-col">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/10">
-                  <Users className="h-4 w-4 text-orange-500" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">Platform Users</CardTitle>
-                  <CardDescription className="text-xs">Admins & staff</CardDescription>
-                </div>
-              </div>
-              <Button size="sm" onClick={openAddUser}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add
-              </Button>
+        <SettingsRow
+          icon={<Users className="h-4 w-4 text-blue-600" />}
+          label="Platform Users"
+          summary={`${platformUsers?.length ?? 0} users`}
+          action={
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={openAddUser}>
+              <Plus className="h-3 w-3 mr-1" />
+              Add
+            </Button>
+          }
+          isExpanded={expandedSection === "platform-users"}
+          onToggle={() => toggleSection("platform-users")}
+        >
+          {platformUsers === undefined ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 pt-0">
-            {platformUsers === undefined ? (
-              <div className="flex justify-center py-6">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : platformUsers.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p className="text-sm">No platform users found.</p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {platformUsers.map((pu) => {
-                  const isCurrentUser = pu.clerkUserId === user?.id;
-                  return (
-                    <div key={pu._id} className="flex items-center justify-between py-2 px-3 rounded-md hover:bg-muted/50 group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="min-w-0">
-                          <span className="font-medium text-sm truncate block">
-                            {pu.name}
-                            {isCurrentUser && <span className="text-[10px] text-muted-foreground ml-1">(you)</span>}
-                          </span>
-                          <span className="text-xs text-muted-foreground truncate block">{pu.email}</span>
-                        </div>
+          ) : platformUsers.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No platform users found.</p>
+          ) : (
+            <div className="space-y-0.5">
+              {platformUsers.map((pu) => {
+                const isCurrentUser = pu.clerkUserId === user?.id;
+                return (
+                  <div key={pu._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50 group -mx-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">
+                          {pu.name}
+                          {isCurrentUser && <span className="text-[10px] text-muted-foreground ml-1">(you)</span>}
+                        </span>
                         <Badge variant={pu.role === "super_admin" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 gap-0.5 shrink-0">
                           {pu.role === "super_admin" && <Shield className="h-2.5 w-2.5" />}
                           {pu.role === "super_admin" ? "Admin" : "User"}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditUser(pu)} disabled={isCurrentUser}><Pencil className="h-3 w-3" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingUser(pu)} disabled={isCurrentUser}><Trash2 className="h-3 w-3" /></Button>
-                      </div>
+                      <span className="text-[11px] text-muted-foreground truncate block">{pu.email}</span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditUser(pu)} disabled={isCurrentUser}><Pencil className="h-2.5 w-2.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeletingUser(pu)} disabled={isCurrentUser}><Trash2 className="h-2.5 w-2.5" /></Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </SettingsRow>
 
-      </div>{/* end grid */}
+      </div>{/* end settings rows */}
 
       {/* ====== DIALOGS ====== */}
 
@@ -633,6 +675,31 @@ export default function AdminSettingsPage() {
                   className="mt-2"
                 />
               </div>
+              <div>
+                <Label htmlFor="carrierUrl">Website URL</Label>
+                <Input
+                  id="carrierUrl"
+                  type="url"
+                  placeholder="https://www.carrier.com"
+                  value={carrierUrl}
+                  onChange={(e) => setCarrierUrl(e.target.value)}
+                  disabled={isSubmitting}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label htmlFor="carrierPortalUrl">Agent Portal URL</Label>
+                <Input
+                  id="carrierPortalUrl"
+                  type="url"
+                  placeholder="https://agent.carrier.com"
+                  value={carrierPortalUrl}
+                  onChange={(e) => setCarrierPortalUrl(e.target.value)}
+                  disabled={isSubmitting}
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Clicking carrier in policies will open this URL and copy the policy number</p>
+              </div>
               {carrierDialog?.mode !== "edit" && (
                 <div>
                   <Label>Agency Type *</Label>
@@ -680,14 +747,20 @@ export default function AdminSettingsPage() {
       </Dialog>
 
       {/* Product/LOB Add/Edit */}
-      <Dialog open={!!productDialog} onOpenChange={(open) => { if (!open) setProductDialog(null); }}>
+      <Dialog open={!!productDialog} onOpenChange={(open) => { if (!open) { setProductDialog(null); setPreselectedCarrierId(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{productDialog?.mode === "edit" ? "Edit Line of Business" : "Add Line of Business"}</DialogTitle>
-            <DialogDescription>Enter the name and select its carrier.</DialogDescription>
+            <DialogDescription>
+              {productDialog?.mode === "edit"
+                ? "Update the line of business name."
+                : preselectedCarrierId
+                  ? `Add a line of business to ${getCarrierName(preselectedCarrierId as Id<"agencyCarriers">)}.`
+                  : "Enter the name and select a carrier."}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleProductSubmit}>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 max-h-[calc(100vh-16rem)] overflow-y-auto pr-1">
               <div>
                 <Label htmlFor="productName">Name *</Label>
                 <Input
@@ -700,10 +773,10 @@ export default function AdminSettingsPage() {
                   className="mt-2"
                 />
               </div>
-              {productDialog?.mode !== "edit" && (
+              {productDialog?.mode !== "edit" && !preselectedCarrierId && (
                 <div>
                   <Label>Carrier *</Label>
-                  <Select value={productCarrierId} onValueChange={setProductCarrierId}>
+                  <Select value={productCarrierIds[0] ?? ""} onValueChange={(v) => setProductCarrierIds([v])}>
                     <SelectTrigger className="mt-2">
                       <SelectValue placeholder="Select carrier" />
                     </SelectTrigger>
@@ -717,10 +790,111 @@ export default function AdminSettingsPage() {
                   </Select>
                 </div>
               )}
+              {/* Coverage Fields Editor */}
+              <div>
+                <Label>Coverage Fields</Label>
+                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                  Define the coverage inputs agents will fill out for this line of business.
+                </p>
+                <div className="space-y-3">
+                  {productCoverageFields.map((field, i) => (
+                    <div key={i} className="space-y-1.5 rounded-md border border-border/60 p-2.5">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Label (e.g., Collision Deductible)"
+                          value={field.label}
+                          onChange={(e) => {
+                            const updated = [...productCoverageFields];
+                            updated[i] = { ...field, label: e.target.value, key: toCamelCase(e.target.value) };
+                            setProductCoverageFields(updated);
+                          }}
+                          disabled={isSubmitting}
+                          className="flex-1"
+                        />
+                        <Select
+                          value={field.type || "text"}
+                          onValueChange={(v) => {
+                            const updated = [...productCoverageFields];
+                            updated[i] = { ...field, type: v };
+                            setProductCoverageFields(updated);
+                          }}
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="text">Text</SelectItem>
+                            <SelectItem value="currency">Currency</SelectItem>
+                            <SelectItem value="number">Number</SelectItem>
+                            <SelectItem value="select">Select</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => setProductCoverageFields((f) => f.filter((_, j) => j !== i))}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {field.type === "select" ? (
+                          <Input
+                            placeholder="Options (comma-separated, e.g., $250, $500, $1000)"
+                            value={field.options}
+                            onChange={(e) => {
+                              const updated = [...productCoverageFields];
+                              updated[i] = { ...field, options: e.target.value };
+                              setProductCoverageFields(updated);
+                            }}
+                            disabled={isSubmitting}
+                            className="flex-1"
+                          />
+                        ) : (
+                          <Input
+                            placeholder="Placeholder (e.g., $500)"
+                            value={field.placeholder}
+                            onChange={(e) => {
+                              const updated = [...productCoverageFields];
+                              updated[i] = { ...field, placeholder: e.target.value };
+                              setProductCoverageFields(updated);
+                            }}
+                            disabled={isSubmitting}
+                            className="flex-1"
+                          />
+                        )}
+                        <Input
+                          placeholder="API field name"
+                          value={field.apiFieldName}
+                          onChange={(e) => {
+                            const updated = [...productCoverageFields];
+                            updated[i] = { ...field, apiFieldName: e.target.value };
+                            setProductCoverageFields(updated);
+                          }}
+                          disabled={isSubmitting}
+                          className="w-32"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setProductCoverageFields((f) => [...f, { key: "", label: "", placeholder: "", type: "text", options: "", apiFieldName: "" }])}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add Coverage Field
+                  </Button>
+                </div>
+              </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setProductDialog(null)} disabled={isSubmitting}>Cancel</Button>
-              <Button type="submit" disabled={isSubmitting || !productName.trim() || !productCarrierId}>
+              <Button type="button" variant="outline" onClick={() => { setProductDialog(null); setPreselectedCarrierId(null); }} disabled={isSubmitting}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting || !productName.trim() || productCarrierIds.length === 0}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {productDialog?.mode === "edit" ? "Save" : "Create"}
               </Button>

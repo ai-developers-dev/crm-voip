@@ -14,10 +14,11 @@ interface ContactPanelDrawerProps {
   contact: Doc<"contacts">;
   organizationId: Id<"organizations">;
   userId?: Id<"users">;
+  isAdmin?: boolean;
   onClose: () => void;
 }
 
-export function ContactPanelDrawer({ type, contact, organizationId, userId, onClose }: ContactPanelDrawerProps) {
+export function ContactPanelDrawer({ type, contact, organizationId, userId, isAdmin, onClose }: ContactPanelDrawerProps) {
   switch (type) {
     case "tasks":
       return <TasksPanel contact={contact} organizationId={organizationId} userId={userId} onClose={onClose} />;
@@ -26,7 +27,7 @@ export function ContactPanelDrawer({ type, contact, organizationId, userId, onCl
     case "appointments":
       return <AppointmentsPanel contact={contact} organizationId={organizationId} userId={userId} onClose={onClose} />;
     case "policies":
-      return <PoliciesPanel contact={contact} organizationId={organizationId} userId={userId} onClose={onClose} />;
+      return <PoliciesPanel contact={contact} organizationId={organizationId} userId={userId} isAdmin={isAdmin} onClose={onClose} />;
     case "documents":
       return <DocumentsPanel contact={contact} organizationId={organizationId} userId={userId} onClose={onClose} />;
   }

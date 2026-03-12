@@ -21,13 +21,17 @@ import {
 } from "@/components/ui/dialog";
 import {
   Phone, Users, Settings, ArrowRight, CheckCircle, XCircle, Loader2,
-  ChevronRight, ArrowLeft, Eye, Building2, Pencil, AlertCircle, Mail, Unplug, Trash2, Plus
+  ArrowLeft, Eye, Building2, Pencil, AlertCircle, Mail, Unplug, Trash2, Plus, Briefcase,
+  Music, ImageIcon
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { updateTenant, UpdateTenantData } from "../../../actions";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
+import { SalesGoalsManager } from "@/components/settings/sales-goals-manager";
+import { ImageUpload } from "@/components/settings/image-upload";
+import { SettingsRow } from "@/components/settings/settings-row";
 
 export default function TenantSettingsPage() {
   const params = useParams();
@@ -62,6 +66,37 @@ export default function TenantSettingsPage() {
   const removeEmail = useMutation(api.emailAccounts.remove);
   const [isConnectingEmail, setIsConnectingEmail] = useState(false);
   const [deletingEmailAccount, setDeletingEmailAccount] = useState<any>(null);
+
+  // Logo upload
+  const logoUrl = useQuery(
+    api.logoUpload.getLogoUrl,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+  const generateLogoUploadUrl = useMutation(api.logoUpload.generateUploadUrl);
+  const saveLogo = useMutation(api.logoUpload.saveLogo);
+  const deleteLogo = useMutation(api.logoUpload.deleteLogo);
+
+  const handleLogoUpload = async (file: File) => {
+    if (!tenant?._id) return;
+    const uploadUrl = await generateLogoUploadUrl({ organizationId: tenant._id });
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+    if (!response.ok) throw new Error("Upload failed");
+    const { storageId } = await response.json();
+    await saveLogo({ organizationId: tenant._id, storageId });
+  };
+
+  const handleLogoDelete = async () => {
+    if (!tenant?._id) return;
+    await deleteLogo({ organizationId: tenant._id });
+  };
+
+  // Expandable row state
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const toggleRow = (key: string) => setExpandedRow((prev) => (prev === key ? null : key));
 
   // Edit dialog state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -165,7 +200,7 @@ export default function TenantSettingsPage() {
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -174,7 +209,7 @@ export default function TenantSettingsPage() {
   // Only platform users can access this page
   if (!isPlatformUser) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
@@ -194,7 +229,7 @@ export default function TenantSettingsPage() {
 
   if (tenant === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -202,7 +237,7 @@ export default function TenantSettingsPage() {
 
   if (tenant === null) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <CardTitle>Tenant Not Found</CardTitle>
@@ -226,7 +261,7 @@ export default function TenantSettingsPage() {
   const twilioConfigured = tenant?.settings?.twilioCredentials?.isConfigured ?? false;
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
       {/* Impersonation Banner */}
       <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
         <Eye className="h-4 w-4 text-amber-600" />
@@ -246,269 +281,204 @@ export default function TenantSettingsPage() {
       </Alert>
 
       <div className="p-6 max-w-4xl mx-auto space-y-6 flex-1">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/admin" className="hover:text-foreground transition-colors">
-            Admin
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link href={`/admin/tenants/${tenant._id}`} className="hover:text-foreground transition-colors">
-            {tenant.name}
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground font-medium">Settings</span>
-        </nav>
-
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Tenant Settings</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Tenant Settings</h1>
           <p className="text-muted-foreground">
             Manage settings for {tenant.name}
           </p>
         </div>
 
-        {/* Settings Cards */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Twilio Settings */}
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
-                    <Phone className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Twilio</CardTitle>
-                    <CardDescription>Voice & Phone Settings</CardDescription>
-                  </div>
-                </div>
-                {twilioConfigured ? (
-                  <Badge variant="default" className="gap-1 bg-green-600">
-                    <CheckCircle className="h-3 w-3" />
-                    Configured
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="gap-1">
-                    <XCircle className="h-3 w-3" />
-                    Not Set Up
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Configure Twilio credentials to enable voice calling for this tenant.
-              </p>
-              <Link href={`/admin/tenants/${tenant._id}/settings/twilio`}>
-                <Button variant="outline" className="w-full">
-                  Configure Twilio
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        {/* Settings Rows */}
+        <div className="space-y-2">
+          {/* Twilio */}
+          <SettingsRow
+            icon={<Phone className="h-4 w-4 text-red-600" />}
+            label="Twilio"
+            summary={twilioConfigured ? "Configured" : "Not Set Up"}
+            badge={twilioConfigured
+              ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Configured</Badge>
+              : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />Not Set Up</Badge>
+            }
+            isExpanded={expandedRow === "twilio"}
+            onToggle={() => toggleRow("twilio")}
+          >
+            <p className="text-sm text-muted-foreground mb-3">
+              Configure Twilio credentials to enable voice calling for this tenant.
+            </p>
+            <Link href={`/admin/tenants/${tenant._id}/settings/twilio`}>
+              <Button variant="outline" size="sm">
+                Configure Twilio
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </SettingsRow>
 
-          {/* User Management */}
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                    <Users className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Users</CardTitle>
-                    <CardDescription>Team Management</CardDescription>
-                  </div>
-                </div>
-                <Badge variant="secondary">
-                  {users?.length ?? 0} users
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                View and manage team members for this tenant organization.
-              </p>
-              <Link href={`/admin/tenants/${tenant._id}/settings/users`}>
-                <Button variant="outline" className="w-full">
-                  Manage Users
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          {/* Users */}
+          <SettingsRow
+            icon={<Users className="h-4 w-4 text-blue-600" />}
+            label="Users"
+            summary={`${users?.length ?? 0} users`}
+            badge={<Badge variant="secondary">{users?.length ?? 0} users</Badge>}
+            isExpanded={expandedRow === "users"}
+            onToggle={() => toggleRow("users")}
+          >
+            <p className="text-sm text-muted-foreground mb-3">
+              View and manage team members for this tenant organization.
+            </p>
+            <Link href={`/admin/tenants/${tenant._id}/settings/users`}>
+              <Button variant="outline" size="sm">
+                Manage Users
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </SettingsRow>
+
+          {/* Carriers */}
+          <SettingsRow
+            icon={<Briefcase className="h-4 w-4 text-purple-600" />}
+            label="Carriers"
+            summary="Lines of Business"
+            isExpanded={expandedRow === "carriers"}
+            onToggle={() => toggleRow("carriers")}
+          >
+            <p className="text-sm text-muted-foreground mb-3">
+              Configure carriers, lines of business, and commission rates for this tenant.
+            </p>
+            <Link href={`/admin/tenants/${tenant._id}/settings/carriers`}>
+              <Button variant="outline" size="sm">
+                Manage Carriers
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </SettingsRow>
+
+          {/* Sales Goals */}
+          {tenant?._id && (
+            <SettingsRow
+              icon={<Settings className="h-4 w-4 text-green-600" />}
+              label="Sales Goals"
+              summary="Daily, Weekly, Monthly targets"
+              isExpanded={expandedRow === "goals"}
+              onToggle={() => toggleRow("goals")}
+            >
+              <SalesGoalsManager organizationId={tenant._id} />
+            </SettingsRow>
+          )}
 
           {/* Email Accounts */}
-          <Card className="hover:shadow-md transition-shadow md:col-span-2">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-                    <Mail className="h-5 w-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Email Accounts</CardTitle>
-                    <CardDescription>Connected email accounts for this tenant</CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {emailAccounts && emailAccounts.some((a) => a.status === "active") ? (
-                    <Badge variant="default" className="gap-1 bg-green-600">
-                      <CheckCircle className="h-3 w-3" />
-                      {emailAccounts.filter((a) => a.status === "active").length} Connected
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="gap-1">
-                      <XCircle className="h-3 w-3" />
-                      None
-                    </Badge>
-                  )}
+          <SettingsRow
+            icon={<Mail className="h-4 w-4 text-amber-600" />}
+            label="Email"
+            summary={emailAccounts && emailAccounts.some((a) => a.status === "active")
+              ? `${emailAccounts.filter((a) => a.status === "active").length} connected`
+              : "None connected"
+            }
+            badge={emailAccounts && emailAccounts.some((a) => a.status === "active")
+              ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />{emailAccounts.filter((a) => a.status === "active").length} Connected</Badge>
+              : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />None</Badge>
+            }
+            isExpanded={expandedRow === "email"}
+            onToggle={() => toggleRow("email")}
+          >
+            {emailAccounts === undefined ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : emailAccounts.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-2">
+                <p className="text-sm text-muted-foreground">
+                  No email accounts connected for this tenant.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleConnectEmailForTenant("google")} disabled={isConnectingEmail}>
+                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Connect Gmail
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleConnectEmailForTenant("microsoft")} disabled={isConnectingEmail}>
+                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Connect Outlook
+                  </Button>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              {emailAccounts === undefined ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : emailAccounts.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-4">
-                  <p className="text-sm text-muted-foreground">
-                    No email accounts connected for this tenant.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleConnectEmailForTenant("google")}
-                      disabled={isConnectingEmail}
-                    >
-                      {isConnectingEmail ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                      )}
-                      Connect Gmail
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleConnectEmailForTenant("microsoft")}
-                      disabled={isConnectingEmail}
-                    >
-                      {isConnectingEmail ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                      )}
-                      Connect Outlook
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {emailAccounts.map((account) => (
-                    <div
-                      key={account._id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{account.email}</p>
-                        <p className="text-xs text-muted-foreground">
-                          <span className="capitalize">{account.provider}</span>
-                          {" · "}
-                          <span className={account.status === "active" ? "text-green-600" : "text-red-500"}>
-                            {account.status}
-                          </span>
-                          {" · Connected "}
-                          {new Date(account.connectedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => disconnectEmail({ emailAccountId: account._id })}
-                        >
-                          <Unplug className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeletingEmailAccount(account)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+            ) : (
+              <div className="space-y-2">
+                {emailAccounts.map((account) => (
+                  <div key={account._id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{account.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="capitalize">{account.provider}</span>
+                        {" · "}
+                        <span className={account.status === "active" ? "text-green-600" : "text-red-500"}>{account.status}</span>
+                        {" · Connected "}{new Date(account.connectedAt).toLocaleDateString()}
+                      </p>
                     </div>
-                  ))}
-                  <div className="flex gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleConnectEmailForTenant("google")}
-                      disabled={isConnectingEmail}
-                    >
-                      {isConnectingEmail ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                      )}
-                      Connect Gmail
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleConnectEmailForTenant("microsoft")}
-                      disabled={isConnectingEmail}
-                    >
-                      {isConnectingEmail ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Plus className="h-4 w-4 mr-2" />
-                      )}
-                      Connect Outlook
-                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => disconnectEmail({ emailAccountId: account._id })}>
+                        <Unplug className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeletingEmailAccount(account)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Organization Info */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Building2 className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Organization Details</CardTitle>
-                  <CardDescription>Tenant organization information</CardDescription>
+                ))}
+                <div className="flex gap-2 mt-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmailForTenant("google")} disabled={isConnectingEmail}>
+                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Connect Gmail
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmailForTenant("microsoft")} disabled={isConnectingEmail}>
+                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Connect Outlook
+                  </Button>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={openEditDialog}>
-                <Pencil className="h-4 w-4 mr-2" />
+            )}
+          </SettingsRow>
+
+          {/* Agency Logo */}
+          {tenant._id && (
+            <SettingsRow
+              icon={<ImageIcon className="h-4 w-4 text-indigo-600" />}
+              label="Agency Logo"
+              summary={logoUrl ? "Custom logo uploaded" : "Using default"}
+              isExpanded={expandedRow === "logo"}
+              onToggle={() => toggleRow("logo")}
+            >
+              <ImageUpload
+                currentImageUrl={logoUrl}
+                onUpload={handleLogoUpload}
+                onDelete={handleLogoDelete}
+                label="Agency Logo"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              description="Upload the agency logo (PNG, JPG, WebP, SVG). Recommended size: 200x200px. Replaces the default VoIP CRM text in the header."
+                previewShape="rounded"
+                previewSize="h-12 w-auto max-w-[200px]"
+              />
+            </SettingsRow>
+          )}
+
+          {/* Agency Details */}
+          <SettingsRow
+            icon={<Building2 className="h-4 w-4 text-primary" />}
+            label="Agency"
+            summary={`${tenant.plan ?? "free"} plan`}
+            badge={<Badge variant="secondary">{tenant.plan ?? "free"}</Badge>}
+            action={
+              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openEditDialog(); }}>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
                 Edit
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
+            }
+            isExpanded={expandedRow === "org"}
+            onToggle={() => toggleRow("org")}
+          >
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <dt className="text-muted-foreground">Name</dt>
                 <dd className="font-medium">{tenant.name}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Plan</dt>
-                <dd>
-                  <Badge variant="secondary">{tenant.plan ?? "free"}</Badge>
-                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">Max Concurrent Calls</dt>
@@ -516,9 +486,7 @@ export default function TenantSettingsPage() {
               </div>
               <div>
                 <dt className="text-muted-foreground">Recording</dt>
-                <dd className="font-medium">
-                  {tenant.settings?.recordingEnabled ? "Enabled" : "Disabled"}
-                </dd>
+                <dd className="font-medium">{tenant.settings?.recordingEnabled ? "Enabled" : "Disabled"}</dd>
               </div>
               {tenant.businessInfo && (
                 <>
@@ -551,13 +519,21 @@ export default function TenantSettingsPage() {
                 </>
               )}
             </dl>
-          </CardContent>
-        </Card>
+          </SettingsRow>
 
-        {/* Hold Music Upload */}
-        {tenant._id && (
-          <HoldMusicUpload organizationId={tenant._id} />
-        )}
+          {/* Hold Music */}
+          {tenant._id && (
+            <SettingsRow
+              icon={<Music className="h-4 w-4 text-teal-600" />}
+              label="Hold Music"
+              summary="Custom hold music"
+              isExpanded={expandedRow === "holdmusic"}
+              onToggle={() => toggleRow("holdmusic")}
+            >
+              <HoldMusicUpload organizationId={tenant._id} />
+            </SettingsRow>
+          )}
+        </div>
       </div>
 
       {/* Delete Email Account Dialog */}

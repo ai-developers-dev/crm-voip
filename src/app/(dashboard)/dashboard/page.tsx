@@ -52,7 +52,7 @@ export default function DashboardPage() {
   // Show loading while checking platform user status
   if (isPlatformUser === undefined || platformOrg === undefined) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -61,7 +61,7 @@ export default function DashboardPage() {
   // If platform user, show redirecting message (they should use /admin)
   if (isPlatformUser === true) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">Redirecting to Admin Dashboard...</p>
@@ -73,7 +73,7 @@ export default function DashboardPage() {
   // Show organization selection prompt if no org selected
   if (orgLoaded && !organization) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="text-center">Welcome to VoIP CRM</CardTitle>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
 
   if (!orgLoaded || !userLoaded) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <div className="animate-pulse text-muted-foreground">
           Loading...
         </div>
@@ -103,7 +103,7 @@ export default function DashboardPage() {
   // Show setup prompt if platform is not configured
   if (platformOrg === null) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
+      <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -132,7 +132,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Warning banner for skipped onboarding / unconfigured Twilio */}
       {showSetupBanner &&
         onboardingStatus?.reason === "skipped" &&

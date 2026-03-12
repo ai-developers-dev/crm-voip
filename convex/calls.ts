@@ -226,7 +226,6 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
     // When we park a call, the browser SDK disconnects which triggers a "completed" status
     // But the call is still active in the conference - don't delete it!
     if (args.state === "ended" && call.state === "parked") {
-      console.log(`Ignoring 'ended' status for parked call ${args.twilioCallSid} - call is in parking lot`);
       return;
     }
 
@@ -365,14 +364,6 @@ export const parkByCallSid = mutation({
     parkedByUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    console.log("🅿️ parkByCallSid called with:", {
-      twilioCallSid: args.twilioCallSid,
-      pstnCallSid: args.pstnCallSid,
-      conferenceName: args.conferenceName,
-      callerNumber: args.callerNumber,
-      organizationId: args.organizationId,
-    });
-
     // Find call by twilioCallSid
     const call = await ctx.db
       .query("activeCalls")
@@ -380,8 +371,6 @@ export const parkByCallSid = mutation({
         q.eq("twilioCallSid", args.twilioCallSid)
       )
       .first();
-
-    console.log("🅿️ Found activeCall:", call ? { id: call._id, state: call.state, from: call.from } : "NOT FOUND");
 
     // Find first available slot
     const slots = await ctx.db
@@ -438,8 +427,6 @@ export const parkByCallSid = mutation({
         parkingSlot: slotNumber,
         holdStartedAt: Date.now(),
       });
-      console.log(`🅿️ Updated activeCall ${call._id} to state=parked, slot=${slotNumber}`);
-
       // Update user status back to available
       if (call.assignedUserId) {
         await ctx.db.patch(call.assignedUserId, {
@@ -447,11 +434,7 @@ export const parkByCallSid = mutation({
           updatedAt: Date.now(),
         });
       }
-    } else {
-      console.log("🅿️ WARNING: No activeCall found - parking lot entry created but call state not updated");
     }
-
-    console.log(`🅿️ parkByCallSid SUCCESS - slot ${slotNumber}, conference: ${args.conferenceName}`);
 
     return {
       success: true,
@@ -577,9 +560,6 @@ export const claimCall = mutation({
     clerkOrgId: v.optional(v.string()), // Fallback org lookup for race condition handling
   },
   handler: async (ctx, args) => {
-    console.log(`\n=== CLAIM CALL MUTATION DEBUG ===`);
-    console.log(`Input: twilioCallSid=${args.twilioCallSid}, agentClerkId=${args.agentClerkId}, clerkOrgId=${args.clerkOrgId}`);
-
     // Find the call by Twilio SID
     // NOTE: This might be the AGENT leg's SID, not the PSTN caller's SID
     // Twilio creates two calls: PSTN→Twilio (original) and Twilio→Agent (browser)
@@ -593,7 +573,6 @@ export const claimCall = mutation({
 
     if (!call && args.clerkOrgId) {
       const clerkOrgId = args.clerkOrgId; // Assign to const for TypeScript
-      console.log(`⚠️ Call NOT FOUND by exact SID - using clerkOrgId fallback: ${clerkOrgId}`);
       const org = await ctx.db
         .query("organizations")
         .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", clerkOrgId))
@@ -601,7 +580,6 @@ export const claimCall = mutation({
       if (org) {
         const foundOrgId = org._id; // Capture for TypeScript narrowing in callbacks
         orgId = foundOrgId;
-        console.log(`✓ Found org by clerkOrgId: ${orgId}`);
 
         // CRITICAL FIX: The twilioCallSid from the browser is the AGENT leg's SID,
         // but the activeCall was created with the PSTN leg's SID.
@@ -614,18 +592,12 @@ export const claimCall = mutation({
           .first();
 
         if (ringingCall) {
-          console.log(`✓ Found ringing call in org: id=${ringingCall._id}, from=${ringingCall.from}, twilioSid=${ringingCall.twilioCallSid}`);
           call = ringingCall; // Use this call instead
-        } else {
-          console.log(`⚠️ No ringing calls found in org ${org._id}`);
         }
       }
-    } else if (call) {
-      console.log(`✓ Found call by exact SID: id=${call._id}, org=${call.organizationId}, state=${call.state}`);
     }
 
     if (!orgId) {
-      console.log(`❌ Could not determine organization (call not found, no clerkOrgId fallback)`);
       return { success: false, reason: "call_not_found_no_org" };
     }
 
@@ -636,16 +608,11 @@ export const claimCall = mutation({
       .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.agentClerkId))
       .collect();
 
-    console.log(`✓ Found ${usersWithClerkId.length} users with clerkId ${args.agentClerkId}:`);
-    usersWithClerkId.forEach(u => console.log(`  - ${u.name} (${u._id}) in org ${u.organizationId}`));
-
     const user = usersWithClerkId.find(u => u.organizationId === orgId);
 
     if (!user) {
-      console.log(`❌ No user found in org ${orgId}`);
       return { success: false, reason: "agent_not_found" };
     }
-    console.log(`✓ Matched user: ${user.name} (${user._id})`)
 
     // MULTI-CALL: Check if user has reached max concurrent calls
     const org = await ctx.db.get(orgId);
@@ -658,31 +625,18 @@ export const claimCall = mutation({
       .collect();
 
     if (userActiveCalls.length >= maxConcurrentCalls) {
-      console.log(`❌ User ${user.name} has reached max concurrent calls (${maxConcurrentCalls})`);
       return { success: false, reason: "max_calls_reached" };
     }
 
-    // Calculate today's date and user metrics (used in both paths)
-    const today = new Date().toISOString().split("T")[0];
-    const isNewDay = user.lastCallCountReset !== today;
-    const currentInbound = isNewDay ? 0 : (user.todayInboundCalls || 0);
-    const currentOutbound = isNewDay ? 0 : (user.todayOutboundCalls || 0);
-    const newInbound = currentInbound + 1;
-
     // Handle case where call record doesn't exist yet (race condition)
-    // Still increment stats - the call record will be created by webhook soon
+    // The call record will be created by webhook soon
     if (!call) {
-      console.log(`⚠️ No call record found - updating user status (call record pending)`);
-
       await ctx.db.patch(user._id, {
         status: "on_call",
-        todayInboundCalls: newInbound,
-        todayOutboundCalls: currentOutbound,
-        lastCallCountReset: today,
         updatedAt: Date.now(),
       });
 
-      return { success: true, reason: "stats_incremented_call_pending", userId: user._id };
+      return { success: true, reason: "status_updated_call_pending", userId: user._id };
     }
 
     // Check if already claimed by another agent
@@ -709,13 +663,8 @@ export const claimCall = mutation({
     // Update user status to on_call
     await ctx.db.patch(user._id, {
       status: "on_call",
-      todayInboundCalls: newInbound,
-      todayOutboundCalls: currentOutbound,
-      lastCallCountReset: today,
       updatedAt: Date.now(),
     });
-
-    console.log(`✅ Call claimed by ${user.name}`);
 
     return { success: true, callId: call._id, userId: user._id };
   },
@@ -782,7 +731,6 @@ export const endByCallSid = mutation({
       .first();
 
     if (!call) {
-      console.log(`Call ${args.twilioCallSid} not found - may already be cleaned up`);
       return { success: true, alreadyCleaned: true };
     }
 
@@ -826,7 +774,6 @@ export const endByCallSid = mutation({
     // Delete active call
     await ctx.db.delete(call._id);
 
-    console.log(`Call ${args.twilioCallSid} ended and moved to history`);
     return { success: true };
   },
 });
@@ -844,7 +791,6 @@ export const clearAllActiveCalls = mutation({
       await ctx.db.delete(call._id);
     }
 
-    console.log(`Cleared ${calls.length} active calls`);
     return { success: true, clearedCount: calls.length };
   },
 });
@@ -854,7 +800,6 @@ export const clearAllActiveCalls = mutation({
 export const getIncomingCallData = query({
   args: { phoneNumber: v.string() },
   handler: async (ctx, args) => {
-    const startTime = Date.now();
     const now = Date.now();
 
     // Step 1: Look up phone number config
@@ -864,7 +809,6 @@ export const getIncomingCallData = query({
       .first();
 
     if (!phoneConfig) {
-      console.log(`Phone lookup took ${Date.now() - startTime}ms - NOT FOUND`);
       return { found: false as const, phoneNumber: args.phoneNumber };
     }
 
@@ -880,7 +824,6 @@ export const getIncomingCallData = query({
     ]);
 
     if (!organization) {
-      console.log(`Phone lookup took ${Date.now() - startTime}ms - ORG NOT FOUND`);
       return { found: false as const, phoneNumber: args.phoneNumber };
     }
 
@@ -941,9 +884,6 @@ export const getIncomingCallData = query({
         twilioIdentity: `${organization.clerkOrgId}-${user.clerkUserId}`,
       }));
     }
-
-    const totalTime = Date.now() - startTime;
-    console.log(`getIncomingCallData took ${totalTime}ms - found ${agents.length} agents`);
 
     return {
       found: true as const,

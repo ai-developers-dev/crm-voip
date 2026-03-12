@@ -1,6 +1,20 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+const coverageFieldValidator = v.object({
+  key: v.string(),
+  label: v.string(),
+  placeholder: v.optional(v.string()),
+  type: v.optional(v.union(
+    v.literal("text"),
+    v.literal("currency"),
+    v.literal("number"),
+    v.literal("select"),
+  )),
+  options: v.optional(v.array(v.string())),
+  apiFieldName: v.optional(v.string()),
+});
+
 export const getByAgencyType = query({
   args: { agencyTypeId: v.id("agencyTypes") },
   handler: async (ctx, args) => {
@@ -33,6 +47,7 @@ export const create = mutation({
     agencyTypeId: v.id("agencyTypes"),
     carrierId: v.id("agencyCarriers"),
     name: v.string(),
+    coverageFields: v.optional(v.array(coverageFieldValidator)),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -41,6 +56,7 @@ export const create = mutation({
       carrierId: args.carrierId,
       name: args.name,
       isActive: true,
+      ...(args.coverageFields && { coverageFields: args.coverageFields }),
       createdAt: now,
       updatedAt: now,
     });
@@ -51,6 +67,7 @@ export const update = mutation({
   args: {
     id: v.id("agencyProducts"),
     name: v.optional(v.string()),
+    coverageFields: v.optional(v.array(coverageFieldValidator)),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
@@ -58,8 +75,16 @@ export const update = mutation({
 
     await ctx.db.patch(args.id, {
       ...(args.name !== undefined && { name: args.name }),
+      ...(args.coverageFields !== undefined && { coverageFields: args.coverageFields }),
       updatedAt: Date.now(),
     });
+  },
+});
+
+export const getByIds = query({
+  args: { ids: v.array(v.id("agencyProducts")) },
+  handler: async (ctx, args) => {
+    return await Promise.all(args.ids.map((id) => ctx.db.get(id)));
   },
 });
 

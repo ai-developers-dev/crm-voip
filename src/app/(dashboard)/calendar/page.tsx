@@ -144,7 +144,7 @@ export default function CalendarPage() {
 
   if (!convexOrg) {
     return (
-      <div className="flex h-[calc(100vh-3rem)] items-center justify-center">
+      <div className="flex h-[calc(100vh-var(--header-height))] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -156,7 +156,7 @@ export default function CalendarPage() {
     || orgUsers?.[0]?._id;
 
   return (
-    <div className="h-[calc(100vh-3rem)] flex flex-col">
+    <div className="h-[calc(100vh-var(--header-height))] flex flex-col">
       {/* Toolbar — user filter for admins */}
       {isAdmin && orgUsers && orgUsers.length > 0 && (
         <div className="flex items-center justify-between px-12 py-2 border-b bg-muted/30">
