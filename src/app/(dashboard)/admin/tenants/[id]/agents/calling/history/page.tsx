@@ -88,7 +88,7 @@ export default function AICallHistoryPage() {
         {/* Stats */}
         {stats && (
           <div className="stats-grid">
-            <StatCard icon={Phone} label="Total Calls" value={stats.totalCalls} caption={`${stats.totalToday ?? 0} today`} />
+            <StatCard icon={Phone} label="Total Calls" value={stats.totalCalls} />
             <StatCard icon={Clock} label="Avg Duration" value={stats.avgDurationMs ? `${Math.round(stats.avgDurationMs / 1000)}s` : "--"} />
             <StatCard icon={ThumbsUp} label="Success Rate" value={`${stats.successRate}%`} valueClassName="text-emerald-600" />
             <StatCard icon={DollarSign} label="Total Cost" value={stats.totalCostCents ? `$${(stats.totalCostCents / 100).toFixed(2)}` : "--"} />
