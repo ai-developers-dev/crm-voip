@@ -28,7 +28,7 @@ import {
 import {
   Phone, Users, Settings, CheckCircle, XCircle, Loader2,
   ArrowLeft, Eye, Building2, Pencil, AlertCircle, Mail, Unplug, Trash2, Plus, Briefcase,
-  Music, ImageIcon, UserPlus, MoreHorizontal, Tag, Workflow
+  Music, ImageIcon, UserPlus, MoreHorizontal, Tag, Workflow, MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -42,6 +42,7 @@ import { TwilioSettingsDialog } from "@/components/settings/twilio-settings-dial
 import { CarriersSettingsDialog } from "@/components/settings/carriers-settings-dialog";
 import { PhoneNumbersManager } from "@/components/settings/phone-numbers-manager";
 import { tagColors, TAG_COLOR_OPTIONS } from "@/lib/style-constants";
+import { A2pRegistration } from "@/components/settings/a2p-registration";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -408,6 +409,7 @@ export default function TenantSettingsPage() {
   }
 
   const twilioConfigured = tenant?.settings?.twilioCredentials?.isConfigured ?? false;
+  const a2pStatus = (tenant?.settings as any)?.a2pStatus || "none";
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
@@ -454,6 +456,17 @@ export default function TenantSettingsPage() {
                 <PhoneNumbersManager organizationId={tenant._id} />
               </div>
             )}
+          </SettingsRow>
+
+          {/* SMS Compliance */}
+          <SettingsRow
+            icon={<MessageSquare className="h-4 w-4 text-green-600" />}
+            label="SMS Compliance"
+            summary={a2pStatus === "campaign_approved" ? "A2P Approved" : a2pStatus === "campaign_pending" ? "Under Review" : "Not Registered"}
+            isExpanded={expandedRow === "sms-compliance"}
+            onToggle={() => toggleRow("sms-compliance")}
+          >
+            {tenant?._id && <A2pRegistration organizationId={tenant._id} />}
           </SettingsRow>
 
           {/* Users */}

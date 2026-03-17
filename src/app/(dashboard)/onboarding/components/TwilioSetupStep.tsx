@@ -36,6 +36,8 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
     organization?.id ? { clerkOrgId: organization.id } : "skip"
   );
 
+  const isAutoProvisioned = !!(convexOrg?.settings as any)?.twilioCredentials?.isAutoProvisioned;
+
   const saveTwilioCredentials = useMutation(api.organizations.saveTwilioCredentials);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,6 +77,30 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
     onConfigured(false);
     onSkip();
   };
+
+  // Auto-provisioned: skip credential entry
+  if (isAutoProvisioned) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Phone System Ready</h2>
+          <p className="text-muted-foreground">
+            Your phone system has been automatically configured. You can start making and receiving calls right away.
+          </p>
+        </div>
+
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button onClick={() => { onConfigured(true); onNext(); }}>
+            Continue
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (

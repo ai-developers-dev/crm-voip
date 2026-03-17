@@ -217,6 +217,9 @@ export default defineSchema({
       // Retell AI calling credentials
       retellApiKey: v.optional(v.string()),  // Encrypted
       retellConfigured: v.optional(v.boolean()),
+      // A2P 10DLC compliance
+      a2pMessagingServiceSid: v.optional(v.string()),
+      a2pStatus: v.optional(v.string()), // "none" | "brand_pending" | "brand_approved" | "campaign_pending" | "campaign_approved"
       // Deprecated: goals now in salesGoals table. Kept for existing data.
       salesGoals: v.optional(v.object({
         dailyPremium: v.optional(v.number()),
@@ -1282,4 +1285,68 @@ export default defineSchema({
     .index("by_retell_call_id", ["retellCallId"])
     .index("by_contact", ["contactId"])
     .index("by_agent", ["retellAgentId"]),
+
+  // ── A2P 10DLC Brand Registrations ───────────────────────────────────
+  a2pBrands: defineTable({
+    organizationId: v.id("organizations"),
+    // Twilio IDs
+    customerProfileSid: v.optional(v.string()),
+    trustProductSid: v.optional(v.string()),
+    brandRegistrationSid: v.optional(v.string()),
+    // Brand info
+    legalBusinessName: v.string(),
+    ein: v.string(),
+    businessType: v.string(),
+    businessIndustry: v.string(),
+    websiteUrl: v.optional(v.string()),
+    businessAddress: v.object({
+      street: v.string(),
+      city: v.string(),
+      state: v.string(),
+      zip: v.string(),
+      country: v.optional(v.string()),
+    }),
+    contactFirstName: v.string(),
+    contactLastName: v.string(),
+    contactEmail: v.string(),
+    contactPhone: v.string(),
+    contactTitle: v.optional(v.string()),
+    // Status
+    status: v.string(), // "draft" | "pending" | "approved" | "failed"
+    failureReason: v.optional(v.string()),
+    vettingScore: v.optional(v.number()),
+    vettingStatus: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"]),
+
+  // ── A2P 10DLC Campaign Registrations ────────────────────────────────
+  a2pCampaigns: defineTable({
+    organizationId: v.id("organizations"),
+    brandId: v.id("a2pBrands"),
+    // Twilio IDs
+    messagingServiceSid: v.optional(v.string()),
+    campaignSid: v.optional(v.string()),
+    // Campaign info
+    useCase: v.string(), // "CUSTOMER_CARE" | "MIXED" | "MARKETING" | "LOW_VOLUME_MIXED"
+    description: v.string(),
+    sampleMessages: v.array(v.string()),
+    messageFlow: v.string(),
+    helpMessage: v.string(),
+    optInMessage: v.string(),
+    optOutMessage: v.string(),
+    hasEmbeddedLinks: v.boolean(),
+    hasEmbeddedPhone: v.boolean(),
+    isAgeGated: v.optional(v.boolean()),
+    phoneNumberIds: v.optional(v.array(v.id("phoneNumbers"))),
+    // Status
+    status: v.string(), // "draft" | "pending" | "approved" | "failed"
+    failureReason: v.optional(v.string()),
+    approvedThroughput: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_brand", ["brandId"]),
 });

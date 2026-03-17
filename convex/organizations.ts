@@ -927,6 +927,8 @@ export const saveTwilioCredentials = mutation({
     if (!org) throw new Error("Organization not found");
 
     await ctx.db.patch(args.organizationId, {
+      // Save top-level twilioAccountSid for webhook routing lookup
+      twilioAccountSid: args.accountSid,
       settings: {
         ...org.settings,
         twilioCredentials: {

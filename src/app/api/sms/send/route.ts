@@ -79,18 +79,35 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
     try {
-      const twilioMessageOptions: {
-        from: string;
+      // Check for A2P messaging service (10DLC compliant)
+      const a2pServiceSid = (organization.settings as any)?.a2pMessagingServiceSid as string | undefined;
+
+      let twilioMessageOptions: {
+        from?: string;
+        messagingServiceSid?: string;
         to: string;
         body: string;
         statusCallback?: string;
         mediaUrl?: string[];
-      } = {
-        from: fromNumber,
-        to,
-        body: messageBody,
-        statusCallback: `${appUrl}/api/twilio/sms-status`,
       };
+
+      if (a2pServiceSid) {
+        // Use Messaging Service (A2P compliant) — Twilio picks the best number automatically
+        twilioMessageOptions = {
+          messagingServiceSid: a2pServiceSid,
+          to,
+          body: messageBody,
+          statusCallback: `${appUrl}/api/twilio/sms-status`,
+        };
+      } else {
+        // Fall back to direct from number
+        twilioMessageOptions = {
+          from: fromNumber,
+          to,
+          body: messageBody,
+          statusCallback: `${appUrl}/api/twilio/sms-status`,
+        };
+      }
 
       // Add media URLs for MMS if provided
       if (mediaUrls && mediaUrls.length > 0) {

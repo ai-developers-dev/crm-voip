@@ -4,6 +4,8 @@ import { clerkClient, auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { provisionTenant } from "@/lib/twilio/provisioning";
+import { encrypt, decrypt } from "@/lib/credentials/crypto";
 
 async function getConvexClient() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -86,7 +88,7 @@ export async function createTenant(data: CreateTenantData) {
 
     // 2. Create the organization in Convex with full details
     // (Webhook may also create it, but this ensures we have businessInfo and billing)
-    await convex.mutation(api.organizations.createWithDetails, {
+    const convexOrgId = await convex.mutation(api.organizations.createWithDetails, {
       clerkOrgId: org.id,
       name: data.businessName,
       slug: slug,
@@ -108,7 +110,48 @@ export async function createTenant(data: CreateTenantData) {
       agencyTypeId: data.agencyTypeId as any,
     });
 
-    console.log(`Created organization in Convex with billing info`);
+    console.log(`Created organization in Convex with billing info: ${convexOrgId}`);
+
+    // 2b. Auto-provision Twilio subaccount if master Twilio is configured
+    try {
+      const platformOrg = await convex.query(api.organizations.getPlatformOrg);
+      const twilioMaster = platformOrg?.settings?.twilioMaster;
+      if (twilioMaster?.isConfigured && platformOrg) {
+        const masterAuth = decrypt(twilioMaster.authToken, platformOrg._id);
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
+        const twilioResult = await provisionTenant(
+          twilioMaster.accountSid,
+          masterAuth,
+          data.businessName,
+          appUrl
+        );
+
+        // Encrypt subaccount credentials before storing
+        const encryptedAuth = encrypt(twilioResult.authToken, convexOrgId);
+        const encryptedSecret = twilioResult.apiSecret
+          ? encrypt(twilioResult.apiSecret, convexOrgId)
+          : undefined;
+
+        await convex.mutation(api.organizations.saveAutoProvisionedCredentials, {
+          organizationId: convexOrgId,
+          twilioCredentials: {
+            accountSid: twilioResult.accountSid,
+            authToken: encryptedAuth,
+            apiKey: twilioResult.apiKey,
+            apiSecret: encryptedSecret,
+            twimlAppSid: twilioResult.twimlAppSid,
+            isConfigured: true,
+            isAutoProvisioned: true,
+          },
+        });
+
+        console.log(`Auto-provisioned Twilio subaccount for ${data.businessName}`);
+      }
+    } catch (provisionErr) {
+      // Non-fatal: tenant can still set up Twilio manually
+      console.error("Failed to auto-provision Twilio subaccount:", provisionErr);
+    }
 
     // 3. Find or invite the owner
     // First, check if a user with this email already exists in Clerk

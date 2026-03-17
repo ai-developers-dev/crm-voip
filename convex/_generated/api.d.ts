@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as a2pBrands from "../a2pBrands.js";
+import type * as a2pCampaigns from "../a2pCampaigns.js";
 import type * as agencyCarriers from "../agencyCarriers.js";
 import type * as agencyProducts from "../agencyProducts.js";
 import type * as agencyTypes from "../agencyTypes.js";
@@ -63,6 +65,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  a2pBrands: typeof a2pBrands;
+  a2pCampaigns: typeof a2pCampaigns;
   agencyCarriers: typeof agencyCarriers;
   agencyProducts: typeof agencyProducts;
   agencyTypes: typeof agencyTypes;
