@@ -46,6 +46,16 @@ export async function updateOwnOrganization(data: UpdateOwnOrganizationData) {
     const clerk = await clerkClient();
     const convex = await getConvexClient();
 
+    // Verify user is tenant_admin or platform admin
+    const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
+    if (org) {
+      const user = await convex.query(api.users.getByClerkId, { clerkUserId: userId, organizationId: org._id });
+      const isPlatform = await convex.query(api.platformUsers.isPlatformUser, { clerkUserId: userId });
+      if (!isPlatform && user?.role !== "tenant_admin") {
+        return { success: false, error: "Not authorized — admin role required" };
+      }
+    }
+
     // Verify user is an admin of this organization
     const membership = await clerk.organizations.getOrganizationMembershipList({
       organizationId: orgId,

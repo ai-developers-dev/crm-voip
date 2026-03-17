@@ -1,6 +1,8 @@
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { authorizeOrgMember } from "./lib/auth";
 
 // ============================================
 // QUERIES
@@ -88,6 +90,8 @@ export const sendMessage = mutation({
     assignedUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
     const now = Date.now();
 
     // Find or create conversation
@@ -197,6 +201,10 @@ export const updateTwilioSid = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) throw new Error("Message not found");
+    await authorizeOrgMember(ctx, message.organizationId);
+
     const updates: Record<string, unknown> = {
       twilioMessageSid: args.twilioMessageSid,
     };
@@ -310,6 +318,15 @@ export const receiveMessage = mutation({
       createdAt: now,
     });
 
+    // Trigger workflow: incoming_sms
+    if (contactId) {
+      await ctx.scheduler.runAfter(0, internal.workflowEngine.checkTriggers, {
+        organizationId,
+        triggerType: "incoming_sms",
+        contactId,
+      });
+    }
+
     return {
       success: true,
       messageId,
@@ -385,6 +402,7 @@ export const markAsRead = mutation({
     if (!conversation) {
       return { success: false, reason: "conversation_not_found" };
     }
+    await authorizeOrgMember(ctx, conversation.organizationId);
 
     await ctx.db.patch(args.conversationId, {
       unreadCount: 0,
@@ -413,6 +431,10 @@ export const markAsRead = mutation({
 export const archiveConversation = mutation({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+    await authorizeOrgMember(ctx, conversation.organizationId);
+
     await ctx.db.patch(args.conversationId, {
       status: "archived",
       updatedAt: Date.now(),
@@ -425,6 +447,10 @@ export const archiveConversation = mutation({
 export const markAsSpam = mutation({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+    await authorizeOrgMember(ctx, conversation.organizationId);
+
     await ctx.db.patch(args.conversationId, {
       status: "spam",
       updatedAt: Date.now(),
@@ -437,6 +463,10 @@ export const markAsSpam = mutation({
 export const reactivateConversation = mutation({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+    await authorizeOrgMember(ctx, conversation.organizationId);
+
     await ctx.db.patch(args.conversationId, {
       status: "active",
       updatedAt: Date.now(),
@@ -452,6 +482,10 @@ export const assignConversation = mutation({
     userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+    await authorizeOrgMember(ctx, conversation.organizationId);
+
     await ctx.db.patch(args.conversationId, {
       assignedUserId: args.userId,
       updatedAt: Date.now(),

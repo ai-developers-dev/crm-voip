@@ -1,6 +1,10 @@
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { normalizePhone } from "./lib/phone";
+import { authorizeOrgMember, authorizeOrgAdmin } from "./lib/auth";
+import { checkContactLimit } from "./lib/planLimits";
 
 // Phone number validator used across all contact mutations
 const phoneNumberValidator = v.object({
@@ -15,12 +19,37 @@ const phoneNumberValidator = v.object({
 
 // Get all contacts for an organization (sorted by name)
 export const getByOrganization = query({
-  args: { organizationId: v.id("organizations") },
+  args: {
+    organizationId: v.id("organizations"),
+    // Optional: filter to only contacts assigned to this user (for agent role)
+    assignedToUserId: v.optional(v.id("users")),
+  },
   handler: async (ctx, args) => {
-    const contacts = await ctx.db
-      .query("contacts")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-      .collect();
+    let contacts;
+    if (args.assignedToUserId) {
+      // Agent view: only assigned contacts
+      contacts = await ctx.db
+        .query("contacts")
+        .withIndex("by_assigned_user", (q) => q.eq("assignedUserId", args.assignedToUserId))
+        .collect();
+      // Also include unassigned contacts in same org
+      const unassigned = await ctx.db
+        .query("contacts")
+        .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+        .collect();
+      const assignedIds = new Set(contacts.map((c) => c._id));
+      for (const c of unassigned) {
+        if (!c.assignedUserId && !assignedIds.has(c._id)) {
+          contacts.push(c);
+        }
+      }
+    } else {
+      // Admin/supervisor view: all contacts
+      contacts = await ctx.db
+        .query("contacts")
+        .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+        .collect();
+    }
 
     // Sort by firstName, then lastName
     return contacts.sort((a, b) => {
@@ -79,11 +108,16 @@ export const create = mutation({
     state: v.optional(v.string()),
     zipCode: v.optional(v.string()),
     phoneNumbers: v.array(phoneNumberValidator),
+    dateOfBirth: v.optional(v.string()),
+    gender: v.optional(v.string()),
+    maritalStatus: v.optional(v.string()),
     notes: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.id("contactTags"))),
     assignedUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+    await checkContactLimit(ctx, args.organizationId);
     // Validate that at least one phone number is provided
     if (!args.phoneNumbers || args.phoneNumbers.length === 0) {
       throw new Error("At least one phone number is required");
@@ -99,7 +133,7 @@ export const create = mutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("contacts", {
+    const contactId = await ctx.db.insert("contacts", {
       organizationId: args.organizationId,
       firstName: args.firstName,
       lastName: args.lastName,
@@ -110,12 +144,24 @@ export const create = mutation({
       state: args.state,
       zipCode: args.zipCode,
       phoneNumbers: args.phoneNumbers,
+      dateOfBirth: args.dateOfBirth,
+      gender: args.gender,
+      maritalStatus: args.maritalStatus,
       notes: args.notes,
       tags: args.tags,
       assignedUserId: args.assignedUserId,
       createdAt: now,
       updatedAt: now,
     });
+
+    // Trigger workflow: contact_created
+    await ctx.scheduler.runAfter(0, internal.workflowEngine.checkTriggers, {
+      organizationId: args.organizationId,
+      triggerType: "contact_created",
+      contactId,
+    });
+
+    return contactId;
   },
 });
 
@@ -132,8 +178,11 @@ export const update = mutation({
     state: v.optional(v.string()),
     zipCode: v.optional(v.string()),
     phoneNumbers: v.optional(v.array(phoneNumberValidator)),
+    dateOfBirth: v.optional(v.string()),
+    gender: v.optional(v.string()),
+    maritalStatus: v.optional(v.string()),
     notes: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.id("contactTags"))),
     assignedUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
@@ -141,6 +190,7 @@ export const update = mutation({
     if (!contact) {
       throw new Error("Contact not found");
     }
+    await authorizeOrgMember(ctx, contact.organizationId);
 
     // Validate phone numbers if provided
     if (args.phoneNumbers) {
@@ -167,10 +217,26 @@ export const update = mutation({
       }
     }
 
+    // Track old tags for workflow triggers
+    const oldTags = contact.tags || [];
+
     await ctx.db.patch(contactId, {
       ...cleanUpdates,
       updatedAt: Date.now(),
     });
+
+    // Trigger workflow: tag_added (for each newly added tag)
+    if (args.tags) {
+      const newTags = args.tags.filter((t) => !oldTags.includes(t));
+      for (const tagId of newTags) {
+        await ctx.scheduler.runAfter(0, internal.workflowEngine.checkTriggers, {
+          organizationId: contact.organizationId,
+          triggerType: "tag_added",
+          contactId,
+          triggerData: { tagId },
+        });
+      }
+    }
 
     return contactId;
   },
@@ -184,6 +250,7 @@ export const remove = mutation({
     if (!contact) {
       throw new Error("Contact not found");
     }
+    await authorizeOrgMember(ctx, contact.organizationId);
 
     await ctx.db.delete(args.contactId);
     return { success: true };
@@ -310,11 +377,63 @@ export const getCommunicationsHistory = query({
       emails = [...contactEmails, ...additionalEmails];
     }
 
+    // Trim to 100 each
+    const trimmedMessages = messages.slice(0, 100);
+    const trimmedCalls = calls.slice(0, 100);
+    const trimmedEmails = emails.slice(0, 100);
+
+    // Enrich workflow data for messages that came from workflows
+    const workflowExecutionIds = new Set<string>();
+    for (const msg of trimmedMessages) {
+      if (msg.workflowExecutionId) workflowExecutionIds.add(msg.workflowExecutionId);
+    }
+
+    const workflowInfoMap: Record<string, { workflowName: string; workflowId: string; nextStepLabel: string | null; executionStatus: string }> = {};
+    if (workflowExecutionIds.size > 0) {
+      const executions = await Promise.all(
+        Array.from(workflowExecutionIds).map((id) =>
+          ctx.db.get(id as Id<"workflowExecutions">)
+        )
+      );
+      const workflowIds = new Set<Id<"workflows">>();
+      for (const ex of executions) {
+        if (ex?.workflowId) workflowIds.add(ex.workflowId);
+      }
+      const workflows = await Promise.all(
+        Array.from(workflowIds).map((id) => ctx.db.get(id))
+      );
+      const wfMap = new Map(workflows.filter(Boolean).map((w) => [w!._id, w!]));
+
+      for (const ex of executions) {
+        if (!ex) continue;
+        const wf = wfMap.get(ex.workflowId);
+        let nextStepLabel: string | null = null;
+        if (ex.status === "running") {
+          const nextStep = (ex.snapshotSteps as any[])[ex.currentStepIndex];
+          if (nextStep) {
+            const typeLabels: Record<string, string> = {
+              send_sms: "Send SMS", send_email: "Send Email", create_task: "Create Task",
+              add_tag: "Add Tag", remove_tag: "Remove Tag", create_note: "Create Note",
+              assign_contact: "Assign Contact", wait: "Wait",
+            };
+            nextStepLabel = `${typeLabels[nextStep.type] || nextStep.type} (step ${ex.currentStepIndex + 1}/${(ex.snapshotSteps as any[]).length})`;
+          }
+        }
+        workflowInfoMap[ex._id] = {
+          workflowName: wf?.name || "Unknown Workflow",
+          workflowId: ex.workflowId,
+          nextStepLabel,
+          executionStatus: ex.status,
+        };
+      }
+    }
+
     // Return limited results (most recent 100 each)
     return {
-      calls: calls.slice(0, 100),
-      messages: messages.slice(0, 100),
-      emails: emails.slice(0, 100),
+      calls: trimmedCalls,
+      messages: trimmedMessages,
+      emails: trimmedEmails,
+      workflowInfo: workflowInfoMap,
     };
   },
 });

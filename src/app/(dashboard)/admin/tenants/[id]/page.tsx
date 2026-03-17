@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3 } from "lucide-react";
+import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { CallingDashboard } from "@/components/calling/calling-dashboard";
@@ -126,6 +126,18 @@ export default function TenantViewPage() {
               <Button variant="ghost" size="sm" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Reports
+              </Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/workflows`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Workflow className="h-4 w-4" />
+                Workflows
+              </Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/agents`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Bot className="h-4 w-4" />
+                AI Agents
               </Button>
             </Link>
           </nav>

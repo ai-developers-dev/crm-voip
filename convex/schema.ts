@@ -100,6 +100,11 @@ export default defineSchema({
     organizationId: v.id("organizations"),
     agencyTypeId: v.id("agencyTypes"),
     carrierId: v.id("agencyCarriers"),
+    // Portal login credentials (encrypted)
+    portalUrl: v.optional(v.string()),
+    portalUsername: v.optional(v.string()),
+    portalPassword: v.optional(v.string()),
+    portalConfigured: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("by_organization", ["organizationId"])
@@ -195,6 +200,16 @@ export default defineSchema({
         twimlAppSid: v.optional(v.string()),
         isConfigured: v.boolean(),
       })),
+      // National General portal credentials (encrypted)
+      natgenCredentials: v.optional(v.object({
+        username: v.string(),
+        password: v.string(),
+        portalUrl: v.optional(v.string()),
+        isConfigured: v.boolean(),
+      })),
+      // Retell AI calling credentials
+      retellApiKey: v.optional(v.string()),  // Encrypted
+      retellConfigured: v.optional(v.boolean()),
       // Deprecated: goals now in salesGoals table. Kept for existing data.
       salesGoals: v.optional(v.object({
         dailyPremium: v.optional(v.number()),
@@ -468,6 +483,17 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_organization_status", ["organizationId", "status"]),
 
+  // Contact Tags
+  contactTags: defineTable({
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    color: v.string(),
+    isActive: v.boolean(),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"]),
+
   // Contacts (CRM)
   contacts: defineTable({
     organizationId: v.id("organizations"),
@@ -487,8 +513,11 @@ export default defineSchema({
         isPrimary: v.boolean(),
       })
     ),
+    dateOfBirth: v.optional(v.string()), // "YYYY-MM-DD"
+    gender: v.optional(v.string()),
+    maritalStatus: v.optional(v.string()),
     notes: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.id("contactTags"))),
     assignedUserId: v.optional(v.id("users")),
     isRead: v.optional(v.boolean()),
     createdAt: v.number(),
@@ -531,6 +560,7 @@ export default defineSchema({
     deliveredAt: v.optional(v.number()),
     readAt: v.optional(v.number()),
     createdAt: v.number(),
+    workflowExecutionId: v.optional(v.id("workflowExecutions")),
   })
     .index("by_organization", ["organizationId"])
     .index("by_organization_date", ["organizationId", "sentAt"])
@@ -627,6 +657,7 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
+    workflowExecutionId: v.optional(v.id("workflowExecutions")),
   })
     .index("by_organization", ["organizationId"])
     .index("by_assigned_user", ["assignedToUserId", "status"])
@@ -642,6 +673,7 @@ export default defineSchema({
     createdByUserId: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
+    workflowExecutionId: v.optional(v.id("workflowExecutions")),
   })
     .index("by_contact", ["contactId", "createdAt"])
     .index("by_organization", ["organizationId"]),
@@ -963,4 +995,269 @@ export default defineSchema({
   })
     .index("by_organization", ["organizationId"])
     .index("by_org_year_month", ["organizationId", "year", "month"]),
+
+  // ============================================
+  // WORKFLOW AUTOMATION TABLES
+  // ============================================
+
+  // Workflow definitions
+  workflows: defineTable({
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+
+    // Trigger — top-level triggerType for indexing
+    triggerType: v.union(
+      v.literal("contact_created"),
+      v.literal("tag_added"),
+      v.literal("missed_call"),
+      v.literal("incoming_sms"),
+      v.literal("appointment_reminder"),
+      v.literal("task_overdue"),
+      v.literal("manual")
+    ),
+    triggerConfig: v.optional(v.object({
+      tagId: v.optional(v.id("contactTags")),
+      reminderMinutes: v.optional(v.number()),
+      overdueMinutes: v.optional(v.number()),
+    })),
+
+    // Ordered steps
+    steps: v.array(v.object({
+      id: v.string(),
+      order: v.number(),
+      type: v.union(
+        v.literal("send_sms"),
+        v.literal("send_email"),
+        v.literal("create_task"),
+        v.literal("add_tag"),
+        v.literal("remove_tag"),
+        v.literal("create_note"),
+        v.literal("assign_contact"),
+        v.literal("wait")
+      ),
+      config: v.object({
+        messageTemplate: v.optional(v.string()),
+        emailSubject: v.optional(v.string()),
+        emailBodyTemplate: v.optional(v.string()),
+        taskTitle: v.optional(v.string()),
+        taskDescription: v.optional(v.string()),
+        taskType: v.optional(v.string()),
+        taskPriority: v.optional(v.string()),
+        taskDueDays: v.optional(v.number()),
+        tagId: v.optional(v.id("contactTags")),
+        noteTemplate: v.optional(v.string()),
+        assignToUserId: v.optional(v.id("users")),
+        waitMinutes: v.optional(v.number()),
+      }),
+    })),
+
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_organization_trigger", ["organizationId", "triggerType"]),
+
+  // Workflow execution instances
+  workflowExecutions: defineTable({
+    organizationId: v.id("organizations"),
+    workflowId: v.id("workflows"),
+    contactId: v.id("contacts"),
+
+    status: v.union(
+      v.literal("running"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+
+    currentStepIndex: v.number(),
+
+    snapshotSteps: v.array(v.object({
+      id: v.string(),
+      order: v.number(),
+      type: v.string(),
+      config: v.any(),
+    })),
+
+    stepResults: v.array(v.object({
+      stepId: v.string(),
+      status: v.union(
+        v.literal("pending"),
+        v.literal("running"),
+        v.literal("completed"),
+        v.literal("failed"),
+        v.literal("skipped")
+      ),
+      executedAt: v.optional(v.number()),
+      error: v.optional(v.string()),
+    })),
+
+    triggerData: v.optional(v.any()),
+    nextStepScheduledId: v.optional(v.string()),
+
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_workflow", ["workflowId"])
+    .index("by_contact", ["contactId"])
+    .index("by_status", ["organizationId", "status"]),
+
+  // ── Insurance Leads ──────────────────────────────────────────────────
+  insuranceLeads: defineTable({
+    organizationId: v.id("organizations"),
+    firstName: v.string(),
+    lastName: v.string(),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    dob: v.string(),
+    gender: v.optional(v.string()),
+    maritalStatus: v.optional(v.string()),
+    street: v.string(),
+    city: v.string(),
+    state: v.string(),
+    zip: v.string(),
+    quoteTypes: v.array(v.string()),
+    vehicles: v.optional(v.array(v.object({
+      year: v.number(),
+      make: v.string(),
+      model: v.string(),
+      vin: v.optional(v.string()),
+      primaryUse: v.optional(v.string()),
+    }))),
+    property: v.optional(v.object({
+      yearBuilt: v.optional(v.number()),
+      sqft: v.optional(v.number()),
+      constructionType: v.optional(v.string()),
+      ownershipType: v.optional(v.string()),
+    })),
+    status: v.string(),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_organizationId_status", ["organizationId", "status"]),
+
+  // ── Insurance Quotes ─────────────────────────────────────────────────
+  insuranceQuotes: defineTable({
+    organizationId: v.id("organizations"),
+    insuranceLeadId: v.id("insuranceLeads"),
+    portal: v.string(),
+    type: v.string(),
+    status: v.string(),
+    carrier: v.optional(v.string()),
+    quoteId: v.optional(v.string()),
+    monthlyPremium: v.optional(v.number()),
+    annualPremium: v.optional(v.number()),
+    coverageDetails: v.optional(v.any()),
+    errorMessage: v.optional(v.string()),
+    quotedAt: v.number(),
+  })
+    .index("by_organizationId", ["organizationId"])
+    .index("by_lead", ["insuranceLeadId"])
+    .index("by_organizationId_status", ["organizationId", "status"]),
+
+  // ── Agent Runs (progress tracking) ───────────────────────────────────
+  agentRuns: defineTable({
+    organizationId: v.id("organizations"),
+    type: v.string(),
+    status: v.string(),
+    total: v.number(),
+    succeeded: v.number(),
+    failed: v.number(),
+    currentLeadName: v.optional(v.string()),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_organization", ["organizationId"]),
+
+  // ── Retell AI Calling Agents ────────────────────────────────────────
+  retellAgents: defineTable({
+    organizationId: v.id("organizations"),
+    retellAgentId: v.string(),
+    name: v.string(),
+    type: v.string(), // "inbound" | "outbound" | "both"
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    // Voice
+    voiceId: v.string(),
+    voiceModel: v.optional(v.string()),
+    voiceSpeed: v.optional(v.number()),
+    voiceTemperature: v.optional(v.number()),
+    language: v.optional(v.string()),
+    // LLM
+    retellLlmId: v.optional(v.string()),
+    generalPrompt: v.string(),
+    beginMessage: v.optional(v.string()),
+    model: v.optional(v.string()),
+    modelTemperature: v.optional(v.number()),
+    // Conversation
+    responsiveness: v.optional(v.number()),
+    interruptionSensitivity: v.optional(v.number()),
+    enableBackchannel: v.optional(v.boolean()),
+    ambientSound: v.optional(v.string()),
+    maxCallDurationMs: v.optional(v.number()),
+    endCallAfterSilenceMs: v.optional(v.number()),
+    // Voicemail (outbound)
+    enableVoicemailDetection: v.optional(v.boolean()),
+    voicemailMessage: v.optional(v.string()),
+    // Analysis
+    analysisSummaryPrompt: v.optional(v.string()),
+    analysisSuccessPrompt: v.optional(v.string()),
+    postCallAnalysisFields: v.optional(v.any()),
+    // Transfer
+    enableTransferToHuman: v.optional(v.boolean()),
+    transferPhoneNumber: v.optional(v.string()),
+    // Phone number
+    assignedPhoneNumberId: v.optional(v.id("phoneNumbers")),
+    webhookUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_retell_agent_id", ["retellAgentId"])
+    .index("by_phone_number", ["assignedPhoneNumberId"]),
+
+  // ── AI Call History ─────────────────────────────────────────────────
+  aiCallHistory: defineTable({
+    organizationId: v.id("organizations"),
+    retellAgentId: v.string(),
+    retellCallId: v.string(),
+    direction: v.string(), // "inbound" | "outbound"
+    status: v.string(),    // "registered" | "ongoing" | "ended" | "error"
+    fromNumber: v.string(),
+    toNumber: v.string(),
+    contactId: v.optional(v.id("contacts")),
+    // Timing
+    startedAt: v.optional(v.number()),
+    endedAt: v.optional(v.number()),
+    durationMs: v.optional(v.number()),
+    // Transcript & Recording
+    transcript: v.optional(v.string()),
+    transcriptObject: v.optional(v.any()),
+    recordingUrl: v.optional(v.string()),
+    // Analysis
+    callSummary: v.optional(v.string()),
+    userSentiment: v.optional(v.string()),
+    callSuccessful: v.optional(v.boolean()),
+    customAnalysis: v.optional(v.any()),
+    // Outcome
+    disconnectionReason: v.optional(v.string()),
+    transferDestination: v.optional(v.string()),
+    // Cost
+    callCostCents: v.optional(v.number()),
+    // Workflow
+    workflowExecutionId: v.optional(v.id("workflowExecutions")),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_retell_call_id", ["retellCallId"])
+    .index("by_contact", ["contactId"])
+    .index("by_agent", ["retellAgentId"]),
 });

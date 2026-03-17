@@ -86,6 +86,7 @@ export function ContactDialog({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -115,6 +116,7 @@ export function ContactDialog({
         setLastName(contact.lastName || "");
         setEmail(contact.email || "");
         setCompany(contact.company || "");
+        setDateOfBirth(contact.dateOfBirth || "");
         setStreetAddress(contact.streetAddress || "");
         setCity(contact.city || "");
         setState(contact.state || "");
@@ -141,6 +143,7 @@ export function ContactDialog({
     setLastName("");
     setEmail("");
     setCompany("");
+    setDateOfBirth("");
     setStreetAddress("");
     setCity("");
     setState("");
@@ -243,12 +246,13 @@ export function ContactDialog({
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
           email: email.trim() || undefined,
-          company: company.trim() || undefined,
-          streetAddress: streetAddress.trim() || undefined,
-          city: city.trim() || undefined,
-          state: state.trim() || undefined,
-          zipCode: zipCode.trim() || undefined,
-          notes: notes.trim() || undefined,
+          company: company.trim() || "",
+          dateOfBirth: dateOfBirth || "",
+          streetAddress: streetAddress.trim() || "",
+          city: city.trim() || "",
+          state: state.trim() || "",
+          zipCode: zipCode.trim() || "",
+          notes: notes.trim() || "",
           phoneNumbers: validPhones,
         });
       } else {
@@ -258,6 +262,7 @@ export function ContactDialog({
           lastName: lastName.trim() || undefined,
           email: email.trim() || undefined,
           company: company.trim() || undefined,
+          dateOfBirth: dateOfBirth || undefined,
           streetAddress: streetAddress.trim() || undefined,
           city: city.trim() || undefined,
           state: state.trim() || undefined,
@@ -342,6 +347,18 @@ export function ContactDialog({
                 onChange={(e) => setCompany(e.target.value)}
                 disabled={isSaving}
                 placeholder="Acme Corp"
+              />
+            </div>
+
+            {/* Date of Birth */}
+            <div className="grid gap-2">
+              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                disabled={isSaving}
               />
             </div>
 

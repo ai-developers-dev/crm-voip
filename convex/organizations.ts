@@ -1,5 +1,7 @@
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgAdmin, authorizeSuperAdmin } from "./lib/auth";
+import { writeAuditLog } from "./lib/audit";
 
 // Public query to get current user's organization
 export const getCurrent = query({
@@ -376,6 +378,7 @@ export const updateSettings = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgAdmin(ctx, args.organizationId);
     const org = await ctx.db.get(args.organizationId);
     if (!org) throw new Error("Organization not found");
 
@@ -402,6 +405,7 @@ export const updateTwilioCredentials = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgAdmin(ctx, args.organizationId);
     const org = await ctx.db.get(args.organizationId);
     if (!org) throw new Error("Organization not found");
 
@@ -414,6 +418,13 @@ export const updateTwilioCredentials = mutation({
         },
       },
       updatedAt: Date.now(),
+    });
+
+    await writeAuditLog(ctx, {
+      organizationId: args.organizationId,
+      action: "twilio_credentials.updated",
+      entityType: "organization",
+      entityId: args.organizationId,
     });
   },
 });
@@ -471,8 +482,17 @@ export const getTwilioCredentialsInternal = internalQuery({
 export const deleteOrganization = mutation({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
+    await authorizeSuperAdmin(ctx);
     const org = await ctx.db.get(args.organizationId);
     if (!org) throw new Error("Organization not found");
+
+    await writeAuditLog(ctx, {
+      organizationId: args.organizationId,
+      action: "organization.deleted",
+      entityType: "organization",
+      entityId: args.organizationId,
+      metadata: { name: org.name },
+    });
 
     // Prevent deleting platform org
     if (org.isPlatformOrg) {
@@ -879,6 +899,86 @@ export const saveTwilioCredentials = mutation({
           isConfigured: true,
         },
       },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Update National General portal credentials
+export const updateNatgenCredentials = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    username: v.string(),
+    password: v.string(),
+    portalUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Auth handled by API route (Clerk check)
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.organizationId, {
+      settings: {
+        ...org.settings,
+        natgenCredentials: {
+          username: args.username,
+          password: args.password,
+          portalUrl: args.portalUrl,
+          isConfigured: true,
+        },
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Remove National General portal credentials
+export const removeNatgenCredentials = mutation({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    // Auth handled by API route (Clerk check)
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    const { natgenCredentials, ...restSettings } = org.settings as any;
+    await ctx.db.patch(args.organizationId, {
+      settings: restSettings,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Update Retell AI credentials
+export const updateRetellCredentials = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    retellApiKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.organizationId, {
+      settings: {
+        ...org.settings,
+        retellApiKey: args.retellApiKey,
+        retellConfigured: true,
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Remove Retell AI credentials
+export const removeRetellCredentials = mutation({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    const { retellApiKey, retellConfigured, ...restSettings } = org.settings as any;
+    await ctx.db.patch(args.organizationId, {
+      settings: restSettings,
       updatedAt: Date.now(),
     });
   },

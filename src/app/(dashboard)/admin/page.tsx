@@ -59,9 +59,9 @@ export default function AdminDashboardPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">Organization Admin</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Platform Admin</h1>
         <p className="text-muted-foreground">
-          Manage your SaaS platform and tenants
+          Manage your tenants and platform settings
         </p>
       </div>
 

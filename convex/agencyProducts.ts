@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizePlatformAdmin } from "./lib/auth";
 
 const coverageFieldValidator = v.object({
   key: v.string(),
@@ -50,6 +51,7 @@ export const create = mutation({
     coverageFields: v.optional(v.array(coverageFieldValidator)),
   },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const now = Date.now();
     return await ctx.db.insert("agencyProducts", {
       agencyTypeId: args.agencyTypeId,
@@ -70,6 +72,7 @@ export const update = mutation({
     coverageFields: v.optional(v.array(coverageFieldValidator)),
   },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Product not found");
 
@@ -91,6 +94,7 @@ export const getByIds = query({
 export const toggleActive = mutation({
   args: { id: v.id("agencyProducts") },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Product not found");
 
@@ -104,6 +108,7 @@ export const toggleActive = mutation({
 export const remove = mutation({
   args: { id: v.id("agencyProducts") },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Product not found");
 

@@ -52,9 +52,16 @@ export function TaskFormDialog({ open, onOpenChange, task, contactId, organizati
     }
   }, [open, task]);
 
+  const [error, setError] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || (!task && !userId)) return;
+    setError("");
+    if (!title.trim()) return;
+    if (!task && !userId) {
+      setError("Unable to create task — no user available. Please try again.");
+      return;
+    }
 
     const dueDateNum = dueDate ? new Date(dueDate).getTime() : undefined;
 
@@ -125,6 +132,9 @@ export function TaskFormDialog({ open, onOpenChange, task, contactId, organizati
             <Label htmlFor="dueDate">Due Date</Label>
             <Input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit">{task ? "Save" : "Create"}</Button>

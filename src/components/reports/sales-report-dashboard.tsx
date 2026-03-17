@@ -187,8 +187,6 @@ function SummaryRow({
   startDate: number;
   endDate: number;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   if (report === undefined) {
     return (
       <Card>
@@ -202,13 +200,10 @@ function SummaryRow({
   }
 
   return (
-    <Card
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <Card>
       <CardContent className="py-3 px-4">
-        {/* Summary row: label | policies | premium | avg | goals */}
-        <div className="flex items-center gap-4">
+        {/* Summary row — click anywhere to expand */}
+        <div className="flex items-center gap-4 cursor-pointer" onClick={onToggle}>
           {/* Label */}
           <div className="font-semibold text-sm min-w-[70px] shrink-0">{label}</div>
 
@@ -241,25 +236,12 @@ function SummaryRow({
             </div>
           </div>
 
-          {/* Expand arrow — visible on hover or when expanded */}
-          <div
+          <ChevronDown
             className={cn(
-              "transition-opacity duration-200",
-              isHovered || isExpanded ? "opacity-100" : "opacity-0"
+              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              isExpanded && "rotate-180"
             )}
-          >
-            <button
-              onClick={onToggle}
-              className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )}
-              />
-            </button>
-          </div>
+          />
         </div>
 
         {/* Expanded detail table */}
@@ -296,15 +278,10 @@ function CommissionSummaryRow({
   onToggle: () => void;
   table: React.ReactNode;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <Card
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <Card>
       <CardContent className="py-3 px-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 cursor-pointer" onClick={onToggle}>
           <div className="font-semibold text-sm min-w-[80px] shrink-0">{label}</div>
 
           <div className="flex items-center gap-6 flex-1 min-w-0">
@@ -316,24 +293,12 @@ function CommissionSummaryRow({
             ))}
           </div>
 
-          <div
+          <ChevronDown
             className={cn(
-              "transition-opacity duration-200",
-              isHovered || isExpanded ? "opacity-100" : "opacity-0"
+              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              isExpanded && "rotate-180"
             )}
-          >
-            <button
-              onClick={onToggle}
-              className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )}
-              />
-            </button>
-          </div>
+          />
         </div>
 
         <div

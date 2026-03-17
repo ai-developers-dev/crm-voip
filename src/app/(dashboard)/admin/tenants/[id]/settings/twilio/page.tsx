@@ -163,30 +163,21 @@ export default function TenantTwilioSettingsPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
-      {/* Impersonation Banner */}
-      <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
-        <Eye className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="flex items-center justify-between">
-          <span className="text-amber-700 dark:text-amber-400">
-            <strong>Managing:</strong> {tenant.name} Twilio Settings
-          </span>
-          <div className="flex gap-2">
-            <Link href={`/admin/tenants/${tenant._id}/settings`}>
-              <Button variant="outline" size="sm" className="border-amber-500/30 hover:bg-amber-500/10">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Settings
-              </Button>
-            </Link>
-          </div>
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-center justify-end px-6 pt-4">
+        <Link href={`/admin/tenants/${tenant._id}/settings`}>
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Settings
+          </Button>
+        </Link>
+      </div>
 
       <div className="p-6 max-w-2xl mx-auto space-y-6 flex-1">
         {/* Header */}
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">Twilio Settings</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Phone System Settings</h1>
           <p className="text-muted-foreground">
-            Configure Twilio credentials for {tenant.name}
+            Configure voice calling credentials for {tenant.name}
           </p>
         </div>
 
@@ -195,7 +186,7 @@ export default function TenantTwilioSettingsPage() {
           <Alert className="bg-green-500/10 border-green-500/20">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-700 dark:text-green-400">
-              Twilio is configured and ready to use. Update credentials below if needed.
+              Phone system is configured and ready to use. Update credentials below if needed.
             </AlertDescription>
           </Alert>
         )}
@@ -204,7 +195,7 @@ export default function TenantTwilioSettingsPage() {
           <Alert className="bg-green-500/10 border-green-500/20">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-700 dark:text-green-400">
-              Twilio credentials saved successfully!
+              Phone system credentials saved!
             </AlertDescription>
           </Alert>
         )}
@@ -219,15 +210,7 @@ export default function TenantTwilioSettingsPage() {
               <div>
                 <CardTitle>API Credentials</CardTitle>
                 <CardDescription>
-                  Enter Twilio account credentials from{" "}
-                  <a
-                    href="https://console.twilio.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary underline"
-                  >
-                    console.twilio.com
-                  </a>
+                  Enter voice calling account credentials
                 </CardDescription>
               </div>
             </div>
@@ -245,7 +228,7 @@ export default function TenantTwilioSettingsPage() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Found on the Twilio Console dashboard
+                  Your Account SID from your provider dashboard
                 </p>
               </div>
 
@@ -325,7 +308,7 @@ export default function TenantTwilioSettingsPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, twimlAppSid: e.target.value }))}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Required for browser-based calling. Create at Console &rarr; Voice &rarr; TwiML Apps
+                  Required for browser-based calling
                 </p>
               </div>
 
@@ -355,12 +338,12 @@ export default function TenantTwilioSettingsPage() {
             <CardTitle className="text-sm">Need Help?</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>To find Twilio credentials:</p>
+            <p>To find your credentials:</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li>Log in to your <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">Twilio Console</a></li>
+              <li>Log in to your voice provider dashboard</li>
               <li>Your Account SID and Auth Token are on the main dashboard</li>
-              <li>For API Keys, go to Account &rarr; API Keys & Tokens</li>
-              <li>For TwiML Apps, go to Voice &rarr; TwiML &rarr; TwiML Apps</li>
+              <li>For API Keys, go to your account API Keys section</li>
+              <li>For TwiML Apps, go to Voice &rarr; TwiML Apps</li>
             </ol>
           </CardContent>
         </Card>

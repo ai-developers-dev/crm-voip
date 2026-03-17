@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { authorizeOrgMember } from "./lib/auth";
 
 /** Get all sale types for an organization */
 export const getByOrganization = query({
@@ -34,6 +35,7 @@ export const create = mutation({
     name: v.string(),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
     const existing = await ctx.db
       .query("saleTypes")
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
@@ -57,6 +59,9 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Sale type not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
     const patch: Record<string, unknown> = {};
     if (args.name !== undefined) patch.name = args.name.trim();
     if (args.isActive !== undefined) patch.isActive = args.isActive;
@@ -68,6 +73,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("saleTypes") },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Sale type not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
     await ctx.db.delete(args.id);
   },
 });

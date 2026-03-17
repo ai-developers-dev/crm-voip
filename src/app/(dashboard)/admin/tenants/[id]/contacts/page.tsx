@@ -8,7 +8,7 @@ import { Id, Doc } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3
+  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -53,6 +53,13 @@ export default function TenantContactsPage() {
     api.contacts.getByOrganization,
     tenant?._id ? { organizationId: tenant._id } : "skip"
   );
+
+  // Get users in this tenant (for task assignment when admin creates tasks)
+  const tenantUsers = useQuery(
+    api.users.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+  const fallbackUserId = tenantUsers?.[0]?._id;
 
   // Handle selecting a contact (for viewing)
   const handleSelectContact = (contact: Contact) => {
@@ -158,6 +165,12 @@ export default function TenantContactsPage() {
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
               <Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button>
             </Link>
+            <Link href={`/admin/tenants/${tenant._id}/workflows`}>
+              <Button variant="ghost" size="sm" className="gap-2"><Workflow className="h-4 w-4" />Workflows</Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/agents`}>
+              <Button variant="ghost" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button>
+            </Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}>
             <Button variant="outline" size="sm"><Settings className="h-4 w-4 mr-2" />Settings</Button>
@@ -177,6 +190,7 @@ export default function TenantContactsPage() {
             onEditContact={handleEditContact}
             onDeleteContact={handleDeleteContact}
             isLoading={contacts === undefined}
+            organizationId={tenant?._id}
           />
         </div>
 
@@ -190,22 +204,26 @@ export default function TenantContactsPage() {
 
         {/* Column 3: Panel + Icon Menu */}
         <div className="flex flex-shrink-0">
-          {activePanel && selectedContact && (
+          {activePanel && (activePanel === "sort" || selectedContact) && (
             <div className="w-80 border-r overflow-hidden">
               <ContactPanelDrawer
                 type={activePanel}
                 contact={selectedContact}
                 organizationId={tenant._id}
+                userId={fallbackUserId}
                 isAdmin={true}
                 onClose={() => setActivePanel(null)}
+                onSelectContact={handleSelectContact}
               />
             </div>
           )}
           <div className="w-14 border-l flex-shrink-0 bg-muted/30">
             <ContactSideMenu
               activePanel={activePanel}
-              onPanelChange={(panel) => setActivePanel(activePanel === panel ? null : panel)}
-              disabled={!selectedContact}
+              onPanelChange={(panel) => {
+                if (panel !== "sort" && !selectedContact) return;
+                setActivePanel(activePanel === panel ? null : panel);
+              }}
             />
           </div>
         </div>

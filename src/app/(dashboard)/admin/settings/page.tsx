@@ -427,7 +427,7 @@ export default function AdminSettingsPage() {
           action={
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={openAddAgencyType}>
               <Plus className="h-3 w-3 mr-1" />
-              Add
+              Add Type
             </Button>
           }
           isExpanded={expandedSection === "agency-types"}
@@ -558,7 +558,7 @@ export default function AdminSettingsPage() {
           action={
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={openAddUser}>
               <Plus className="h-3 w-3 mr-1" />
-              Add
+              Add User
             </Button>
           }
           isExpanded={expandedSection === "platform-users"}

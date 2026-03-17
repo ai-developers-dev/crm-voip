@@ -1,5 +1,8 @@
 import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgMember, authorizeOrgAdmin } from "./lib/auth";
+import { checkUserLimit } from "./lib/planLimits";
+import { writeAuditLog } from "./lib/audit";
 
 // Query to get current user
 export const getCurrent = query({
@@ -203,6 +206,20 @@ export const addToOrganization = internalMutation({
       return null;
     }
 
+    // Skip platform org — platform admins are in platformUsers, not users
+    if (org.isPlatformOrg) {
+      return null;
+    }
+
+    // Skip if user is a platform admin — they access tenants via admin dashboard
+    const platformUser = await ctx.db
+      .query("platformUsers")
+      .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.clerkUserId))
+      .first();
+    if (platformUser?.isActive) {
+      return null;
+    }
+
     // Check if user already exists in this org
     const existing = await ctx.db
       .query("users")
@@ -284,6 +301,9 @@ export const updateStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    await authorizeOrgMember(ctx, user.organizationId);
     await ctx.db.patch(args.userId, {
       status: args.status,
       updatedAt: Date.now(),
@@ -297,6 +317,7 @@ export const toggleStatus = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
+    await authorizeOrgMember(ctx, user.organizationId);
 
     const newStatus = user.status === "offline" ? "available" : "offline";
     await ctx.db.patch(args.userId, {
@@ -328,6 +349,7 @@ export const updateUser = mutation({
     const { userId, ...updates } = args;
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("User not found");
+    await authorizeOrgAdmin(ctx, user.organizationId);
 
     // Filter out undefined values
     const filteredUpdates = Object.fromEntries(
@@ -422,6 +444,15 @@ export const deleteUser = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
+    await authorizeOrgAdmin(ctx, user.organizationId);
+
+    await writeAuditLog(ctx, {
+      organizationId: user.organizationId,
+      action: "user.deleted",
+      entityType: "user",
+      entityId: args.userId,
+      metadata: { name: user.name, email: user.email, role: user.role },
+    });
 
     // Delete the user
     await ctx.db.delete(args.userId);
@@ -443,8 +474,11 @@ export const createUser = mutation({
     directNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgAdmin(ctx, args.organizationId);
+    await checkUserLimit(ctx, args.organizationId);
     const org = await ctx.db.get(args.organizationId);
     if (!org) throw new Error("Organization not found");
+    if (org.isPlatformOrg) throw new Error("Cannot add users to platform organization");
 
     const now = Date.now();
     return await ctx.db.insert("users", {
@@ -466,6 +500,7 @@ export const createUser = mutation({
 export const generateAvatarUploadUrl = mutation({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
     const org = await ctx.db.get(args.organizationId);
     if (!org) {
       throw new Error("Organization not found");
@@ -483,6 +518,7 @@ export const saveUserAvatar = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
+    await authorizeOrgMember(ctx, user.organizationId);
 
     // Delete old avatar if it exists
     if (user.avatarStorageId) {
@@ -510,6 +546,7 @@ export const deleteUserAvatar = mutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("User not found");
+    await authorizeOrgMember(ctx, user.organizationId);
 
     if (user.avatarStorageId) {
       await ctx.storage.delete(user.avatarStorageId);
@@ -582,3 +619,4 @@ export const syncFromClerk = mutation({
     });
   },
 });
+

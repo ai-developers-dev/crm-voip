@@ -15,6 +15,7 @@ import { TeamSetupStep } from "./TeamSetupStep";
 import { CallSettingsStep } from "./CallSettingsStep";
 import { BusinessSetupStep } from "./BusinessSetupStep";
 import { EmailSetupStep } from "./EmailSetupStep";
+import { RetellSetupStep } from "./RetellSetupStep";
 import { CompletionStep } from "./CompletionStep";
 
 interface OnboardingWizardProps {
@@ -24,11 +25,12 @@ interface OnboardingWizardProps {
 
 const STEPS = [
   { title: "Welcome", description: "Get started" },
-  { title: "Twilio Setup", description: "Connect your phone" },
+  { title: "Phone Setup", description: "Connect your phone" },
   { title: "Team", description: "Add members" },
   { title: "Settings", description: "Configure calls" },
   { title: "Business", description: "Agency setup" },
   { title: "Email", description: "Connect email" },
+  { title: "AI Calling", description: "Voice agents" },
   { title: "Complete", description: "All done!" },
 ];
 
@@ -36,6 +38,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
   const [step, setStep] = useState(initialStep);
   const [twilioConfigured, setTwilioConfigured] = useState(false);
   const [emailConfigured, setEmailConfigured] = useState(false);
+  const [retellConfigured, setRetellConfigured] = useState(false);
   const { organization } = useOrganization();
   const router = useRouter();
 
@@ -170,6 +173,14 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
           />
         )}
         {step === 6 && (
+          <RetellSetupStep
+            onNext={handleNext}
+            onBack={handleBack}
+            onSkip={handleNext}
+            onConfigured={setRetellConfigured}
+          />
+        )}
+        {step === 7 && (
           <CompletionStep
             twilioConfigured={twilioConfigured}
             emailConfigured={emailConfigured}
@@ -180,7 +191,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
       </Card>
 
       {/* Skip all */}
-      {step < 6 && step > 0 && (
+      {step < 7 && step > 0 && (
         <div className="mt-4 text-center">
           <Button variant="ghost" size="sm" onClick={handleSkip}>
             Skip setup for now

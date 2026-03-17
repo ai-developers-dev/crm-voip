@@ -308,23 +308,14 @@ export default function TenantUsersSettingsPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
-      {/* Impersonation Banner */}
-      <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
-        <Eye className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="flex items-center justify-between">
-          <span className="text-amber-700 dark:text-amber-400">
-            <strong>Managing:</strong> {tenant.name} Users
-          </span>
-          <div className="flex gap-2">
-            <Link href={`/admin/tenants/${tenant._id}/settings`}>
-              <Button variant="outline" size="sm" className="border-amber-500/30 hover:bg-amber-500/10">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Settings
-              </Button>
-            </Link>
-          </div>
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-center justify-end px-6 pt-4">
+        <Link href={`/admin/tenants/${tenant._id}/settings`}>
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Settings
+          </Button>
+        </Link>
+      </div>
 
       <div className="p-6 max-w-4xl mx-auto space-y-6 flex-1">
         {/* Header */}
@@ -508,7 +499,7 @@ export default function TenantUsersSettingsPage() {
 
       {/* Add User Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
             <DialogDescription>
@@ -609,7 +600,7 @@ export default function TenantUsersSettingsPage() {
 
       {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>

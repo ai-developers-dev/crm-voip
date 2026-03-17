@@ -33,8 +33,8 @@ export function CompletionStep({ twilioConfigured, emailConfigured, onComplete, 
             <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800 dark:text-amber-200">
-                <strong>Note:</strong> You skipped Twilio setup. Phone calls won&apos;t work until you
-                configure your Twilio credentials in Settings.
+                <strong>Note:</strong> You skipped phone setup. Phone calls won&apos;t work until you
+                set up your phone system in Settings.
               </AlertDescription>
             </Alert>
           )}

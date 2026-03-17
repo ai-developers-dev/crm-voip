@@ -1,14 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, ArrowDownLeft, ArrowUpRight, MessageCircle, Mail, MailOpen } from "lucide-react";
+import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, ArrowDownLeft, ArrowUpRight, MessageCircle, Mail, MailOpen, ChevronRight, StopCircle } from "lucide-react";
 import { ContactActionBar } from "./contact-action-bar";
 import { ComposeBox } from "./compose-box";
 import { commTypeColors } from "@/lib/style-constants";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { WorkflowDialog } from "@/components/workflows/workflow-dialog";
 
 type Contact = Doc<"contacts">;
 
@@ -16,6 +22,14 @@ interface CommunicationsPaneProps {
   contact: Contact | null;
   organizationId: Id<"organizations">;
 }
+
+type WorkflowInfo = {
+  workflowName: string;
+  workflowId: string;
+  nextStepLabel: string | null;
+  executionStatus: string;
+  executionId: string;
+};
 
 type CommunicationItem = {
   id: string;
@@ -31,6 +45,9 @@ type CommunicationItem = {
   // Email fields
   subject?: string;
   snippet?: string;
+  // Workflow fields
+  workflowExecutionId?: string;
+  workflowInfo?: WorkflowInfo;
 };
 
 function formatDuration(seconds: number): string {
@@ -129,7 +146,62 @@ function CommunicationIcon({ item }: { item: CommunicationItem }) {
   );
 }
 
-function CommunicationItemRow({ item }: { item: CommunicationItem }) {
+function WorkflowBadge({ info, onOpenWorkflow, onStopWorkflow }: {
+  info: WorkflowInfo;
+  onOpenWorkflow?: (workflowId: string) => void;
+  onStopWorkflow?: (executionId: string) => void;
+}) {
+  const isRunning = info.executionStatus === "running";
+  return (
+    <HoverCard openDelay={200} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          onClick={() => onOpenWorkflow?.(info.workflowId)}
+          className="flex h-5 w-7 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/30 text-[9px] font-bold text-violet-600 dark:text-violet-400 cursor-pointer hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors shrink-0"
+        >
+          WF
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent side="left" align="start" className="w-56 p-3">
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => onOpenWorkflow?.(info.workflowId)}
+            className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline cursor-pointer w-full text-left"
+          >
+            {info.workflowName}
+            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+          </button>
+          {info.nextStepLabel && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Next:</span> {info.nextStepLabel}
+            </div>
+          )}
+          {!info.nextStepLabel && (
+            <div className="text-xs text-muted-foreground">Workflow completed</div>
+          )}
+          {isRunning && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onStopWorkflow?.(info.executionId); }}
+              className="flex items-center gap-1.5 w-full text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md px-2 py-1.5 transition-colors cursor-pointer"
+            >
+              <StopCircle className="h-3.5 w-3.5" />
+              Stop Workflow
+            </button>
+          )}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
+function CommunicationItemRow({ item, onOpenWorkflow, onStopWorkflow }: {
+  item: CommunicationItem;
+  onOpenWorkflow?: (workflowId: string) => void;
+  onStopWorkflow?: (executionId: string) => void;
+}) {
   const getLabel = () => {
     if (item.type === "call") {
       if (item.outcome === "missed") return "Missed Call";
@@ -162,12 +234,17 @@ function CommunicationItemRow({ item }: { item: CommunicationItem }) {
   };
 
   return (
-    <div className="flex items-start gap-3 py-3">
+    <div className="relative flex items-start gap-3 py-3">
       <CommunicationIcon item={item} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">{getLabel()}</span>
-          <span className="text-xs text-muted-foreground">{formatTime(item.timestamp)}</span>
+          <div className="flex items-center gap-1.5">
+            {item.workflowInfo && (
+              <WorkflowBadge info={item.workflowInfo} onOpenWorkflow={onOpenWorkflow} onStopWorkflow={onStopWorkflow} />
+            )}
+            <span className="text-xs text-muted-foreground">{formatTime(item.timestamp)}</span>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground truncate">{getDetails()}</p>
       </div>
@@ -176,11 +253,18 @@ function CommunicationItemRow({ item }: { item: CommunicationItem }) {
 }
 
 export function CommunicationsPane({ contact, organizationId }: CommunicationsPaneProps) {
+  const [workflowDialogId, setWorkflowDialogId] = useState<string | null>(null);
+  const cancelExecution = useMutation(api.workflowExecutions.cancel);
+
   // Fetch communications for the selected contact
   const history = useQuery(
     api.contacts.getCommunicationsHistory,
     contact ? { contactId: contact._id, organizationId } : "skip"
   );
+
+  // Fetch workflow for dialog if one is selected
+  const workflows = useQuery(api.workflows.getByOrganization, { organizationId });
+  const selectedWorkflow = workflows?.find((w) => w._id === workflowDialogId) ?? null;
 
   // Merge and sort communications by timestamp
   const groupedCommunications = useMemo(() => {
@@ -202,6 +286,10 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
 
     // Map messages
     for (const msg of history.messages) {
+      const rawWfInfo = msg.workflowExecutionId && history.workflowInfo
+        ? history.workflowInfo[msg.workflowExecutionId]
+        : undefined;
+      const wfInfo = rawWfInfo ? { ...rawWfInfo, executionId: msg.workflowExecutionId! } : undefined;
       items.push({
         id: `sms-${msg._id}`,
         type: "sms",
@@ -209,6 +297,8 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         timestamp: msg.sentAt,
         body: msg.body,
         status: msg.status,
+        workflowExecutionId: msg.workflowExecutionId,
+        workflowInfo: wfInfo,
       });
     }
 
@@ -296,7 +386,12 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
                 </div>
                 <div className="divide-y">
                   {items.map((item) => (
-                    <CommunicationItemRow key={item.id} item={item} />
+                    <CommunicationItemRow
+                      key={item.id}
+                      item={item}
+                      onOpenWorkflow={(wfId) => setWorkflowDialogId(wfId)}
+                      onStopWorkflow={(exId) => cancelExecution({ executionId: exId as Id<"workflowExecutions"> })}
+                    />
                   ))}
                 </div>
               </div>
@@ -317,6 +412,17 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
 
       {/* Compose Box */}
       <ComposeBox contact={contact} organizationId={organizationId} />
+
+      {/* Workflow Dialog — opened from WF badge */}
+      {workflowDialogId && (
+        <WorkflowDialog
+          key={workflowDialogId}
+          open={!!workflowDialogId}
+          onOpenChange={(open) => { if (!open) setWorkflowDialogId(null); }}
+          workflow={selectedWorkflow}
+          organizationId={organizationId}
+        />
+      )}
     </div>
   );
 }

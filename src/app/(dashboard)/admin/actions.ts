@@ -17,10 +17,25 @@ async function getConvexClient() {
     }
   } catch {
     // JWT template may not exist - proceed without auth
-    // The mutations are public so this is fine
   }
 
   return convex;
+}
+
+/**
+ * Verify the caller is a platform admin before performing admin actions.
+ * Throws if not authenticated or not a platform admin.
+ */
+async function requirePlatformAdmin() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Not authenticated");
+
+  const convex = await getConvexClient();
+  const isSuperAdmin = await convex.query(api.platformUsers.isSuperAdmin, { clerkUserId: userId });
+  if (!isSuperAdmin) {
+    const isPlatform = await convex.query(api.platformUsers.isPlatformUser, { clerkUserId: userId });
+    if (!isPlatform) throw new Error("Not authorized — platform admin required");
+  }
 }
 
 export interface CreateTenantData {
@@ -42,6 +57,7 @@ export interface CreateTenantData {
 
 export async function createTenant(data: CreateTenantData) {
   try {
+    await requirePlatformAdmin();
     const clerk = await clerkClient();
     const convex = await getConvexClient();
 
@@ -185,6 +201,7 @@ export interface UpdateTenantData {
 
 export async function updateTenant(data: UpdateTenantData) {
   try {
+    await requirePlatformAdmin();
     const convex = await getConvexClient();
     const clerk = await clerkClient();
 
@@ -263,6 +280,7 @@ export interface AddUserToOrgData {
  * The Clerk webhook will create/update the user in Convex with the real Clerk ID.
  */
 export async function addUserToOrganization(data: AddUserToOrgData) {
+  await requirePlatformAdmin();
   const convex = await getConvexClient();
   let clerkUserId: string | null = null;
 
@@ -379,6 +397,7 @@ export async function addUserToOrganization(data: AddUserToOrgData) {
  */
 export async function removeUserFromOrganization(clerkOrgId: string, clerkUserId: string) {
   try {
+    await requirePlatformAdmin();
     const clerk = await clerkClient();
 
     await clerk.organizations.deleteOrganizationMembership({
@@ -399,6 +418,7 @@ export async function removeUserFromOrganization(clerkOrgId: string, clerkUserId
 
 export async function deleteTenantFromClerk(organizationId: Id<"organizations">) {
   try {
+    await requirePlatformAdmin();
     const convex = await getConvexClient();
 
     // First, get the organization from Convex to get the clerkOrgId

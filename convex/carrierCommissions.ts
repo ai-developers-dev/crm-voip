@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizePlatformAdmin } from "./lib/auth";
 
 export const getByAgencyType = query({
   args: { agencyTypeId: v.id("agencyTypes") },
@@ -21,6 +22,7 @@ export const upsert = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     // Check if a commission already exists for this carrier+product
     const existing = await ctx.db
       .query("carrierCommissions")
@@ -57,6 +59,7 @@ export const upsert = mutation({
 export const remove = mutation({
   args: { id: v.id("carrierCommissions") },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Commission not found");
     await ctx.db.delete(args.id);

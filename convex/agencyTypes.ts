@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizePlatformAdmin } from "./lib/auth";
 
 export const getAll = query({
   args: {},
@@ -33,6 +34,7 @@ export const create = mutation({
     perUserPrice: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const now = Date.now();
     return await ctx.db.insert("agencyTypes", {
       name: args.name,
@@ -55,6 +57,7 @@ export const update = mutation({
     perUserPrice: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const { id, ...updates } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Agency type not found");
@@ -72,6 +75,7 @@ export const update = mutation({
 export const toggleActive = mutation({
   args: { id: v.id("agencyTypes") },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Agency type not found");
 
@@ -85,6 +89,7 @@ export const toggleActive = mutation({
 export const remove = mutation({
   args: { id: v.id("agencyTypes") },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Agency type not found");
 

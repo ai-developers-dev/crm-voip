@@ -115,9 +115,9 @@ export default function TwilioSettingsPage() {
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">Twilio Settings</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Phone System Settings</h1>
         <p className="text-muted-foreground">
-          Configure your Twilio credentials for voice calling
+          Configure your voice calling credentials
         </p>
       </div>
 
@@ -126,7 +126,7 @@ export default function TwilioSettingsPage() {
         <Alert className="bg-green-50 border-green-200">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            Twilio is configured and ready to use. Update credentials below if needed.
+            Phone system is configured and ready to use. Update credentials below if needed.
           </AlertDescription>
         </Alert>
       )}
@@ -135,7 +135,7 @@ export default function TwilioSettingsPage() {
         <Alert className="bg-green-50 border-green-200">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            Twilio credentials saved successfully!
+            Phone system credentials saved!
           </AlertDescription>
         </Alert>
       )}
@@ -150,15 +150,7 @@ export default function TwilioSettingsPage() {
             <div>
               <CardTitle>API Credentials</CardTitle>
               <CardDescription>
-                Enter your Twilio account credentials from{" "}
-                <a
-                  href="https://console.twilio.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  console.twilio.com
-                </a>
+                Enter your voice calling account credentials
               </CardDescription>
             </div>
           </div>
@@ -176,7 +168,7 @@ export default function TwilioSettingsPage() {
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Found on your Twilio Console dashboard
+                Your Account SID from your provider dashboard
               </p>
             </div>
 
@@ -256,7 +248,7 @@ export default function TwilioSettingsPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, twimlAppSid: e.target.value }))}
               />
               <p className="text-xs text-muted-foreground">
-                Required for browser-based calling. Create at Console → Voice → TwiML Apps
+                Required for browser-based calling
               </p>
             </div>
 
@@ -286,12 +278,12 @@ export default function TwilioSettingsPage() {
           <CardTitle className="text-sm">Need Help?</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>To find your Twilio credentials:</p>
+          <p>To find your credentials:</p>
           <ol className="list-decimal list-inside space-y-1">
-            <li>Log in to your <a href="https://console.twilio.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">Twilio Console</a></li>
+            <li>Log in to your voice provider dashboard</li>
             <li>Your Account SID and Auth Token are on the main dashboard</li>
-            <li>For API Keys, go to Account → API Keys & Tokens</li>
-            <li>For TwiML Apps, go to Voice → TwiML → TwiML Apps</li>
+            <li>For API Keys, go to your account API Keys section</li>
+            <li>For TwiML Apps, go to Voice &rarr; TwiML Apps</li>
           </ol>
         </CardContent>
       </Card>

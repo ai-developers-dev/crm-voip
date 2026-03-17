@@ -9,7 +9,7 @@ import Link from "next/link";
 import {
   Phone, Settings, Building2, Shield, LogOut, UserCog,
   ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3, Users,
-  Wifi, WifiOff, RefreshCw, Calendar, TrendingUp
+  Wifi, WifiOff, RefreshCw, Calendar, TrendingUp, Workflow, FileText
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -506,7 +506,7 @@ function TenantSwitcher() {
 }
 
 /**
- * ConnectionStatus - Shows Twilio device connection status in the header
+ * ConnectionStatus - Shows phone system connection status in the header
  */
 function ConnectionStatus() {
   const callingContext = useOptionalCallingContext();
@@ -563,7 +563,8 @@ function ConnectionStatus() {
   );
 }
 
-function CustomUserButton({ roleLabel, isSuperAdmin, convexAvatarUrl }: { roleLabel: string | null; isSuperAdmin: boolean; convexAvatarUrl?: string | null }) {
+function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvatarUrl }: { roleLabel: string | null; isSuperAdmin: boolean; isPlatformStaff?: boolean; convexAvatarUrl?: string | null }) {
+  const showAdminLinks = isSuperAdmin || isPlatformStaff;
   const { user } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const [open, setOpen] = useState(false);
@@ -630,7 +631,7 @@ function CustomUserButton({ roleLabel, isSuperAdmin, convexAvatarUrl }: { roleLa
 
           {/* Menu Items */}
           <div className="p-1">
-            {isSuperAdmin && (
+            {showAdminLinks && (
               <>
                 <Link
                   href="/admin"
@@ -688,6 +689,12 @@ export default function DashboardLayout({
   // Check if user is super_admin for showing admin link
   const isSuperAdmin = useQuery(
     api.platformUsers.isSuperAdmin,
+    user?.id ? { clerkUserId: user.id } : "skip"
+  );
+
+  // Check if user is any platform user (super_admin or platform_staff)
+  const isPlatformUser = useQuery(
+    api.platformUsers.isPlatformUser,
     user?.id ? { clerkUserId: user.id } : "skip"
   );
 
@@ -805,7 +812,7 @@ export default function DashboardLayout({
                 </>
               )}
             </Link>
-            {isSuperAdmin && (
+            {isPlatformUser && (
               <>
                 <span className="text-muted-foreground/50">/</span>
                 <TenantSwitcher />
@@ -815,8 +822,17 @@ export default function DashboardLayout({
           <div className="flex items-center gap-3">
             {/* Connection status indicator */}
             <ConnectionStatus />
-            {/* Hide nav badges when viewing admin tenant pages — tenant has its own inline nav */}
-            {!pathname?.startsWith("/admin/tenants/") && (
+            {/* Platform admins only see Settings — tenant features are in tenant inline nav */}
+            {isPlatformUser ? (
+              !pathname?.startsWith("/admin/tenants/") && (
+                <Link href="/admin/settings">
+                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Settings className="h-3 w-3" />
+                    Settings
+                  </Badge>
+                </Link>
+              )
+            ) : (
               <>
                 <Link href="/stats">
                   <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
@@ -830,6 +846,14 @@ export default function DashboardLayout({
                     Reports
                   </Badge>
                 </Link>
+                {currentUser?.role !== "agent" && (
+                  <Link href="/workflows">
+                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                      <Workflow className="h-3 w-3" />
+                      Workflows
+                    </Badge>
+                  </Link>
+                )}
                 <Link href="/contacts">
                   <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
                     <Users className="h-3 w-3" />
@@ -842,15 +866,17 @@ export default function DashboardLayout({
                     Calendar
                   </Badge>
                 </Link>
-                <Link href={pathname?.startsWith("/admin") ? "/admin/settings" : "/settings"}>
-                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
-                    <Settings className="h-3 w-3" />
-                    Settings
-                  </Badge>
-                </Link>
+                {currentUser?.role !== "agent" && (
+                  <Link href="/settings">
+                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                      <Settings className="h-3 w-3" />
+                      Settings
+                    </Badge>
+                  </Link>
+                )}
               </>
             )}
-            <CustomUserButton roleLabel={roleLabel} isSuperAdmin={isSuperAdmin === true} convexAvatarUrl={currentUser?.avatarUrl} />
+            <CustomUserButton roleLabel={roleLabel} isSuperAdmin={isSuperAdmin === true} isPlatformStaff={isPlatformUser === true && !isSuperAdmin} convexAvatarUrl={currentUser?.avatarUrl} />
           </div>
         </div>
       </header>

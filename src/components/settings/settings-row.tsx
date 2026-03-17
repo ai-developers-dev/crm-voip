@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,7 +12,7 @@ interface SettingsRowProps {
   action?: React.ReactNode;
   isExpanded: boolean;
   onToggle: () => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export function SettingsRow({
@@ -26,51 +25,37 @@ export function SettingsRow({
   onToggle,
   children,
 }: SettingsRowProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <Card
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <Card className="cursor-pointer" onClick={onToggle}>
       <CardContent className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className="shrink-0">{icon}</div>
           <div className="font-semibold text-sm min-w-[90px] shrink-0">{label}</div>
           <span className="text-xs text-muted-foreground">{summary}</span>
           <div className="flex-1" />
-          {badge && <div className="shrink-0">{badge}</div>}
-          {action && <div className="shrink-0">{action}</div>}
-          <div
+          {badge && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{badge}</div>}
+          {action && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{action}</div>}
+          <ChevronDown
             className={cn(
-              "transition-opacity duration-200",
-              isHovered || isExpanded ? "opacity-100" : "opacity-0"
+              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              isExpanded && "rotate-180"
             )}
-          >
-            <button
-              onClick={onToggle}
-              className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )}
-              />
-            </button>
-          </div>
+          />
         </div>
 
-        <div
-          className={cn(
-            "overflow-hidden transition-all duration-200 ease-in-out",
-            isExpanded ? "max-h-[2000px] opacity-100 mt-3" : "max-h-0 opacity-0"
-          )}
-        >
-          <div className="border-t border-border/40 pt-3">
-            {children}
+        {children && (
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-200 ease-in-out",
+              isExpanded ? "max-h-[2000px] opacity-100 mt-3" : "max-h-0 opacity-0"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-t border-border/40 pt-3">
+              {children}
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

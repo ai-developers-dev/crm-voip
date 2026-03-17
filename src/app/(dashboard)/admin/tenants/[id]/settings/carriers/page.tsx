@@ -374,21 +374,14 @@ export default function AdminTenantCarriersPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
-      {/* Impersonation Banner */}
-      <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
-        <Eye className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="flex items-center justify-between">
-          <span className="text-amber-700 dark:text-amber-400">
-            <strong>Managing:</strong> {tenant.name} - Carriers & Lines of Business
-          </span>
-          <Link href={`/admin/tenants/${tenant._id}/settings`}>
-            <Button variant="outline" size="sm" className="border-amber-500/30 hover:bg-amber-500/10">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Settings
-            </Button>
-          </Link>
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-center justify-end px-6 pt-4">
+        <Link href={`/admin/tenants/${tenant._id}/settings`}>
+          <Button variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Settings
+          </Button>
+        </Link>
+      </div>
 
       <div className="p-6 max-w-6xl mx-auto space-y-4 flex-1">
         {/* Header */}

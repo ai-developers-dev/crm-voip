@@ -8,7 +8,7 @@ import { Id } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft, Loader2, BarChart3, Settings, Phone, MessageSquare, Users, Calendar, Download
+  ArrowLeft, Loader2, BarChart3, Settings, Phone, MessageSquare, Users, Calendar, Download, Bot, Workflow
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -127,6 +127,12 @@ export default function TenantReportsPage() {
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
               <Button variant="secondary" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/workflows`}>
+              <Button variant="ghost" size="sm" className="gap-2"><Workflow className="h-4 w-4" />Workflows</Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/agents`}>
+              <Button variant="ghost" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button>
             </Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}>

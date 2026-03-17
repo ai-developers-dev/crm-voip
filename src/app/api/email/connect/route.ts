@@ -8,7 +8,7 @@ const nylas = new Nylas({
 
 export async function POST(request: NextRequest) {
   try {
-    const { organizationId, userId, redirectUri, provider } = await request.json();
+    const { organizationId, userId, redirectUri, provider, redirectPath } = await request.json();
 
     if (!organizationId) {
       return NextResponse.json(
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const authUrl = nylas.auth.urlForOAuth2({
       clientId: process.env.NYLAS_CLIENT_ID!,
       redirectUri: callbackUrl,
-      state: JSON.stringify({ organizationId, userId }),
+      state: JSON.stringify({ organizationId, userId, redirectPath }),
       provider: selectedProvider,
     });
 

@@ -24,8 +24,8 @@ export function WelcomeStep({ organizationName, onNext, onSkip }: WelcomeStepPro
       <div className="grid gap-4 sm:grid-cols-2 my-8">
         <SetupItem
           icon={Phone}
-          title="Connect Twilio"
-          description="Link your Twilio account for calling"
+          title="Set Up Phone System"
+          description="Configure voice calling for your agency"
         />
         <SetupItem
           icon={Users}

@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Doc } from "../../../convex/_generated/dataModel";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
+import { api } from "../../../convex/_generated/api";
+import { useQuery, useMutation } from "convex/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Plus, Phone, User, Loader2, Users, ChevronDown, Mail, Building2, MapPin, Pencil, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, Plus, Phone, User, Loader2, Users, ChevronDown, Mail, Building2, MapPin, Pencil, Trash2, Tag, Check, X } from "lucide-react";
 import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils";
+import { tagColors } from "@/lib/style-constants";
 
 type Contact = Doc<"contacts">;
+type ContactTag = Doc<"contactTags">;
 
 interface ContactListCompactProps {
   contacts: Contact[];
@@ -19,6 +24,7 @@ interface ContactListCompactProps {
   onEditContact?: (contact: Contact) => void;
   onDeleteContact?: (contact: Contact) => void;
   isLoading?: boolean;
+  organizationId?: Id<"organizations">;
 }
 
 function ContactCard({
@@ -28,6 +34,8 @@ function ContactCard({
   onEdit,
   onDelete,
   getPrimaryPhone,
+  activeTags,
+  onToggleTag,
 }: {
   contact: Contact;
   isSelected: boolean;
@@ -35,6 +43,8 @@ function ContactCard({
   onEdit?: () => void;
   onDelete?: () => void;
   getPrimaryPhone: (c: Contact) => string;
+  activeTags?: ContactTag[];
+  onToggleTag?: (contactId: Id<"contacts">, tagId: Id<"contactTags">, currentTags: Id<"contactTags">[]) => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -49,13 +59,18 @@ function ContactCard({
     .filter(Boolean)
     .join(", ");
 
+  const contactTagIds = (contact.tags ?? []) as Id<"contactTags">[];
+
+  // Build a map of assigned tag objects for display
+  const assignedTags = activeTags?.filter((t) => contactTagIds.includes(t._id)) ?? [];
+
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "rounded-md transition-colors relative",
-        isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted/50"
+        isSelected ? "border border-primary bg-background" : "border border-transparent hover:bg-muted/50"
       )}
     >
       {/* Main row */}
@@ -149,7 +164,7 @@ function ContactCard({
       <div
         className={cn(
           "overflow-hidden transition-all duration-200 ease-in-out",
-          isExpanded ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+          isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         )}
       >
         <div className="px-3 pb-3 pt-1 border-t border-border/40 mx-2.5">
@@ -182,7 +197,7 @@ function ContactCard({
               </div>
             )}
 
-            {/* Address */}
+            {/* Address + action buttons */}
             {address && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -208,19 +223,121 @@ function ContactCard({
                   >
                     Zillow
                   </a>
+                  {/* Tag button */}
+                  {activeTags && activeTags.length > 0 && onToggleTag && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-[12px] px-2.5 py-1 rounded bg-muted hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
+                        >
+                          Tag
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-1.5" align="center" side="bottom">
+                        <div className="space-y-0.5">
+                          {activeTags.map((tag) => {
+                            const isAssigned = contactTagIds.includes(tag._id);
+                            return (
+                              <button
+                                key={tag._id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleTag(contact._id, tag._id, contactTagIds);
+                                }}
+                                className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors"
+                              >
+                                <div className={cn(
+                                  "flex h-4 w-4 items-center justify-center rounded border",
+                                  isAssigned ? "bg-primary border-primary" : "border-muted-foreground/30"
+                                )}>
+                                  {isAssigned && <Check className="h-3 w-3 text-primary-foreground" />}
+                                </div>
+                                <div className={cn("h-2.5 w-2.5 rounded-full", tagColors[tag.color]?.dot ?? "bg-gray-500")} />
+                                <span>{tag.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Tags */}
-            {contact.tags && contact.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-0.5">
-                {contact.tags.map((tag) => (
+            {/* Tag button when no address (still show tag option) */}
+            {!address && activeTags && activeTags.length > 0 && onToggleTag && (
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[12px] px-2.5 py-1 rounded bg-muted hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
+                    >
+                      Tag
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-1.5" align="center" side="bottom">
+                    <div className="space-y-0.5">
+                      {activeTags.map((tag) => {
+                        const isAssigned = contactTagIds.includes(tag._id);
+                        return (
+                          <button
+                            key={tag._id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleTag(contact._id, tag._id, contactTagIds);
+                            }}
+                            className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors"
+                          >
+                            <div className={cn(
+                              "flex h-4 w-4 items-center justify-center rounded border",
+                              isAssigned ? "bg-primary border-primary" : "border-muted-foreground/30"
+                            )}>
+                              {isAssigned && <Check className="h-3 w-3 text-primary-foreground" />}
+                            </div>
+                            <div className={cn("h-2.5 w-2.5 rounded-full", tagColors[tag.color]?.dot ?? "bg-gray-500")} />
+                            <span>{tag.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            {/* Tags display */}
+            {assignedTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {assignedTags.map((tag) => (
                   <span
-                    key={tag}
-                    className="text-[12px] bg-muted px-1.5 py-0.5 rounded-full"
+                    key={tag._id}
+                    className="group/tag inline-flex items-center gap-1.5"
                   >
-                    {tag}
+                    <span
+                      className={cn(
+                        "h-4 w-4 rounded-full border border-white shrink-0",
+                        tagColors[tag.color]?.dot ?? "bg-gray-500"
+                      )}
+                    />
+                    <span className={cn(
+                      "text-[11px] font-semibold",
+                      tagColors[tag.color]?.text ?? "text-foreground"
+                    )}>
+                      {tag.name}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const currentTags = contact.tags ?? [];
+                        onToggleTag?.(contact._id, tag._id, currentTags);
+                      }}
+                      className="hidden group-hover/tag:inline-flex items-center justify-center h-4 w-4 rounded-full text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </span>
                 ))}
               </div>
@@ -240,8 +357,24 @@ export function ContactListCompact({
   onEditContact,
   onDeleteContact,
   isLoading = false,
+  organizationId,
 }: ContactListCompactProps) {
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Fetch active tags for this organization
+  const activeTags = useQuery(
+    api.contactTags.getActive,
+    organizationId ? { organizationId } : "skip"
+  );
+  const updateContact = useMutation(api.contacts.update);
+
+  const handleToggleTag = (contactId: Id<"contacts">, tagId: Id<"contactTags">, currentTags: Id<"contactTags">[]) => {
+    const isAssigned = currentTags.includes(tagId);
+    const newTags = isAssigned
+      ? currentTags.filter((t) => t !== tagId)
+      : [...currentTags, tagId];
+    updateContact({ contactId, tags: newTags });
+  };
 
   // Filter contacts based on search query
   const filteredContacts = useMemo(() => {
@@ -277,7 +410,7 @@ export function ContactListCompact({
         <div className="p-3 border-b space-y-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search..." className="pl-8 h-9" disabled />
+            <Input placeholder="Search..." value="" className="pl-8 h-9" disabled />
           </div>
           <Button disabled className="w-full h-9" size="sm">
             <Plus className="h-4 w-4 mr-1.5" />
@@ -333,6 +466,8 @@ export function ContactListCompact({
                   onEdit={onEditContact ? () => onEditContact(contact) : undefined}
                   onDelete={onDeleteContact ? () => onDeleteContact(contact) : undefined}
                   getPrimaryPhone={getPrimaryPhone}
+                  activeTags={activeTags ?? undefined}
+                  onToggleTag={handleToggleTag}
                 />
               ))}
             </div>

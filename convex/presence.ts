@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgMember } from "./lib/auth";
 
 // Query to get all online users in an organization
 export const getOnlineUsers = query({
@@ -63,6 +64,7 @@ export const heartbeat = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
     const existing = await ctx.db
       .query("presence")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -103,6 +105,9 @@ export const updateStatus = mutation({
     statusMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    await authorizeOrgMember(ctx, user.organizationId);
     const existing = await ctx.db
       .query("presence")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -128,6 +133,9 @@ export const updateStatus = mutation({
 export const goOffline = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    await authorizeOrgMember(ctx, user.organizationId);
     const existing = await ctx.db
       .query("presence")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))

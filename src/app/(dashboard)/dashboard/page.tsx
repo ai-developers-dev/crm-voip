@@ -141,13 +141,13 @@ export default function DashboardPage() {
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="flex items-center justify-between">
               <span className="text-amber-800 dark:text-amber-200">
-                <strong>Setup Incomplete:</strong> Phone calls won&apos;t work until you configure Twilio credentials.
+                <strong>Setup Incomplete:</strong> Phone calls won&apos;t work until your phone system is configured.
               </span>
               <div className="flex items-center gap-2">
                 <Link href="/settings/twilio">
                   <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
                     <Settings className="h-4 w-4 mr-2" />
-                    Configure Twilio
+                    Set Up Phone
                   </Button>
                 </Link>
                 <Button

@@ -1,8 +1,31 @@
 /**
  * Centralized style constants for UI consistency across the app.
  *
- * Usage: import { typography, layout, colors } from "@/lib/style-constants";
- * Then use with cn(): className={cn(typography.pageTitle)}
+ * PREFERRED: Use CSS utility classes defined in globals.css directly in markup:
+ *   <h1 className="page-title">Title</h1>
+ *   <div className="page-scroll">...</div>
+ *   <div className="stats-grid">...</div>
+ *
+ * Or use layout components for common patterns:
+ *   import { PageHeader } from "@/components/layout/page-header";
+ *   import { PageContainer } from "@/components/layout/page-container";
+ *   import { StatCard } from "@/components/layout/stat-card";
+ *
+ * CSS Classes Available (globals.css):
+ *   Typography:  page-title, page-description, section-title, card-title,
+ *                label-text, body-text, caption-text, stat-value, stat-value-sm,
+ *                section-heading
+ *   Containers:  page-scroll, page-full, page-settings, page-header,
+ *                page-header-bordered, content-narrow, content-wide
+ *   Spacing:     section-gap, inner-gap, field-gap
+ *   Grids:       stats-grid (2→4 cols), summary-grid (1→3), content-grid (1→2)
+ *
+ * Semantic Colors (CSS vars): --success, --warning, --info + foregrounds
+ * Badge Variants: default, secondary, destructive, outline, success, warning, info
+ *
+ * ALTERNATIVE: Import these JS constants for programmatic use with cn():
+ *   import { typography, layout, colors } from "@/lib/style-constants";
+ *   className={cn(typography.pageTitle)}
  */
 
 // ---------------------------------------------------------------------------
@@ -219,6 +242,20 @@ export const calendarEventColors = {
   synced: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   appointment: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
 } as const;
+
+/** Contact tag colors */
+export const tagColors: Record<string, { bg: string; text: string; dot: string }> = {
+  red:    { bg: "bg-red-100 dark:bg-red-900/30",    text: "text-red-700 dark:text-red-300",    dot: "bg-red-500" },
+  blue:   { bg: "bg-blue-100 dark:bg-blue-900/30",   text: "text-blue-700 dark:text-blue-300",   dot: "bg-blue-500" },
+  green:  { bg: "bg-green-100 dark:bg-green-900/30",  text: "text-green-700 dark:text-green-300",  dot: "bg-green-500" },
+  purple: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-300", dot: "bg-purple-500" },
+  orange: { bg: "bg-orange-100 dark:bg-orange-900/30", text: "text-orange-700 dark:text-orange-300", dot: "bg-orange-500" },
+  yellow: { bg: "bg-yellow-100 dark:bg-yellow-900/30", text: "text-yellow-700 dark:text-yellow-300", dot: "bg-yellow-500" },
+  pink:   { bg: "bg-pink-100 dark:bg-pink-900/30",   text: "text-pink-700 dark:text-pink-300",   dot: "bg-pink-500" },
+  teal:   { bg: "bg-teal-100 dark:bg-teal-900/30",   text: "text-teal-700 dark:text-teal-300",   dot: "bg-teal-500" },
+};
+
+export const TAG_COLOR_OPTIONS = Object.keys(tagColors);
 
 // ---------------------------------------------------------------------------
 // UI Recipes — Copy these patterns for new pages

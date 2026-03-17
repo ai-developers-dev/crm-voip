@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { authorizeOrgMember } from "./lib/auth";
 
 /** List all sales goals for an organization, sorted by year desc then month desc */
 export const list = query({
@@ -51,6 +52,7 @@ export const upsert = mutation({
     monthlyPolicies: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
     const existing = await ctx.db
       .query("salesGoals")
       .withIndex("by_org_year_month", (q) =>
@@ -91,6 +93,9 @@ export const upsert = mutation({
 export const remove = mutation({
   args: { goalId: v.id("salesGoals") },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.goalId);
+    if (!existing) throw new Error("Sales goal not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
     await ctx.db.delete(args.goalId);
   },
 });

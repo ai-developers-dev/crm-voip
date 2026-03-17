@@ -1,6 +1,7 @@
 import { mutation, query, internalMutation, internalQuery, MutationCtx, action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal, api } from "./_generated/api";
+import { authorizeOrgMember } from "./lib/auth";
 
 // Query to get all active calls for an organization
 export const getActive = query({
@@ -96,6 +97,8 @@ export const createOutgoing = mutation({
     userId: v.optional(v.id("users")), // User who made the outbound call
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
     // Check if call already exists
     const existing = await ctx.db
       .query("activeCalls")
@@ -140,6 +143,8 @@ export const createOrGetIncoming = mutation({
     to: v.string(),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
     // Check if call already exists
     const existing = await ctx.db
       .query("activeCalls")
@@ -258,6 +263,29 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
         notes: call.notes,
       });
 
+      // Trigger workflow: missed_call (no answer, busy, canceled)
+      const callOutcome = (args.outcome as string) || "answered";
+      if (callOutcome !== "answered" && call.direction === "inbound") {
+        // Find contact by caller phone number
+        const normalizedFrom = call.from.replace(/\D/g, "").slice(-10);
+        const contacts = await ctx.db
+          .query("contacts")
+          .withIndex("by_organization", (q) => q.eq("organizationId", call.organizationId))
+          .collect();
+        const matchingContact = contacts.find((c) =>
+          c.phoneNumbers.some(
+            (p) => p.number.replace(/\D/g, "").slice(-10) === normalizedFrom
+          )
+        );
+        if (matchingContact) {
+          await ctx.scheduler.runAfter(0, internal.workflowEngine.checkTriggers, {
+            organizationId: call.organizationId,
+            triggerType: "missed_call",
+            contactId: matchingContact._id,
+          });
+        }
+      }
+
       // Delete active call
       await ctx.db.delete(call._id);
       return;
@@ -275,6 +303,7 @@ export const answer = mutation({
   handler: async (ctx, args) => {
     const call = await ctx.db.get(args.callId);
     if (!call) throw new Error("Call not found");
+    await authorizeOrgMember(ctx, call.organizationId);
 
     await ctx.db.patch(args.callId, {
       state: "connected",
@@ -301,6 +330,7 @@ export const park = mutation({
   handler: async (ctx, args) => {
     const call = await ctx.db.get(args.callId);
     if (!call) throw new Error("Call not found");
+    await authorizeOrgMember(ctx, call.organizationId);
 
     // Check if slot is available
     const existingSlot = await ctx.db
@@ -364,6 +394,8 @@ export const parkByCallSid = mutation({
     parkedByUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
     // Find call by twilioCallSid
     const call = await ctx.db
       .query("activeCalls")
@@ -453,6 +485,8 @@ export const unpark = mutation({
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
     const slot = await ctx.db
       .query("parkingLots")
       .withIndex("by_organization_slot", (q) =>
@@ -502,6 +536,7 @@ export const transfer = mutation({
   handler: async (ctx, args) => {
     const call = await ctx.db.get(args.callId);
     if (!call) throw new Error("Call not found");
+    await authorizeOrgMember(ctx, call.organizationId);
 
     const previousUserId = call.assignedUserId;
 
@@ -542,6 +577,7 @@ export const setHold = mutation({
     if (!call) {
       return { success: false, reason: "call_not_found" };
     }
+    await authorizeOrgMember(ctx, call.organizationId);
 
     await ctx.db.patch(args.callId, {
       state: args.isHeld ? "on_hold" : "connected",
@@ -600,6 +636,8 @@ export const claimCall = mutation({
     if (!orgId) {
       return { success: false, reason: "call_not_found_no_org" };
     }
+
+    await authorizeOrgMember(ctx, orgId);
 
     // Find the user by Clerk ID AND organization
     // Important: Same Clerk user can exist in multiple orgs, so we must match the org
@@ -676,6 +714,7 @@ export const end = mutation({
   handler: async (ctx, args) => {
     const call = await ctx.db.get(args.callId);
     if (!call) throw new Error("Call not found");
+    await authorizeOrgMember(ctx, call.organizationId);
 
     const talkTimeSeconds = call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0;
 
@@ -733,6 +772,7 @@ export const endByCallSid = mutation({
     if (!call) {
       return { success: true, alreadyCleaned: true };
     }
+    await authorizeOrgMember(ctx, call.organizationId);
 
     const talkTimeSeconds = call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0;
 
@@ -782,6 +822,8 @@ export const endByCallSid = mutation({
 export const clearAllActiveCalls = mutation({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
     const calls = await ctx.db
       .query("activeCalls")
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))

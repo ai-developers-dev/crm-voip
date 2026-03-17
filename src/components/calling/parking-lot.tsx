@@ -7,7 +7,7 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Phone, ParkingSquare, Loader2, GripVertical } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useParkingStore } from "@/lib/stores/parking-store";
 
 interface ParkingLotProps {
@@ -15,97 +15,59 @@ interface ParkingLotProps {
 }
 
 export function ParkingLot({ organizationId }: ParkingLotProps) {
-  // Query parking slots from Convex
-  const dbSlots = useQuery(api.parkingLot.getSlots, {
-    organizationId,
-  });
+  const dbSlots = useQuery(api.parkingLot.getSlots, { organizationId });
 
-  // Get optimistic calls from Zustand store
-  // Select the raw object to avoid creating new array references on every render
   const optimisticCallsMap = useParkingStore((s) => s.optimisticCalls);
   const optimisticCalls = useMemo(() => Object.values(optimisticCallsMap), [optimisticCallsMap]);
   const parkingInProgress = useParkingStore((s) => s.parkingInProgress);
 
-  // Single droppable for entire parking lot (not per-slot)
+  // Single droppable for entire parking lot
   const { setNodeRef, isOver } = useDroppable({
     id: "parking-lot",
     data: { type: "parking-lot" },
   });
 
-  // Merge DB slots with optimistic calls
-  const displaySlots = useMemo(() => {
-    // Start with empty slots
-    const slots: Array<{
+  // Only show occupied slots + optimistic calls (no empty slots)
+  const parkedCalls = useMemo(() => {
+    const calls: Array<{
       slotNumber: number;
-      isOccupied: boolean;
       call: any;
       isOptimistic?: boolean;
-    }> = Array.from({ length: 10 }, (_, i) => ({
-      slotNumber: i + 1,
-      isOccupied: false,
-      call: null,
-    }));
+    }> = [];
 
-    // Debug: Log raw DB data
-    console.log("🅿️ ParkingLot - dbSlots from query:", dbSlots);
-    console.log("🅿️ ParkingLot - optimisticCalls:", optimisticCalls);
-
-    // Fill in from DB
+    // Add occupied DB slots
     if (dbSlots) {
       for (const dbSlot of dbSlots) {
-        const idx = dbSlot.slotNumber - 1;
-        if (idx >= 0 && idx < 10) {
-          const slotData = {
+        if (dbSlot.isOccupied) {
+          calls.push({
             slotNumber: dbSlot.slotNumber,
-            isOccupied: dbSlot.isOccupied,
             call: dbSlot.call || {
               from: dbSlot.callerNumber,
               fromName: dbSlot.callerName,
               conferenceName: dbSlot.conferenceName,
-              pstnCallSid: dbSlot.pstnCallSid, // The PSTN call SID needed for unparking
+              pstnCallSid: dbSlot.pstnCallSid,
             },
-          };
-          slots[idx] = slotData;
-
-          // Debug: Log each occupied slot
-          if (dbSlot.isOccupied) {
-            console.log(`🅿️ Slot ${dbSlot.slotNumber} OCCUPIED:`, {
-              callerNumber: dbSlot.callerNumber,
-              callerName: dbSlot.callerName,
-              hasCall: !!dbSlot.call,
-              conferenceName: dbSlot.conferenceName,
-            });
-          }
+          });
         }
       }
     }
 
-    // Add optimistic calls to first available slots
+    // Add optimistic calls
     for (const optCall of optimisticCalls) {
-      // Find first empty slot
-      const emptyIdx = slots.findIndex((s) => !s.isOccupied);
-      if (emptyIdx >= 0) {
-        slots[emptyIdx] = {
-          slotNumber: emptyIdx + 1,
-          isOccupied: true,
-          isOptimistic: true,
-          call: {
-            _id: optCall.id,
-            twilioCallSid: optCall.twilioCallSid,
-            from: optCall.callerNumber,
-            fromName: optCall.callerName,
-            conferenceName: optCall.conferenceName,
-          },
-        };
-        console.log(`🅿️ Optimistic slot ${emptyIdx + 1}:`, optCall);
-      }
+      calls.push({
+        slotNumber: calls.length + 1,
+        isOptimistic: true,
+        call: {
+          _id: optCall.id,
+          twilioCallSid: optCall.twilioCallSid,
+          from: optCall.callerNumber,
+          fromName: optCall.callerName,
+          conferenceName: optCall.conferenceName,
+        },
+      });
     }
 
-    // Debug: Count occupied slots
-    const occupiedCount = slots.filter(s => s.isOccupied).length;
-    console.log(`🅿️ Total occupied slots: ${occupiedCount}`);
-
-    return slots;
+    return calls;
   }, [dbSlots, optimisticCalls]);
 
   return (
@@ -119,8 +81,11 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
       <div className="flex items-center gap-2 mb-4">
         <ParkingSquare className="h-5 w-5 text-primary" />
         <h2 className="text-sm font-semibold">Parking Lot</h2>
+        {parkedCalls.length > 0 && (
+          <span className="text-xs text-muted-foreground ml-auto">{parkedCalls.length} parked</span>
+        )}
         {parkingInProgress && (
-          <Loader2 className="h-4 w-4 animate-spin text-primary ml-auto" />
+          <Loader2 className="h-4 w-4 animate-spin text-primary ml-1" />
         )}
       </div>
 
@@ -128,39 +93,46 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
+      ) : parkedCalls.length === 0 ? (
+        <div className={cn(
+          "flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed transition-all",
+          isOver ? "border-primary bg-primary/5 text-primary" : "border-border/40 text-muted-foreground/40"
+        )}>
+          <ParkingSquare className="h-8 w-8 mb-2" />
+          <p className="text-xs font-medium">
+            {isOver ? "Drop to park" : "Drag a call here to park"}
+          </p>
+        </div>
       ) : (
         <div className="space-y-2">
-          {displaySlots.map((slot) => (
-            <ParkingSlot
-              key={slot.slotNumber}
+          {parkedCalls.map((slot) => (
+            <ParkedCallCard
+              key={slot.call._id || slot.call.twilioCallSid || `slot-${slot.slotNumber}`}
               slotNumber={slot.slotNumber}
-              isOccupied={slot.isOccupied}
               call={slot.call}
               isOptimistic={slot.isOptimistic}
             />
           ))}
-        </div>
-      )}
 
-      {/* Drop zone indicator when dragging over */}
-      {isOver && (
-        <div className="mt-3 p-3 rounded-md border-2 border-dashed border-primary bg-primary/10 text-center">
-          <p className="text-sm font-medium text-primary">Drop to park call</p>
+          {/* Drop zone when calls are already parked */}
+          {isOver && (
+            <div className="p-3 rounded-md border-2 border-dashed border-primary bg-primary/10 text-center">
+              <p className="text-xs font-medium text-primary">Drop to park call</p>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-interface ParkingSlotProps {
+interface ParkedCallCardProps {
   slotNumber: number;
-  isOccupied: boolean;
   call: any;
   isOptimistic?: boolean;
 }
 
-function ParkingSlot({ slotNumber, isOccupied, call, isOptimistic }: ParkingSlotProps) {
-  // Draggable hook - allows parked calls to be dragged out for transfer
+function ParkedCallCard({ slotNumber, call, isOptimistic }: ParkedCallCardProps) {
   const {
     attributes,
     listeners,
@@ -168,16 +140,16 @@ function ParkingSlot({ slotNumber, isOccupied, call, isOptimistic }: ParkingSlot
     transform,
     isDragging,
   } = useDraggable({
-    id: call?._id || call?.twilioCallSid || `empty-slot-${slotNumber}`,
+    id: call?._id || call?.twilioCallSid || `parked-${slotNumber}`,
     data: {
       type: "parked-call",
       call,
       slotNumber,
       twilioCallSid: call?.twilioCallSid,
-      pstnCallSid: call?.pstnCallSid, // The PSTN call SID needed for unparking
+      pstnCallSid: call?.pstnCallSid,
       conferenceName: call?.conferenceName,
     },
-    disabled: !isOccupied || isOptimistic, // Can't drag optimistic (still saving)
+    disabled: !!isOptimistic,
   });
 
   const style = {
@@ -187,55 +159,39 @@ function ParkingSlot({ slotNumber, isOccupied, call, isOptimistic }: ParkingSlot
 
   return (
     <div
-      ref={isOccupied && !isOptimistic ? setNodeRef : undefined}
-      style={isOccupied && !isOptimistic ? style : undefined}
+      ref={!isOptimistic ? setNodeRef : undefined}
+      style={!isOptimistic ? style : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-md border p-3 transition-all",
-        isOccupied
-          ? "bg-primary/5 dark:bg-primary/10 border-primary/30"
-          : "bg-background border-dashed",
-        isOccupied && !isOptimistic && "cursor-grab active:cursor-grabbing",
+        "flex items-center gap-3 rounded-lg border p-3 transition-all",
+        "bg-primary/5 dark:bg-primary/10 border-primary/30",
+        !isOptimistic && "cursor-grab active:cursor-grabbing",
         isOptimistic && "opacity-70 animate-pulse",
         isDragging && "ring-2 ring-primary shadow-lg"
       )}
-      {...(isOccupied && !isOptimistic ? { ...listeners, ...attributes } : {})}
+      {...(!isOptimistic ? { ...listeners, ...attributes } : {})}
     >
-      {/* Drag handle indicator for occupied slots */}
-      {isOccupied && !isOptimistic && (
-        <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      {!isOptimistic && (
+        <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
       )}
-
-      {/* Loading spinner for optimistic slots */}
       {isOptimistic && (
-        <Loader2 className="h-4 w-4 text-primary animate-spin flex-shrink-0" />
+        <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
       )}
 
-      <div
-        className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-md text-sm font-semibold flex-shrink-0",
-          isOccupied
-            ? "bg-primary text-white"
-            : "bg-muted text-muted-foreground"
-        )}
-      >
+      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-white text-xs font-bold shrink-0">
         {slotNumber}
       </div>
 
-      {isOccupied && call ? (
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium truncate">
-              {call.fromName || call.from || "Unknown"}
-            </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {isOptimistic ? "Parking..." : "On hold"}
-          </p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <Phone className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="text-sm font-medium truncate">
+            {call.fromName || call.from || "Unknown"}
+          </span>
         </div>
-      ) : (
-        <span className="text-sm text-muted-foreground">Empty</span>
-      )}
+        <p className="text-[11px] text-muted-foreground">
+          {isOptimistic ? "Parking..." : "On hold — drag to agent"}
+        </p>
+      </div>
     </div>
   );
 }

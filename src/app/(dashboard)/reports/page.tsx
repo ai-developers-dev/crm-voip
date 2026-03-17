@@ -9,6 +9,8 @@ import { SalesReportDashboard, MonthPicker } from "@/components/reports/sales-re
 import { CallReportDashboard } from "@/components/reports/call-report-dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageContainer } from "@/components/layout/page-container";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default function ReportsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
@@ -61,13 +63,11 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
-      <div className="flex-1 overflow-auto p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">Reports</h1>
-            <p className="text-sm text-muted-foreground">{convexOrg.name}</p>
-          </div>
+    <PageContainer variant="scroll">
+      <PageHeader
+        title="Reports"
+        description={convexOrg.name}
+        action={
           <MonthPicker
             month={selectedMonth}
             year={selectedYear}
@@ -75,42 +75,42 @@ export default function ReportsPage() {
             onNext={handleNextMonth}
             disableNext={isCurrentMonth}
           />
-        </div>
+        }
+      />
 
-        <Tabs defaultValue="sales">
-          <TabsList>
-            <TabsTrigger value="sales">Sales Reports</TabsTrigger>
-            <TabsTrigger value="calls">Call Reporting</TabsTrigger>
-            <TabsTrigger value="downloads">Agency Downloads</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="sales">
+        <TabsList>
+          <TabsTrigger value="sales">Sales Reports</TabsTrigger>
+          <TabsTrigger value="calls">Call Reporting</TabsTrigger>
+          <TabsTrigger value="downloads">Agency Downloads</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="sales" className="mt-4">
-            <SalesReportDashboard
-              organizationId={convexOrg._id}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-            />
-          </TabsContent>
+        <TabsContent value="sales" className="mt-4">
+          <SalesReportDashboard
+            organizationId={convexOrg._id}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+          />
+        </TabsContent>
 
-          <TabsContent value="calls" className="mt-4">
-            <CallReportDashboard
-              organizationId={convexOrg._id}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-            />
-          </TabsContent>
+        <TabsContent value="calls" className="mt-4">
+          <CallReportDashboard
+            organizationId={convexOrg._id}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+          />
+        </TabsContent>
 
-          <TabsContent value="downloads" className="mt-4">
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Download className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm font-medium">Agency Downloads</p>
-                <p className="text-xs text-muted-foreground mt-1">Export reports and documents. Coming soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+        <TabsContent value="downloads" className="mt-4">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Download className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium">Agency Downloads</p>
+              <p className="text-xs text-muted-foreground mt-1">Export reports and documents. Coming soon.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </PageContainer>
   );
 }

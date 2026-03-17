@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, ExternalLink, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 interface TwilioSetupStepProps {
   onNext: () => void;
@@ -81,7 +81,7 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
       <div className="space-y-6">
         <div className="text-center py-8">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Twilio Connected!</h2>
+          <h2 className="text-2xl font-bold mb-2">Phone System Connected!</h2>
           <p className="text-muted-foreground">
             Your phone system is ready to make and receive calls.
           </p>
@@ -102,17 +102,10 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold mb-2">Connect Your Twilio Account</h2>
+        <h2 className="text-xl font-bold mb-2">Set Up Phone System</h2>
         <p className="text-muted-foreground">
-          Enter your Twilio credentials to enable phone calls.{" "}
-          <a
-            href="https://console.twilio.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline inline-flex items-center gap-1"
-          >
-            Get credentials <ExternalLink className="h-3 w-3" />
-          </a>
+          Enter your phone system credentials to enable voice calling.
+          Get these from your administrator.
         </p>
       </div>
 
@@ -134,7 +127,7 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
             required
           />
           <p className="text-xs text-muted-foreground">
-            Found on your Twilio Console dashboard
+            Provided by your administrator
           </p>
         </div>
 

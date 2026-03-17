@@ -19,21 +19,27 @@ export async function GET(request: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+  // Try to extract redirectPath from state for error redirects
+  let fallbackRedirect = "/settings";
+  if (state) {
+    try { fallbackRedirect = JSON.parse(state).redirectPath || "/settings"; } catch {}
+  }
+
   if (error) {
     console.error("Nylas OAuth error:", error);
     return NextResponse.redirect(
-      `${appUrl}/settings?email_error=${encodeURIComponent(error)}`
+      `${appUrl}${fallbackRedirect}?email_error=${encodeURIComponent(error)}`
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      `${appUrl}/settings?email_error=missing_code`
+      `${appUrl}${fallbackRedirect}?email_error=missing_code`
     );
   }
 
   try {
-    const { organizationId, userId } = JSON.parse(state);
+    const { organizationId, userId, redirectPath } = JSON.parse(state);
 
     // Exchange code for grant
     const callbackUrl = `${appUrl}/api/email/callback`;
@@ -77,13 +83,15 @@ export async function GET(request: NextRequest) {
       }),
     }).catch((err) => console.error("Calendar backfill trigger failed:", err));
 
+    const successRedirect = redirectPath || "/settings";
     return NextResponse.redirect(
-      `${appUrl}/settings?email_connected=true`
+      `${appUrl}${successRedirect}?email_connected=true`
     );
   } catch (err) {
     console.error("Nylas callback error:", err);
+    const errorRedirect = fallbackRedirect;
     return NextResponse.redirect(
-      `${appUrl}/settings?email_error=${encodeURIComponent((err as Error).message)}`
+      `${appUrl}${errorRedirect}?email_error=${encodeURIComponent((err as Error).message)}`
     );
   }
 }

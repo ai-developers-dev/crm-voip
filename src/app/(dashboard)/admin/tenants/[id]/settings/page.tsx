@@ -20,18 +20,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Phone, Users, Settings, ArrowRight, CheckCircle, XCircle, Loader2,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Phone, Users, Settings, CheckCircle, XCircle, Loader2,
   ArrowLeft, Eye, Building2, Pencil, AlertCircle, Mail, Unplug, Trash2, Plus, Briefcase,
-  Music, ImageIcon
+  Music, ImageIcon, UserPlus, MoreHorizontal, Tag, Workflow
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { updateTenant, UpdateTenantData } from "../../../actions";
+import { updateTenant, UpdateTenantData, addUserToOrganization, removeUserFromOrganization } from "../../../actions";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 import { SalesGoalsManager } from "@/components/settings/sales-goals-manager";
 import { ImageUpload } from "@/components/settings/image-upload";
 import { SettingsRow } from "@/components/settings/settings-row";
+import { TwilioSettingsDialog } from "@/components/settings/twilio-settings-dialog";
+import { CarriersSettingsDialog } from "@/components/settings/carriers-settings-dialog";
+import { tagColors, TAG_COLOR_OPTIONS } from "@/lib/style-constants";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function TenantSettingsPage() {
   const params = useParams();
@@ -64,8 +75,28 @@ export default function TenantSettingsPage() {
   );
   const disconnectEmail = useMutation(api.emailAccounts.disconnect);
   const removeEmail = useMutation(api.emailAccounts.remove);
-  const [isConnectingEmail, setIsConnectingEmail] = useState(false);
   const [deletingEmailAccount, setDeletingEmailAccount] = useState<any>(null);
+
+  // Contact tags
+  const contactTags = useQuery(
+    api.contactTags.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+  const createTag = useMutation(api.contactTags.create);
+  const updateTag = useMutation(api.contactTags.update);
+  const removeTag = useMutation(api.contactTags.remove);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("blue");
+
+  // Workflows
+  const workflows = useQuery(
+    api.workflows.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+
+  // Phone System & Carriers dialog state
+  const [isTwilioDialogOpen, setIsTwilioDialogOpen] = useState(false);
+  const [isCarriersDialogOpen, setIsCarriersDialogOpen] = useState(false);
 
   // Logo upload
   const logoUrl = useQuery(
@@ -118,17 +149,21 @@ export default function TenantSettingsPage() {
     includedUsers: 1,
   });
 
-  const handleConnectEmailForTenant = async (provider?: "google" | "microsoft") => {
+  const [connectingForUserId, setConnectingForUserId] = useState<string | null>(null);
+
+  const handleConnectEmailForUser = async (userId: Id<"users">, provider: "google" | "microsoft") => {
     if (!tenant?._id) return;
-    setIsConnectingEmail(true);
+    setConnectingForUserId(userId);
     try {
       const res = await fetch("/api/email/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           organizationId: tenant._id,
+          userId,
           redirectUri: `${window.location.origin}/api/email/callback`,
           provider,
+          redirectPath: `/admin/tenants/${tenant._id}/settings`,
         }),
       });
       const data = await res.json();
@@ -138,7 +173,7 @@ export default function TenantSettingsPage() {
     } catch (err) {
       console.error("Failed to connect email:", err);
     } finally {
-      setIsConnectingEmail(false);
+      setConnectingForUserId(null);
     }
   };
 
@@ -150,6 +185,119 @@ export default function TenantSettingsPage() {
     } catch (err) {
       console.error("Failed to delete email account:", err);
     }
+  };
+
+  // User management state
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [isUserSubmitting, setIsUserSubmitting] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [userFormData, setUserFormData] = useState({
+    name: "",
+    email: "",
+    role: "agent" as "tenant_admin" | "supervisor" | "agent",
+    extension: "",
+    agentCommissionSplit: "",
+    agentRenewalSplit: "",
+  });
+
+  const updateUser = useMutation(api.users.updateUser);
+  const deleteUserMutation = useMutation(api.users.deleteUser);
+  const generateAvatarUploadUrl = useMutation(api.users.generateAvatarUploadUrl);
+  const saveUserAvatar = useMutation(api.users.saveUserAvatar);
+  const deleteUserAvatar = useMutation(api.users.deleteUserAvatar);
+
+  const resetUserForm = () => {
+    setUserFormData({ name: "", email: "", role: "agent", extension: "", agentCommissionSplit: "", agentRenewalSplit: "" });
+    setUserError(null);
+  };
+
+  const openUserEditDialog = (u: any) => {
+    setUserFormData({
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      extension: u.extension || "",
+      agentCommissionSplit: u.agentCommissionSplit != null ? String(u.agentCommissionSplit) : "",
+      agentRenewalSplit: u.agentRenewalSplit != null ? String(u.agentRenewalSplit) : "",
+    });
+    setEditingUser(u);
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenant?.clerkOrgId) return;
+    setIsUserSubmitting(true);
+    setUserError(null);
+    try {
+      const result = await addUserToOrganization({
+        clerkOrgId: tenant.clerkOrgId,
+        email: userFormData.email,
+        name: userFormData.name,
+        role: userFormData.role,
+      });
+      if (!result.success) {
+        setUserError(result.error || "Failed to add user");
+        return;
+      }
+      setIsAddUserOpen(false);
+      resetUserForm();
+    } catch (err: any) {
+      setUserError(err.message || "Failed to create user.");
+    } finally {
+      setIsUserSubmitting(false);
+    }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setIsUserSubmitting(true);
+    try {
+      await updateUser({
+        userId: editingUser._id,
+        name: userFormData.name,
+        email: userFormData.email,
+        role: userFormData.role,
+        extension: userFormData.extension || undefined,
+        agentCommissionSplit: userFormData.agentCommissionSplit ? parseFloat(userFormData.agentCommissionSplit) : undefined,
+        agentRenewalSplit: userFormData.agentRenewalSplit ? parseFloat(userFormData.agentRenewalSplit) : undefined,
+      });
+      setEditingUser(null);
+      resetUserForm();
+    } catch (err: any) {
+      setUserError(err.message || "Failed to update user.");
+    } finally {
+      setIsUserSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async (u: any) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    try {
+      if (tenant?.clerkOrgId && u.clerkUserId && !u.clerkUserId.startsWith("manual_")) {
+        await removeUserFromOrganization(tenant.clerkOrgId, u.clerkUserId);
+      }
+      await deleteUserMutation({ userId: u._id });
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!editingUser || !tenant?._id) return;
+    const uploadUrl = await generateAvatarUploadUrl({ organizationId: tenant._id });
+    const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
+    if (!response.ok) throw new Error("Upload failed");
+    const { storageId } = await response.json();
+    await saveUserAvatar({ userId: editingUser._id, storageId });
+    setEditingUser((prev: any) => prev ? { ...prev, avatarUrl: URL.createObjectURL(file) } : null);
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!editingUser) return;
+    await deleteUserAvatar({ userId: editingUser._id });
+    setEditingUser((prev: any) => prev ? { ...prev, avatarUrl: null } : null);
   };
 
   const openEditDialog = () => {
@@ -262,39 +410,29 @@ export default function TenantSettingsPage() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-var(--header-height))]">
-      {/* Impersonation Banner */}
-      <Alert className="rounded-none border-x-0 border-t-0 bg-amber-500/10 border-amber-500/20">
-        <Eye className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="flex items-center justify-between">
-          <span className="text-amber-700 dark:text-amber-400">
-            <strong>Managing:</strong> {tenant.name} Settings ({tenant.plan} plan)
-          </span>
-          <div className="flex gap-2">
-            <Link href={`/admin/tenants/${tenant._id}`}>
-              <Button variant="outline" size="sm" className="border-amber-500/30 hover:bg-amber-500/10">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-        </AlertDescription>
-      </Alert>
-
       <div className="p-6 max-w-4xl mx-auto space-y-6 flex-1">
         {/* Header */}
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">Tenant Settings</h1>
-          <p className="text-muted-foreground">
-            Manage settings for {tenant.name}
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Tenant Settings</h1>
+            <p className="text-muted-foreground">
+              Manage settings for {tenant.name}
+            </p>
+          </div>
+          <Link href={`/admin/tenants/${tenant._id}`}>
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
         </div>
 
         {/* Settings Rows */}
         <div className="space-y-2">
-          {/* Twilio */}
+          {/* Phone System */}
           <SettingsRow
             icon={<Phone className="h-4 w-4 text-red-600" />}
-            label="Twilio"
+            label="Phone System"
             summary={twilioConfigured ? "Configured" : "Not Set Up"}
             badge={twilioConfigured
               ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Configured</Badge>
@@ -304,14 +442,12 @@ export default function TenantSettingsPage() {
             onToggle={() => toggleRow("twilio")}
           >
             <p className="text-sm text-muted-foreground mb-3">
-              Configure Twilio credentials to enable voice calling for this tenant.
+              Configure voice calling credentials for this tenant.
             </p>
-            <Link href={`/admin/tenants/${tenant._id}/settings/twilio`}>
-              <Button variant="outline" size="sm">
-                Configure Twilio
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => setIsTwilioDialogOpen(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Configure Phone System
+            </Button>
           </SettingsRow>
 
           {/* Users */}
@@ -323,16 +459,191 @@ export default function TenantSettingsPage() {
             isExpanded={expandedRow === "users"}
             onToggle={() => toggleRow("users")}
           >
-            <p className="text-sm text-muted-foreground mb-3">
-              View and manage team members for this tenant organization.
-            </p>
-            <Link href={`/admin/tenants/${tenant._id}/settings/users`}>
-              <Button variant="outline" size="sm">
-                Manage Users
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
+            {!users ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <UserPlus className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No users yet.</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => { resetUserForm(); setIsAddUserOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First User
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {users.map((u) => {
+                  const userEmail = emailAccounts?.find((a) => a.userId === u._id && a.status === "active");
+                  return (
+                    <div key={u._id} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={u.avatarUrl || undefined} />
+                        <AvatarFallback className="text-xs">{u.name?.charAt(0) || "?"}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{u.name}</p>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {u.role === "tenant_admin" ? "Admin" : u.role}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {userEmail ? (
+                            <span className="flex items-center gap-1">
+                              <Mail className="h-3 w-3 text-green-600" />
+                              {userEmail.email}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/60">No email connected</span>
+                          )}
+                        </p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openUserEditDialog(u)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          {!userEmail && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleConnectEmailForUser(u._id, "google")}>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Connect Gmail
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleConnectEmailForUser(u._id, "microsoft")}>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Connect Outlook
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {userEmail && (
+                            <DropdownMenuItem onClick={() => disconnectEmail({ emailAccountId: userEmail._id })}>
+                              <Unplug className="h-4 w-4 mr-2" />
+                              Disconnect Email
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(u)}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  );
+                })}
+                <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => { resetUserForm(); setIsAddUserOpen(true); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add User
+                </Button>
+              </div>
+            )}
           </SettingsRow>
+
+          {/* Tags */}
+          {tenant?._id && (
+            <SettingsRow
+              icon={<Tag className="h-4 w-4 text-orange-600" />}
+              label="Tags"
+              summary={`${contactTags?.length ?? 0} tags`}
+              isExpanded={expandedRow === "tags"}
+              onToggle={() => toggleRow("tags")}
+            >
+              <div className="space-y-3">
+                {/* Existing tags */}
+                {contactTags && contactTags.length > 0 && (
+                  <div className="space-y-1.5">
+                    {contactTags.map((tag) => (
+                      <div key={tag._id} className="flex items-center gap-2 group">
+                        <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", tagColors[tag.color]?.dot ?? "bg-gray-500")} />
+                        <span className="text-sm flex-1">{tag.name}</span>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {tag.isActive ? "Active" : "Off"}
+                        </Badge>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => updateTag({ id: tag._id, isActive: !tag.isActive })}
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            title={tag.isActive ? "Deactivate" : "Activate"}
+                          >
+                            {tag.isActive ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => removeTag({ id: tag._id })}
+                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add new tag */}
+                <div className="flex items-center gap-2 pt-1 border-t border-border/40">
+                  <Input
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    placeholder="Tag name"
+                    className="h-8 text-sm flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newTagName.trim() && tenant?._id) {
+                        createTag({ organizationId: tenant._id, name: newTagName.trim(), color: newTagColor });
+                        setNewTagName("");
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-1">
+                    {TAG_COLOR_OPTIONS.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setNewTagColor(color)}
+                        className={cn(
+                          "h-5 w-5 rounded-full transition-all",
+                          tagColors[color]?.dot ?? "bg-gray-500",
+                          newTagColor === color ? "ring-2 ring-offset-1 ring-primary scale-110" : "opacity-60 hover:opacity-100"
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3"
+                    disabled={!newTagName.trim()}
+                    onClick={() => {
+                      if (newTagName.trim() && tenant?._id) {
+                        createTag({ organizationId: tenant._id, name: newTagName.trim(), color: newTagColor });
+                        setNewTagName("");
+                      }
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </SettingsRow>
+          )}
+
+          {/* Workflows - now a top-level page */}
+          <Link href={`/admin/tenants/${tenantId}/workflows`}>
+            <SettingsRow
+              icon={<Workflow className="h-4 w-4 text-cyan-600" />}
+              label="Workflows"
+              summary={`${workflows?.length ?? 0} workflows — Manage →`}
+              isExpanded={false}
+              onToggle={() => {}}
+            />
+          </Link>
 
           {/* Carriers */}
           <SettingsRow
@@ -345,12 +656,10 @@ export default function TenantSettingsPage() {
             <p className="text-sm text-muted-foreground mb-3">
               Configure carriers, lines of business, and commission rates for this tenant.
             </p>
-            <Link href={`/admin/tenants/${tenant._id}/settings/carriers`}>
-              <Button variant="outline" size="sm">
-                Manage Carriers
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => setIsCarriersDialogOpen(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Manage Carriers
+            </Button>
           </SettingsRow>
 
           {/* Sales Goals */}
@@ -365,78 +674,6 @@ export default function TenantSettingsPage() {
               <SalesGoalsManager organizationId={tenant._id} />
             </SettingsRow>
           )}
-
-          {/* Email Accounts */}
-          <SettingsRow
-            icon={<Mail className="h-4 w-4 text-amber-600" />}
-            label="Email"
-            summary={emailAccounts && emailAccounts.some((a) => a.status === "active")
-              ? `${emailAccounts.filter((a) => a.status === "active").length} connected`
-              : "None connected"
-            }
-            badge={emailAccounts && emailAccounts.some((a) => a.status === "active")
-              ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />{emailAccounts.filter((a) => a.status === "active").length} Connected</Badge>
-              : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />None</Badge>
-            }
-            isExpanded={expandedRow === "email"}
-            onToggle={() => toggleRow("email")}
-          >
-            {emailAccounts === undefined ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : emailAccounts.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-2">
-                <p className="text-sm text-muted-foreground">
-                  No email accounts connected for this tenant.
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleConnectEmailForTenant("google")} disabled={isConnectingEmail}>
-                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                    Connect Gmail
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleConnectEmailForTenant("microsoft")} disabled={isConnectingEmail}>
-                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                    Connect Outlook
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {emailAccounts.map((account) => (
-                  <div key={account._id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{account.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        <span className="capitalize">{account.provider}</span>
-                        {" · "}
-                        <span className={account.status === "active" ? "text-green-600" : "text-red-500"}>{account.status}</span>
-                        {" · Connected "}{new Date(account.connectedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => disconnectEmail({ emailAccountId: account._id })}>
-                        <Unplug className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeletingEmailAccount(account)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                <div className="flex gap-2 mt-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmailForTenant("google")} disabled={isConnectingEmail}>
-                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                    Connect Gmail
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmailForTenant("microsoft")} disabled={isConnectingEmail}>
-                    {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-                    Connect Outlook
-                  </Button>
-                </div>
-              </div>
-            )}
-          </SettingsRow>
 
           {/* Agency Logo */}
           {tenant._id && (
@@ -466,12 +703,6 @@ export default function TenantSettingsPage() {
             label="Agency"
             summary={`${tenant.plan ?? "free"} plan`}
             badge={<Badge variant="secondary">{tenant.plan ?? "free"}</Badge>}
-            action={
-              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openEditDialog(); }}>
-                <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                Edit
-              </Button>
-            }
             isExpanded={expandedRow === "org"}
             onToggle={() => toggleRow("org")}
           >
@@ -519,6 +750,10 @@ export default function TenantSettingsPage() {
                 </>
               )}
             </dl>
+            <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => openEditDialog()}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Agency Details
+            </Button>
           </SettingsRow>
 
           {/* Hold Music */}
@@ -768,6 +1003,172 @@ export default function TenantSettingsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Add User Dialog */}
+      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Add a new team member to {tenant?.name}. They will receive an email invitation.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddUser}>
+            {userError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{userError}</AlertDescription>
+              </Alert>
+            )}
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-name">Name</Label>
+                <Input id="add-name" placeholder="John Smith" value={userFormData.name} onChange={(e) => setUserFormData(prev => ({ ...prev, name: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-email">Email</Label>
+                <Input id="add-email" type="email" placeholder="john@example.com" value={userFormData.email} onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-role">Role</Label>
+                <select id="add-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
+                  <option value="agent">Agent</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="tenant_admin">Admin</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-extension">Extension (Optional)</Label>
+                <Input id="add-extension" placeholder="101" value={userFormData.extension} onChange={(e) => setUserFormData(prev => ({ ...prev, extension: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-commission">Agent Commission %</Label>
+                <Input id="add-commission" type="number" min="0" max="100" step="0.5" placeholder="e.g. 50" value={userFormData.agentCommissionSplit} onChange={(e) => setUserFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-renewal">Agent Renewal %</Label>
+                <Input id="add-renewal" type="number" min="0" max="100" step="0.5" placeholder="e.g. 50" value={userFormData.agentRenewalSplit} onChange={(e) => setUserFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isUserSubmitting}>
+                {isUserSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add User"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => { if (!open) setEditingUser(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user details</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditUser}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Profile Photo</Label>
+                <ImageUpload
+                  currentImageUrl={editingUser?.avatarUrl}
+                  onUpload={handleAvatarUpload}
+                  onDelete={handleAvatarDelete}
+                  label="Profile Photo"
+                  description="Upload a profile photo (PNG, JPG)."
+                  previewShape="circle"
+                  previewSize="h-16 w-16"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input id="edit-name" value={userFormData.name} onChange={(e) => setUserFormData(prev => ({ ...prev, name: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input id="edit-email" type="email" value={userFormData.email} onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Role</Label>
+                <select id="edit-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
+                  <option value="agent">Agent</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="tenant_admin">Admin</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-extension">Extension</Label>
+                <Input id="edit-extension" value={userFormData.extension} onChange={(e) => setUserFormData(prev => ({ ...prev, extension: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-commission">Agent Commission %</Label>
+                <Input id="edit-commission" type="number" min="0" max="100" step="0.5" placeholder="e.g. 50" value={userFormData.agentCommissionSplit} onChange={(e) => setUserFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-renewal">Agent Renewal %</Label>
+                <Input id="edit-renewal" type="number" min="0" max="100" step="0.5" placeholder="e.g. 50" value={userFormData.agentRenewalSplit} onChange={(e) => setUserFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))} />
+              </div>
+              {/* Email connection in edit dialog */}
+              <div className="space-y-2 pt-2 border-t">
+                <Label>Email / Calendar</Label>
+                {(() => {
+                  const userEmailAccount = emailAccounts?.find((a) => a.userId === editingUser?._id && a.status === "active");
+                  const isConnecting = connectingForUserId === editingUser?._id;
+                  return userEmailAccount ? (
+                    <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{userEmailAccount.email}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{userEmailAccount.provider}</p>
+                      </div>
+                      <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => disconnectEmail({ emailAccountId: userEmailAccount._id })}>
+                        <Unplug className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => editingUser && handleConnectEmailForUser(editingUser._id, "google")} disabled={isConnecting}>
+                        {isConnecting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Mail className="h-4 w-4 mr-1" />}
+                        Connect Gmail
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => editingUser && handleConnectEmailForUser(editingUser._id, "microsoft")} disabled={isConnecting}>
+                        {isConnecting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Mail className="h-4 w-4 mr-1" />}
+                        Connect Outlook
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+              <Button type="submit" disabled={isUserSubmitting}>
+                {isUserSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phone System Settings Dialog */}
+      {tenant?._id && (
+        <TwilioSettingsDialog
+          open={isTwilioDialogOpen}
+          onOpenChange={setIsTwilioDialogOpen}
+          organizationId={tenant._id}
+        />
+      )}
+
+      {/* Carriers Settings Dialog */}
+      {tenant?._id && tenant?.clerkOrgId && (
+        <CarriersSettingsDialog
+          open={isCarriersDialogOpen}
+          onOpenChange={setIsCarriersDialogOpen}
+          organizationId={tenant._id}
+          clerkOrgId={tenant.clerkOrgId}
+          initialAgencyTypeId={tenant.agencyTypeId}
+        />
+      )}
     </div>
   );
 }

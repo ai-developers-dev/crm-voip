@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgMember } from "./lib/auth";
 
 export const getByContact = query({
   args: { contactId: v.id("contacts") },
@@ -35,6 +36,7 @@ export const create = mutation({
     dueDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
     const now = Date.now();
     return await ctx.db.insert("tasks", {
       ...args,
@@ -81,6 +83,7 @@ export const update = mutation({
     const { id, ...updates } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Task not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
 
     const patch: Record<string, unknown> = { ...updates, updatedAt: Date.now() };
     if (updates.status === "completed" && existing.status !== "completed") {
@@ -93,6 +96,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("tasks") },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Task not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
     await ctx.db.delete(args.id);
   },
 });

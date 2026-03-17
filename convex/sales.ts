@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { authorizeOrgMember } from "./lib/auth";
 
 // ─── Queries ──────────────────────────────────────────────
 
@@ -163,6 +164,7 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
     // Calculate end date using UTC to avoid timezone issues
     const eff = new Date(args.effectiveDate);
     const endDate = Date.UTC(
@@ -222,6 +224,9 @@ export const updateStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Sale not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
     await ctx.db.patch(args.id, {
       status: args.status,
       updatedAt: Date.now(),
@@ -255,6 +260,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Sale not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
 
     // Recalculate end date using UTC to avoid timezone issues
     const eff = new Date(args.effectiveDate);
@@ -306,6 +312,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("sales") },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Sale not found");
+    await authorizeOrgMember(ctx, existing.organizationId);
     const lineItems = await ctx.db
       .query("saleLineItems")
       .withIndex("by_sale", (q) => q.eq("saleId", args.id))

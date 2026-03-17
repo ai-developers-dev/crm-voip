@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgAdmin } from "./lib/auth";
 
 /**
  * Generate a signed upload URL for uploading an agency logo to Convex storage.
@@ -7,6 +8,7 @@ import { v } from "convex/values";
 export const generateUploadUrl = mutation({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
+    await authorizeOrgAdmin(ctx, args.organizationId);
     const org = await ctx.db.get(args.organizationId);
     if (!org) {
       throw new Error("Organization not found");
@@ -24,6 +26,7 @@ export const saveLogo = mutation({
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgAdmin(ctx, args.organizationId);
     const org = await ctx.db.get(args.organizationId);
     if (!org) {
       throw new Error("Organization not found");
@@ -59,6 +62,7 @@ export const saveLogo = mutation({
 export const deleteLogo = mutation({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
+    await authorizeOrgAdmin(ctx, args.organizationId);
     const org = await ctx.db.get(args.organizationId);
     if (!org) {
       throw new Error("Organization not found");

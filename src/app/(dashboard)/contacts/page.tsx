@@ -29,6 +29,8 @@ export default function ContactsPage() {
   // Active panel state for side menu
   const [activePanel, setActivePanel] = useState<PanelType | null>(null);
 
+
+
   // Get internal org ID from Clerk org ID
   const org = useQuery(
     api.organizations.getByClerkId,
@@ -156,6 +158,7 @@ export default function ContactsPage() {
             onEditContact={handleEditContact}
             onDeleteContact={handleDeleteContact}
             isLoading={contacts === undefined}
+            organizationId={org?._id}
           />
         </div>
 
@@ -170,7 +173,7 @@ export default function ContactsPage() {
         {/* Column 3: Panel + Icon Menu */}
         <div className="flex flex-shrink-0">
           {/* Panel content (expands when active) */}
-          {activePanel && selectedContact && (
+          {activePanel && (activePanel === "sort" || selectedContact) && (
             <div className="w-80 border-r overflow-hidden">
               <ContactPanelDrawer
                 type={activePanel}
@@ -179,6 +182,7 @@ export default function ContactsPage() {
                 userId={currentUser?._id}
                 isAdmin={!!isAdmin}
                 onClose={() => setActivePanel(null)}
+                onSelectContact={handleSelectContact}
               />
             </div>
           )}
@@ -187,8 +191,11 @@ export default function ContactsPage() {
           <div className="w-14 border-l flex-shrink-0 bg-muted/30">
             <ContactSideMenu
               activePanel={activePanel}
-              onPanelChange={(panel) => setActivePanel(activePanel === panel ? null : panel)}
-              disabled={!selectedContact}
+              onPanelChange={(panel) => {
+                // For sort, always allow toggle. For others, require selected contact.
+                if (panel !== "sort" && !selectedContact) return;
+                setActivePanel(activePanel === panel ? null : panel);
+              }}
             />
           </div>
         </div>

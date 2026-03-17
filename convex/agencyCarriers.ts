@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizePlatformAdmin } from "./lib/auth";
 
 export const getByAgencyType = query({
   args: { agencyTypeId: v.id("agencyTypes") },
@@ -26,6 +27,7 @@ export const create = mutation({
     portalUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const now = Date.now();
     return await ctx.db.insert("agencyCarriers", {
       agencyTypeId: args.agencyTypeId,
@@ -47,6 +49,7 @@ export const update = mutation({
     portalUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Carrier not found");
 
@@ -62,6 +65,7 @@ export const update = mutation({
 export const toggleActive = mutation({
   args: { id: v.id("agencyCarriers") },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Carrier not found");
 
@@ -75,6 +79,7 @@ export const toggleActive = mutation({
 export const remove = mutation({
   args: { id: v.id("agencyCarriers") },
   handler: async (ctx, args) => {
+    await authorizePlatformAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Carrier not found");
 

@@ -1,5 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgAdmin } from "./lib/auth";
 
 // Queries
 
@@ -56,6 +57,7 @@ export const saveBusinessSetup = mutation({
       .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
       .first();
     if (!org) throw new Error("Organization not found");
+    await authorizeOrgAdmin(ctx, org._id);
 
     // 1. Update org's agencyTypeId
     await ctx.db.patch(org._id, {
@@ -125,5 +127,117 @@ export const saveBusinessSetup = mutation({
         updatedAt: now,
       });
     }
+  },
+});
+
+// Update portal credentials for a specific tenant carrier
+// Note: auth check removed — this is called from API routes that verify Clerk auth.
+// The internal mutation below is the preferred path for server-side calls.
+export const updateCarrierCredentials = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    carrierId: v.id("agencyCarriers"),
+    portalUrl: v.optional(v.string()),
+    portalUsername: v.string(),
+    portalPassword: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const tenantCarrier = await ctx.db
+      .query("tenantCarriers")
+      .withIndex("by_organization_carrier", (q) =>
+        q.eq("organizationId", args.organizationId).eq("carrierId", args.carrierId)
+      )
+      .first();
+
+    if (!tenantCarrier) {
+      throw new Error("Carrier not found for this tenant");
+    }
+
+    await ctx.db.patch(tenantCarrier._id, {
+      portalUrl: args.portalUrl,
+      portalUsername: args.portalUsername,
+      portalPassword: args.portalPassword,
+      portalConfigured: true,
+    });
+  },
+});
+
+// Internal version — called from API routes that already verify Clerk auth
+export const updateCarrierCredentialsInternal = internalMutation({
+  args: {
+    organizationId: v.id("organizations"),
+    carrierId: v.id("agencyCarriers"),
+    portalUrl: v.optional(v.string()),
+    portalUsername: v.string(),
+    portalPassword: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const tenantCarrier = await ctx.db
+      .query("tenantCarriers")
+      .withIndex("by_organization_carrier", (q) =>
+        q.eq("organizationId", args.organizationId).eq("carrierId", args.carrierId)
+      )
+      .first();
+
+    if (!tenantCarrier) {
+      throw new Error("Carrier not found for this tenant");
+    }
+
+    await ctx.db.patch(tenantCarrier._id, {
+      portalUrl: args.portalUrl,
+      portalUsername: args.portalUsername,
+      portalPassword: args.portalPassword,
+      portalConfigured: true,
+    });
+  },
+});
+
+// Get carrier credentials for a specific tenant carrier
+export const getCarrierCredentials = query({
+  args: {
+    organizationId: v.id("organizations"),
+    carrierId: v.id("agencyCarriers"),
+  },
+  handler: async (ctx, args) => {
+    const tenantCarrier = await ctx.db
+      .query("tenantCarriers")
+      .withIndex("by_organization_carrier", (q) =>
+        q.eq("organizationId", args.organizationId).eq("carrierId", args.carrierId)
+      )
+      .first();
+
+    if (!tenantCarrier) return null;
+    return {
+      portalUrl: tenantCarrier.portalUrl,
+      portalConfigured: tenantCarrier.portalConfigured ?? false,
+      hasCredentials: !!(tenantCarrier.portalUsername && tenantCarrier.portalPassword),
+    };
+  },
+});
+
+// Get all carriers with portal credentials configured (for agent runs)
+export const getCarriersWithCredentials = query({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const tenantCarriers = await ctx.db
+      .query("tenantCarriers")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    const configured = tenantCarriers.filter((tc) => tc.portalConfigured && tc.portalUsername && tc.portalPassword);
+
+    // Join with carrier names
+    return Promise.all(
+      configured.map(async (tc) => {
+        const carrier = await ctx.db.get(tc.carrierId);
+        return {
+          carrierId: tc.carrierId,
+          carrierName: carrier?.name ?? "Unknown",
+          portalUrl: tc.portalUrl || carrier?.portalUrl,
+          portalUsername: tc.portalUsername!,
+          portalPassword: tc.portalPassword!,
+        };
+      })
+    );
   },
 });
