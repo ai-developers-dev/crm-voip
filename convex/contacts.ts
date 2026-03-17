@@ -438,6 +438,50 @@ export const getCommunicationsHistory = query({
   },
 });
 
+// Toggle email opt-out (freely changeable by users)
+export const toggleEmailOptOut = mutation({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+
+    const newValue = !contact.emailOptedOut;
+    await ctx.db.patch(args.contactId, {
+      emailOptedOut: newValue,
+      ...(newValue ? { emailOptOutDate: Date.now() } : {}),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Toggle voice opt-out (freely changeable by users)
+export const toggleVoiceOptOut = mutation({
+  args: { contactId: v.id("contacts") },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+
+    const newValue = !contact.voiceOptedOut;
+    await ctx.db.patch(args.contactId, {
+      voiceOptedOut: newValue,
+      ...(newValue ? { voiceOptOutDate: Date.now() } : {}),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Set email opted out (used by webhook/unsubscribe endpoint)
+export const setEmailOptedOut = mutation({
+  args: { contactId: v.id("contacts"), optedOut: v.boolean() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.contactId, {
+      emailOptedOut: args.optedOut,
+      ...(args.optedOut ? { emailOptOutDate: Date.now() } : {}),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 export const toggleRead = mutation({
   args: {
     contactId: v.id("contacts"),

@@ -3,6 +3,7 @@ import Nylas from "nylas";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { generateUnsubscribeUrl } from "@/lib/email/unsubscribe";
 
 const nylas = new Nylas({
   apiKey: process.env.NYLAS_API_KEY!,
@@ -47,6 +48,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Pre-send opt-out check
+    if (contactId) {
+      const contact = await convex.query(api.contacts.getById, {
+        contactId: contactId as Id<"contacts">,
+      });
+      if (contact?.emailOptedOut) {
+        return NextResponse.json(
+          { success: false, error: "Contact has unsubscribed from email." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Build recipient arrays
     const toRecipients = (Array.isArray(to) ? to : [to]).map((email: string) => ({
       email: email.trim(),
@@ -60,6 +74,13 @@ export async function POST(request: NextRequest) {
       ? (Array.isArray(bcc) ? bcc : [bcc]).map((email: string) => ({ email: email.trim() }))
       : undefined;
 
+    // Append unsubscribe footer if sending to a known contact
+    let finalBodyHtml = bodyHtml || bodyPlain || "";
+    if (contactId && organizationId) {
+      const unsubUrl = generateUnsubscribeUrl(contactId, organizationId);
+      finalBodyHtml += `<p style="font-size:11px;color:#999;margin-top:20px;border-top:1px solid #eee;padding-top:10px;">If you no longer wish to receive emails, <a href="${unsubUrl}" style="color:#999;">unsubscribe here</a>.</p>`;
+    }
+
     // Send via Nylas
     const sentMessage = await nylas.messages.send({
       identifier: nylasGrantId,
@@ -68,7 +89,7 @@ export async function POST(request: NextRequest) {
         cc: ccRecipients,
         bcc: bccRecipients,
         subject,
-        body: bodyHtml || bodyPlain || "",
+        body: finalBodyHtml,
       },
     });
 

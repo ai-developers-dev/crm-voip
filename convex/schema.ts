@@ -541,10 +541,14 @@ export default defineSchema({
     tags: v.optional(v.array(v.id("contactTags"))),
     assignedUserId: v.optional(v.id("users")),
     isRead: v.optional(v.boolean()),
-    // SMS opt-out / DND
+    // DND (Do Not Contact)
     smsOptedOut: v.optional(v.boolean()),
     smsOptOutDate: v.optional(v.number()),
     smsOptInDate: v.optional(v.number()),
+    emailOptedOut: v.optional(v.boolean()),
+    emailOptOutDate: v.optional(v.number()),
+    voiceOptedOut: v.optional(v.boolean()),
+    voiceOptOutDate: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

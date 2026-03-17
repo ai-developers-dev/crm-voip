@@ -386,6 +386,19 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         </div>
       )}
 
+      {/* Email opt-out banner */}
+      {contact?.emailOptedOut && (
+        <div className="flex items-center gap-2 mx-4 mt-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <Ban className="h-4 w-4 text-amber-500 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Email Unsubscribed</p>
+            <p className="text-[10px] text-muted-foreground">
+              This contact has unsubscribed from email{contact.emailOptOutDate ? ` on ${new Date(contact.emailOptOutDate).toLocaleDateString()}` : ""}.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       {hasItems ? (
         <ScrollArea className="flex-1">

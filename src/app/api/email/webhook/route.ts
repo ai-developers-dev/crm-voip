@@ -122,6 +122,27 @@ async function handleMessageCreated(data: Record<string, unknown>) {
     }
   }
 
+  // Check for List-Unsubscribe header (indicates contact wants to unsubscribe)
+  const headers = (messageData.headers as Array<{ name: string; value: string }>) || [];
+  const hasUnsubscribe = headers.some((h) =>
+    h.name?.toLowerCase() === "list-unsubscribe"
+  );
+
+  if (hasUnsubscribe && !isOutbound && contactId) {
+    // Auto-mark contact as email opted out
+    await convex.mutation(api.contacts.setEmailOptedOut, {
+      contactId,
+      optedOut: true,
+    });
+    await convex.mutation(api.smsConsent.log, {
+      organizationId: emailAccount.organizationId,
+      contactId,
+      phoneNumber: "",
+      action: "email_opt_out",
+      source: "list_unsubscribe_header",
+    });
+  }
+
   // Build attachments array
   const attachments = files?.map((f) => ({
     fileName: f.filename || "attachment",

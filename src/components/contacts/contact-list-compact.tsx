@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, Plus, Phone, User, Loader2, Users, ChevronDown, Mail, Building2, MapPin, Pencil, Trash2, Tag, Check, X } from "lucide-react";
+import { Search, Plus, Phone, User, Loader2, Users, ChevronDown, Mail, Building2, MapPin, Pencil, Trash2, Tag, Check, X, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,8 @@ function ContactCard({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const toggleEmailOptOut = useMutation(api.contacts.toggleEmailOptOut);
+  const toggleVoiceOptOut = useMutation(api.contacts.toggleVoiceOptOut);
 
   const handleExpandClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,8 +93,12 @@ function ContactCard({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate flex items-center gap-1">
               <span className="truncate">{contact.firstName} {contact.lastName}</span>
-              {contact.smsOptedOut && (
-                <Badge variant="destructive" className="text-[9px] px-1 py-0 shrink-0">DND</Badge>
+              {(contact.smsOptedOut || contact.emailOptedOut || contact.voiceOptedOut) && (
+                <span className="flex items-center gap-0.5 shrink-0">
+                  {contact.smsOptedOut && <Badge variant="destructive" className="text-[8px] px-1 py-0">SMS</Badge>}
+                  {contact.emailOptedOut && <Badge variant="destructive" className="text-[8px] px-1 py-0">Email</Badge>}
+                  {contact.voiceOptedOut && <Badge variant="destructive" className="text-[8px] px-1 py-0">Voice</Badge>}
+                </span>
               )}
             </p>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -346,6 +352,49 @@ function ContactCard({
                 ))}
               </div>
             )}
+
+            {/* Do Not Contact */}
+            <div className="mt-3 pt-3 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Do Not Contact</p>
+              <div className="flex items-center gap-4">
+                {/* SMS - LOCKED when opted out */}
+                <label className="flex items-center gap-1.5 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={!!contact.smsOptedOut}
+                    disabled={!!contact.smsOptedOut}
+                    className="rounded h-3.5 w-3.5"
+                    readOnly
+                  />
+                  <span className={contact.smsOptedOut ? "text-destructive" : "text-muted-foreground"}>SMS</span>
+                  {contact.smsOptedOut && (
+                    <Lock className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </label>
+
+                {/* Email - freely toggleable */}
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!contact.emailOptedOut}
+                    onChange={() => toggleEmailOptOut({ contactId: contact._id })}
+                    className="rounded h-3.5 w-3.5 cursor-pointer"
+                  />
+                  <span className={contact.emailOptedOut ? "text-destructive" : "text-muted-foreground"}>Email</span>
+                </label>
+
+                {/* Voice - freely toggleable */}
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!contact.voiceOptedOut}
+                    onChange={() => toggleVoiceOptOut({ contactId: contact._id })}
+                    className="rounded h-3.5 w-3.5 cursor-pointer"
+                  />
+                  <span className={contact.voiceOptedOut ? "text-destructive" : "text-muted-foreground"}>Voice</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </div>
