@@ -197,7 +197,7 @@ export async function PATCH(req: Request) {
 
     // Get existing agent from Convex
     const existingAgent = await convex.query(api.retellAgents.getById, {
-      agentId: agentId as Id<"retellAgents">,
+      id: agentId as Id<"retellAgents">,
     });
     if (!existingAgent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -260,7 +260,7 @@ export async function PATCH(req: Request) {
 
     // Update in Convex
     await convex.mutation(api.retellAgents.update, {
-      agentId: agentId as Id<"retellAgents">,
+      id: agentId as Id<"retellAgents">,
       ...updates,
       updatedAt: Date.now(),
     });
@@ -297,7 +297,7 @@ export async function DELETE(req: Request) {
 
     // Get agent from Convex
     const agent = await convex.query(api.retellAgents.getById, {
-      agentId: agentId as Id<"retellAgents">,
+      id: agentId as Id<"retellAgents">,
     });
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -308,7 +308,7 @@ export async function DELETE(req: Request) {
 
     // Remove from Convex
     await convex.mutation(api.retellAgents.remove, {
-      agentId: agentId as Id<"retellAgents">,
+      id: agentId as Id<"retellAgents">,
     });
 
     return NextResponse.json({ success: true });
