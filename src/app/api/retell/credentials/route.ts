@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { encrypt } from "@/lib/credentials/crypto";
-import type { Id } from "../../../../../convex/_generated/dataModel";
+import { isPlatformRetellConfigured } from "@/lib/retell/platform-key";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -15,20 +15,29 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { organizationId, apiKey } = body;
+    const { apiKey } = body;
 
-    if (!organizationId || !apiKey) {
+    if (!apiKey) {
       return NextResponse.json(
-        { error: "Missing required fields: organizationId, apiKey" },
+        { error: "Missing required field: apiKey" },
         { status: 400 }
       );
     }
 
-    // Encrypt API key before storing
-    const encryptedApiKey = encrypt(apiKey, organizationId);
+    // Get the platform org
+    const platformOrg = await convex.query(api.organizations.getPlatformOrg);
+    if (!platformOrg) {
+      return NextResponse.json(
+        { error: "Platform organization not found" },
+        { status: 500 }
+      );
+    }
+
+    // Encrypt API key using the platform org ID
+    const encryptedApiKey = encrypt(apiKey, platformOrg._id);
 
     await convex.mutation(api.organizations.updateRetellCredentials, {
-      organizationId: organizationId as Id<"organizations">,
+      organizationId: platformOrg._id,
       retellApiKey: encryptedApiKey,
     });
 
@@ -49,20 +58,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const organizationId = searchParams.get("organizationId");
-    if (!organizationId) {
-      return NextResponse.json(
-        { error: "Missing organizationId" },
-        { status: 400 }
-      );
-    }
-
-    const org = await convex.query(api.organizations.getById, {
-      organizationId: organizationId as Id<"organizations">,
-    });
-
-    const configured = !!org?.settings?.retellConfigured;
+    const configured = await isPlatformRetellConfigured(convex);
 
     return NextResponse.json({ configured });
   } catch (err: any) {
@@ -81,17 +77,17 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const organizationId = searchParams.get("organizationId");
-    if (!organizationId) {
+    // Get the platform org
+    const platformOrg = await convex.query(api.organizations.getPlatformOrg);
+    if (!platformOrg) {
       return NextResponse.json(
-        { error: "Missing organizationId" },
-        { status: 400 }
+        { error: "Platform organization not found" },
+        { status: 500 }
       );
     }
 
     await convex.mutation(api.organizations.removeRetellCredentials, {
-      organizationId: organizationId as Id<"organizations">,
+      organizationId: platformOrg._id,
     });
 
     return NextResponse.json({ success: true });

@@ -256,6 +256,25 @@ export async function createPhoneCall(
   return retellFetch<RetellCall>(apiKey, "POST", "/v2/create-phone-call", config);
 }
 
+export interface RegisterPhoneCallConfig {
+  agent_id: string;
+  metadata?: Record<string, any>;
+  retell_llm_dynamic_variables?: Record<string, string>;
+}
+
+export interface RegisterPhoneCallResponse {
+  call_id: string;
+  agent_id: string;
+  call_status: string;
+}
+
+export async function registerPhoneCall(
+  apiKey: string,
+  config: RegisterPhoneCallConfig
+): Promise<RegisterPhoneCallResponse> {
+  return retellFetch<RegisterPhoneCallResponse>(apiKey, "POST", "/v2/register-phone-call", config);
+}
+
 export async function getCall(
   apiKey: string,
   callId: string

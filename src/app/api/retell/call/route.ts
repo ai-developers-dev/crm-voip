@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
-import { decrypt } from "@/lib/credentials/crypto";
 import type { Id } from "../../../../../convex/_generated/dataModel";
-import { createPhoneCall } from "@/lib/retell/client";
+import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
+import { registerPhoneCall } from "@/lib/retell/client";
+import twilio from "twilio";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -21,7 +22,6 @@ export async function POST(req: Request) {
       retellAgentId, // Convex ID
       toNumber,
       contactId,
-      metadata,
       dynamicVariables,
     } = body;
 
@@ -32,19 +32,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get org and decrypt API key
-    const org = await convex.query(api.organizations.getById, {
-      organizationId: organizationId as Id<"organizations">,
-    });
-    if (!org?.settings?.retellApiKey) {
-      return NextResponse.json(
-        { error: "Retell API key not configured" },
-        { status: 400 }
-      );
-    }
-    const apiKey = decrypt(org.settings.retellApiKey, organizationId);
+    // 1. Get platform Retell API key
+    const apiKey = await getPlatformRetellApiKey(convex);
 
-    // Get agent record from Convex
+    // 2. Get the agent from Convex
     const agent = await convex.query(api.retellAgents.getById, {
       id: retellAgentId as Id<"retellAgents">,
     });
@@ -52,7 +43,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    // Get a phone number for the org (first active one)
+    // 3. Register the call with Retell (get SIP URI)
+    const registration = await registerPhoneCall(apiKey, {
+      agent_id: agent.retellAgentId,
+      metadata: { organizationId, contactId },
+      retell_llm_dynamic_variables: dynamicVariables || undefined,
+    });
+
+    // 4. Get tenant's Twilio credentials
+    const org = await convex.query(api.organizations.getById, {
+      organizationId: organizationId as Id<"organizations">,
+    });
+    if (!org?.settings?.twilioCredentials) {
+      return NextResponse.json(
+        { error: "Twilio credentials not configured for this organization" },
+        { status: 400 }
+      );
+    }
+    const twilioSettings = org.settings.twilioCredentials;
+
+    // 5. Get tenant's phone number
     const phoneNumbers = await convex.query(api.phoneNumbers.getByOrganization, {
       organizationId: organizationId as Id<"organizations">,
     });
@@ -64,20 +74,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create phone call via Retell API
-    const callResponse = await createPhoneCall(apiKey, {
-      from_number: activePhone.phoneNumber,
-      to_number: toNumber,
-      override_agent_id: agent.retellAgentId,
-      metadata: metadata || undefined,
-      retell_llm_dynamic_variables: dynamicVariables || undefined,
+    // 6. Make outbound call via Twilio using SIP URI
+    const twilioClient = twilio(
+      twilioSettings.accountSid,
+      twilioSettings.authToken
+    );
+    const call = await twilioClient.calls.create({
+      to: toNumber,
+      from: activePhone.phoneNumber,
+      twiml: `<Response><Dial><Sip>sip:${registration.call_id}@sip.retellai.com</Sip></Dial></Response>`,
     });
 
-    // Create aiCallHistory record
+    // 7. Save to aiCallHistory
     const callId = await convex.mutation(api.aiCallHistory.create, {
       organizationId: organizationId as Id<"organizations">,
       retellAgentId: agent.retellAgentId,
-      retellCallId: callResponse.call_id,
+      retellCallId: registration.call_id,
       direction: "outbound",
       status: "registered",
       fromNumber: activePhone.phoneNumber,
@@ -90,7 +102,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       callId,
-      retellCallId: callResponse.call_id,
+      retellCallId: registration.call_id,
+      twilioCallSid: call.sid,
     });
   } catch (err: any) {
     console.error("[retell-call] POST error:", err);

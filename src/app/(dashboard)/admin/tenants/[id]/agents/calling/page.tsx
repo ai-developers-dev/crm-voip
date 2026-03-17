@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -72,30 +72,8 @@ export default function TenantAICallingPage() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // AI Calling API key dialog
-  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-  const [savingApiKey, setSavingApiKey] = useState(false);
-
-  const handleSaveApiKey = async () => {
-    if (!tenant?._id || !apiKey.trim()) return;
-    setSavingApiKey(true);
-    try {
-      const res = await fetch("/api/retell/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organizationId: tenant._id, apiKey: apiKey.trim() }),
-      });
-      if (res.ok) {
-        setApiKey("");
-        setShowApiKeyDialog(false);
-      }
-    } catch (err) {
-      console.error("Failed to save AI Calling API key:", err);
-    } finally {
-      setSavingApiKey(false);
-    }
-  };
+  // Check platform org for Retell configuration
+  const platformOrg = useQuery(api.organizations.getPlatformOrg);
 
   // Form state
   const [name, setName] = useState("");
@@ -121,7 +99,7 @@ export default function TenantAICallingPage() {
   const [analysisSummaryPrompt, setAnalysisSummaryPrompt] = useState("");
   const [analysisSuccessPrompt, setAnalysisSuccessPrompt] = useState("");
 
-  const hasRetell = !!(tenant?.settings as any)?.retellConfigured;
+  const hasRetell = !!(platformOrg?.settings as any)?.retellConfigured;
 
   const resetForm = () => {
     setName(""); setType("outbound"); setDescription("");
@@ -231,11 +209,8 @@ export default function TenantAICallingPage() {
             <Bot className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1 text-sm">
               <p className="font-medium">AI Calling not configured</p>
-              <p className="text-muted-foreground mt-0.5">Add your AI Calling API key to create AI calling agents.</p>
+              <p className="text-muted-foreground mt-0.5">AI Calling is not configured. Contact your platform administrator.</p>
             </div>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowApiKeyDialog(true)}>
-              <Settings className="h-3.5 w-3.5" />Add API Key
-            </Button>
           </div>
         )}
 
@@ -475,37 +450,6 @@ export default function TenantAICallingPage() {
         </div>
       )}
 
-      {/* AI Calling API Key Dialog */}
-      {showApiKeyDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowApiKeyDialog(false)} />
-          <div className="relative bg-card rounded-xl border shadow-lg p-6 w-full max-w-md space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="section-title">Connect AI Calling</h2>
-              <button onClick={() => setShowApiKeyDialog(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Enter your AI Calling API key to enable AI calling agents.
-            </p>
-            <div className="field-gap">
-              <Label className="text-xs">API Key</Label>
-              <Input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="key_..."
-                className="h-9 text-sm font-mono"
-              />
-            </div>
-            <div className="flex gap-3">
-              <Button className="flex-1" onClick={handleSaveApiKey} disabled={!apiKey.trim() || savingApiKey}>
-                {savingApiKey ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Saving...</> : "Save API Key"}
-              </Button>
-              <Button variant="outline" onClick={() => setShowApiKeyDialog(false)}>Cancel</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

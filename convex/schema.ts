@@ -285,6 +285,7 @@ export default defineSchema({
       v.literal("direct")
     ),
     voicemailEnabled: v.boolean(),
+    aiAgentId: v.optional(v.id("retellAgents")), // If set, inbound calls route to AI agent
     isActive: v.boolean(),
     createdAt: v.number(),
   })

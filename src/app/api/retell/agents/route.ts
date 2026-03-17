@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
-import { decrypt } from "@/lib/credentials/crypto";
 import type { Id } from "../../../../../convex/_generated/dataModel";
+import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
 import {
   createRetellLlm,
   createAgent,
@@ -13,17 +13,6 @@ import {
 } from "@/lib/retell/client";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
-/** Helper: get decrypted Retell API key for an org */
-async function getApiKey(organizationId: string): Promise<string> {
-  const org = await convex.query(api.organizations.getById, {
-    organizationId: organizationId as Id<"organizations">,
-  });
-  if (!org?.settings?.retellApiKey) {
-    throw new Error("Retell API key not configured for this organization");
-  }
-  return decrypt(org.settings.retellApiKey, organizationId);
-}
 
 export async function GET(req: Request) {
   try {
@@ -93,7 +82,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const apiKey = await getApiKey(organizationId);
+    const apiKey = await getPlatformRetellApiKey(convex);
 
     // Build general_tools array
     const generalTools: any[] = [{ type: "end_call" }];
@@ -193,7 +182,7 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const apiKey = await getApiKey(organizationId);
+    const apiKey = await getPlatformRetellApiKey(convex);
 
     // Get existing agent from Convex
     const existingAgent = await convex.query(api.retellAgents.getById, {
@@ -293,7 +282,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const apiKey = await getApiKey(organizationId);
+    const apiKey = await getPlatformRetellApiKey(convex);
 
     // Get agent from Convex
     const agent = await convex.query(api.retellAgents.getById, {

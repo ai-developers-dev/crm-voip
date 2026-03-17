@@ -3,6 +3,8 @@ import twilio from "twilio";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
+import { registerPhoneCall } from "@/lib/retell/client";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
@@ -108,6 +110,43 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`Found organization: ${callData.organizationId}, ${callData.agents.length} available agents`);
+
+      // Check if this phone number has an AI agent assigned
+      if (callData.aiAgentId) {
+        try {
+          const retellApiKey = await getPlatformRetellApiKey(convex);
+          const agent = await convex.query(api.retellAgents.getById, { id: callData.aiAgentId as Id<"retellAgents"> });
+          if (agent && agent.isActive) {
+            console.log(`[AI ROUTING] Routing to AI agent: ${agent.name} (${agent.retellAgentId})`);
+            const registration = await registerPhoneCall(retellApiKey, {
+              agent_id: agent.retellAgentId,
+              metadata: { organizationId: callData.organizationId, callerNumber: from },
+            });
+
+            // Route call to Retell via SIP
+            const sipDial = twiml.dial({ timeout: 30 });
+            sipDial.sip(`sip:${registration.call_id}@sip.retellai.com`);
+
+            // Fire-and-forget: log AI call
+            convex.mutation(api.aiCallHistory.create, {
+              organizationId: callData.organizationId as Id<"organizations">,
+              retellAgentId: agent.retellAgentId,
+              retellCallId: registration.call_id,
+              direction: "inbound",
+              status: "registered",
+              fromNumber: from,
+              toNumber: to,
+            }).catch(err => console.error("Failed to create AI call record:", err));
+
+            return new NextResponse(twiml.toString(), {
+              headers: { "Content-Type": "text/xml" },
+            });
+          }
+        } catch (err) {
+          console.error("[AI ROUTING] Failed to route to AI agent, falling back to human agents:", err);
+          // Fall through to normal human agent routing
+        }
+      }
 
       // Fire-and-forget: Create call record (don't block TwiML response)
       const orgId = callData.organizationId as Id<"organizations">;

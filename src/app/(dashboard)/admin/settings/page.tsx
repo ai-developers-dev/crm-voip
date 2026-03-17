@@ -28,7 +28,7 @@ import {
 import {
   Loader2, Plus, Pencil, Trash2,
   ToggleLeft, ToggleRight, Shield, ChevronDown,
-  Building, Users, Briefcase
+  Building, Users, Briefcase, Phone
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SettingsRow } from "@/components/settings/settings-row";
@@ -47,6 +47,33 @@ export default function AdminSettingsPage() {
   const allCarriers = useQuery(api.agencyCarriers.getAll);
   const allProducts = useQuery(api.agencyProducts.getAll);
   const platformUsers = useQuery(api.platformUsers.getAll);
+
+  // Platform org (for AI Calling config)
+  const platformOrg = useQuery(api.organizations.getPlatformOrg);
+  const retellConfigured = !!(platformOrg?.settings as any)?.retellConfigured;
+
+  // AI Calling state
+  const [retellApiKey, setRetellApiKey] = useState("");
+  const [savingRetellKey, setSavingRetellKey] = useState(false);
+
+  const handleSaveRetellKey = async () => {
+    if (!platformOrg?._id || !retellApiKey.trim()) return;
+    setSavingRetellKey(true);
+    try {
+      const res = await fetch("/api/retell/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId: platformOrg._id, apiKey: retellApiKey.trim() }),
+      });
+      if (res.ok) {
+        setRetellApiKey("");
+      }
+    } catch (err) {
+      console.error("Failed to save AI Calling API key:", err);
+    } finally {
+      setSavingRetellKey(false);
+    }
+  };
 
   // Agency Type mutations
   const createAgencyType = useMutation(api.agencyTypes.create);
@@ -598,6 +625,34 @@ export default function AdminSettingsPage() {
               })}
             </div>
           )}
+        </SettingsRow>
+
+        {/* ====== AI CALLING ====== */}
+        <SettingsRow
+          icon={<Phone className="h-4 w-4 text-cyan-600" />}
+          label="AI Calling"
+          summary={retellConfigured ? "Connected" : "Not configured"}
+          isExpanded={expandedSection === "ai-calling"}
+          onToggle={() => toggleSection("ai-calling")}
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Enter your AI Calling API key to enable AI-powered calling agents for all tenants.
+            </p>
+            <div className="field-gap">
+              <Label className="text-xs">API Key</Label>
+              <Input
+                type="password"
+                value={retellApiKey}
+                onChange={(e) => setRetellApiKey(e.target.value)}
+                placeholder="key_..."
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <Button size="sm" onClick={handleSaveRetellKey} disabled={!retellApiKey || savingRetellKey}>
+              {savingRetellKey ? "Saving..." : retellConfigured ? "Update Key" : "Save Key"}
+            </Button>
+          </div>
         </SettingsRow>
 
       </div>{/* end settings rows */}

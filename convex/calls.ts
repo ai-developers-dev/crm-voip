@@ -931,6 +931,7 @@ export const getIncomingCallData = query({
       found: true as const,
       organizationId: orgId,
       clerkOrgId: organization.clerkOrgId,
+      aiAgentId: phoneConfig.aiAgentId,
       phoneConfig: {
         friendlyName: phoneConfig.friendlyName,
         routingType: phoneConfig.routingType,

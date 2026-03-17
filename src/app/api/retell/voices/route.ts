@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../../../../convex/_generated/api";
-import { decrypt } from "@/lib/credentials/crypto";
-import type { Id } from "../../../../../convex/_generated/dataModel";
+import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
 import { listVoices } from "@/lib/retell/client";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -15,26 +13,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const organizationId = searchParams.get("organizationId");
-    if (!organizationId) {
-      return NextResponse.json(
-        { error: "Missing organizationId" },
-        { status: 400 }
-      );
-    }
-
-    // Get org and decrypt API key
-    const org = await convex.query(api.organizations.getById, {
-      organizationId: organizationId as Id<"organizations">,
-    });
-    if (!org?.settings?.retellApiKey) {
-      return NextResponse.json(
-        { error: "Retell API key not configured" },
-        { status: 400 }
-      );
-    }
-    const apiKey = decrypt(org.settings.retellApiKey, organizationId);
+    const apiKey = await getPlatformRetellApiKey(convex);
 
     const voices = await listVoices(apiKey);
 

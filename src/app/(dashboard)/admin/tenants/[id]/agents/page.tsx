@@ -45,6 +45,10 @@ export default function TenantAgentsPage() {
     tenant?._id ? { organizationId: tenant._id } : "skip"
   );
 
+  // Check platform org for Retell configuration
+  const platformOrg = useQuery(api.organizations.getPlatformOrg);
+  const hasRetellConfigured = !!(platformOrg?.settings as any)?.retellConfigured;
+
   if (!userLoaded || tenant === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -186,7 +190,7 @@ export default function TenantAgentsPage() {
                   AI-powered inbound and outbound calling agents. Handles receptionists, follow-ups, reminders, and lead qualification.
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {(tenant.settings as any)?.retellConfigured ? (
+                  {hasRetellConfigured ? (
                     <Badge className="bg-cyan-500/15 text-cyan-600 border-cyan-500/30 text-xs">AI Calling Connected</Badge>
                   ) : (
                     <Badge variant="secondary" className="text-xs">Not configured</Badge>
