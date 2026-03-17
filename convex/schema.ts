@@ -191,7 +191,13 @@ export default defineSchema({
       logoStorageId: v.optional(v.id("_storage")), // Convex storage ID for agency logo
       logoUrl: v.optional(v.string()),
       maxConcurrentCalls: v.number(),
-      // Per-tenant Twilio credentials
+      // Master Twilio account (platform org only)
+      twilioMaster: v.optional(v.object({
+        accountSid: v.string(),
+        authToken: v.string(),  // encrypted
+        isConfigured: v.boolean(),
+      })),
+      // Per-tenant Twilio credentials (subaccount or self-managed)
       twilioCredentials: v.optional(v.object({
         accountSid: v.string(),
         authToken: v.string(),
@@ -199,6 +205,7 @@ export default defineSchema({
         apiSecret: v.optional(v.string()),
         twimlAppSid: v.optional(v.string()),
         isConfigured: v.boolean(),
+        isAutoProvisioned: v.optional(v.boolean()), // true = platform-managed subaccount
       })),
       // National General portal credentials (encrypted)
       natgenCredentials: v.optional(v.object({
@@ -220,13 +227,16 @@ export default defineSchema({
         monthlyPolicies: v.optional(v.number()),
       })),
     }),
+    // Top-level for webhook lookup (denormalized from settings.twilioCredentials.accountSid)
+    twilioAccountSid: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_clerk_org_id", ["clerkOrgId"])
     .index("by_slug", ["slug"])
     .index("by_is_platform", ["isPlatformOrg"])
-    .index("by_agency_type", ["agencyTypeId"]),
+    .index("by_agency_type", ["agencyTypeId"])
+    .index("by_twilio_account_sid", ["twilioAccountSid"]),
 
   // Users/Agents (Tenant Level)
   // These are users within a specific tenant organization
@@ -286,6 +296,13 @@ export default defineSchema({
     ),
     voicemailEnabled: v.boolean(),
     aiAgentId: v.optional(v.id("retellAgents")), // If set, inbound calls route to AI agent
+    monthlyCost: v.optional(v.number()),       // Monthly cost in cents
+    purchasedAt: v.optional(v.number()),       // When purchased via platform
+    capabilities: v.optional(v.object({
+      voice: v.boolean(),
+      sms: v.boolean(),
+      mms: v.boolean(),
+    })),
     isActive: v.boolean(),
     createdAt: v.number(),
   })

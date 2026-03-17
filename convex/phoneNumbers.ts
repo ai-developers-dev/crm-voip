@@ -12,6 +12,41 @@ export const getByOrganization = query({
   },
 });
 
+// Get a single phone number by ID
+export const getById = query({
+  args: { id: v.id("phoneNumbers") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
+// Create a phone number record
+export const create = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    phoneNumber: v.string(),
+    twilioSid: v.string(),
+    friendlyName: v.string(),
+    type: v.union(v.literal("main"), v.literal("department"), v.literal("direct"), v.literal("tracking")),
+    routingType: v.union(v.literal("ring_all"), v.literal("round_robin"), v.literal("least_recent"), v.literal("direct")),
+    voicemailEnabled: v.boolean(),
+    isActive: v.boolean(),
+    monthlyCost: v.optional(v.number()),
+    purchasedAt: v.optional(v.number()),
+    capabilities: v.optional(v.object({
+      voice: v.boolean(),
+      sms: v.boolean(),
+      mms: v.boolean(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("phoneNumbers", {
+      ...args,
+      createdAt: Date.now(),
+    });
+  },
+});
+
 // Internal query to get phone number by number (for webhooks)
 export const getByNumber = internalQuery({
   args: { phoneNumber: v.string() },

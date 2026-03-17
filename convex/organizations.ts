@@ -25,6 +25,42 @@ export const getPlatformOrg = query({
   },
 });
 
+// Look up organization by Twilio Account SID (for webhook routing)
+export const getByTwilioAccountSid = query({
+  args: { accountSid: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("organizations")
+      .withIndex("by_twilio_account_sid", (q) => q.eq("twilioAccountSid", args.accountSid))
+      .first();
+  },
+});
+
+// Update master Twilio credentials (platform org only)
+export const updateTwilioMaster = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    accountSid: v.string(),
+    authToken: v.string(), // encrypted
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.organizationId, {
+      settings: {
+        ...org.settings,
+        twilioMaster: {
+          accountSid: args.accountSid,
+          authToken: args.authToken,
+          isConfigured: true,
+        },
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // Internal query to check if platform org exists
 export const hasPlatformOrg = internalQuery({
   args: {},
