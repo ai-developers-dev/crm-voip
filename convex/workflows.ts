@@ -13,6 +13,8 @@ const stepValidator = v.object({
     v.literal("remove_tag"),
     v.literal("create_note"),
     v.literal("assign_contact"),
+    v.literal("ai_outbound_call"),
+    v.literal("move_pipeline_stage"),
     v.literal("wait")
   ),
   config: v.object({
@@ -27,6 +29,9 @@ const stepValidator = v.object({
     tagId: v.optional(v.id("contactTags")),
     noteTemplate: v.optional(v.string()),
     assignToUserId: v.optional(v.id("users")),
+    retellAgentId: v.optional(v.string()),
+    pipelineId: v.optional(v.string()),
+    stageId: v.optional(v.string()),
     waitMinutes: v.optional(v.number()),
   }),
 });
@@ -40,6 +45,7 @@ const triggerTypeValidator = v.union(
   v.literal("task_overdue"),
   v.literal("ai_call_completed"),
   v.literal("ai_call_transferred"),
+  v.literal("pipeline_stage_entered"),
   v.literal("manual")
 );
 
@@ -47,6 +53,8 @@ const triggerConfigValidator = v.optional(v.object({
   tagId: v.optional(v.id("contactTags")),
   reminderMinutes: v.optional(v.number()),
   overdueMinutes: v.optional(v.number()),
+  pipelineId: v.optional(v.string()),
+  stageId: v.optional(v.string()),
 }));
 
 /** Get all workflows for an organization */

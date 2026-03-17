@@ -1055,12 +1055,15 @@ export default defineSchema({
       v.literal("task_overdue"),
       v.literal("ai_call_completed"),
       v.literal("ai_call_transferred"),
+      v.literal("pipeline_stage_entered"),
       v.literal("manual")
     ),
     triggerConfig: v.optional(v.object({
       tagId: v.optional(v.id("contactTags")),
       reminderMinutes: v.optional(v.number()),
       overdueMinutes: v.optional(v.number()),
+      pipelineId: v.optional(v.string()),
+      stageId: v.optional(v.string()),
     })),
 
     // Ordered steps
@@ -1076,6 +1079,7 @@ export default defineSchema({
         v.literal("create_note"),
         v.literal("assign_contact"),
         v.literal("ai_outbound_call"),
+        v.literal("move_pipeline_stage"),
         v.literal("wait")
       ),
       config: v.object({
@@ -1091,6 +1095,8 @@ export default defineSchema({
         noteTemplate: v.optional(v.string()),
         assignToUserId: v.optional(v.id("users")),
         retellAgentId: v.optional(v.string()),
+        pipelineId: v.optional(v.string()),
+        stageId: v.optional(v.string()),
         waitMinutes: v.optional(v.number()),
       }),
     })),
@@ -1380,4 +1386,49 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_contact", ["contactId"])
     .index("by_phone", ["phoneNumber"]),
+
+  // ── Pipelines ───────────────────────────────────────────────────────
+  pipelines: defineTable({
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    isActive: v.boolean(),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"]),
+
+  // ── Pipeline Stages ─────────────────────────────────────────────────
+  pipelineStages: defineTable({
+    organizationId: v.id("organizations"),
+    pipelineId: v.id("pipelines"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    order: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_pipeline", ["pipelineId"])
+    .index("by_organization", ["organizationId"]),
+
+  // ── Pipeline Contact Assignments ────────────────────────────────────
+  pipelineContacts: defineTable({
+    organizationId: v.id("organizations"),
+    pipelineId: v.id("pipelines"),
+    stageId: v.id("pipelineStages"),
+    contactId: v.id("contacts"),
+    enteredStageAt: v.number(),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_pipeline", ["pipelineId"])
+    .index("by_stage", ["stageId"])
+    .index("by_contact", ["contactId"])
+    .index("by_pipeline_stage", ["pipelineId", "stageId"]),
 });

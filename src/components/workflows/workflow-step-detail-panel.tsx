@@ -18,6 +18,7 @@ import {
 import { useCanvasContext } from "./workflow-canvas-provider";
 import { stepTypeInfo, type StepType, type StepConfig, type WorkflowStep } from "./workflow-step-card";
 import { cn } from "@/lib/utils";
+import { Id } from "../../../convex/_generated/dataModel";
 
 const templateVariables = [
   { key: "firstName", label: "First Name" },
@@ -90,6 +91,11 @@ export function WorkflowStepDetailPanel() {
 
   const tags = useQuery(api.contactTags.getActive, { organizationId });
   const users = useQuery(api.users.getByOrganization, { organizationId });
+  const pipelines = useQuery(api.pipelines.getByOrganization, { organizationId });
+  const stages = useQuery(
+    api.pipelineStages.getByPipeline,
+    step?.config.pipelineId ? { pipelineId: step.config.pipelineId as Id<"pipelines"> } : "skip"
+  );
 
   const smsRef = useRef<HTMLTextAreaElement>(null);
   const emailBodyRef = useRef<HTMLTextAreaElement>(null);
@@ -356,6 +362,49 @@ export function WorkflowStepDetailPanel() {
               Configure AI calling agents in the AI Agents section. The agent will call the contact using their primary phone number.
             </p>
           </div>
+        )}
+
+        {step.type === "move_pipeline_stage" && (
+          <>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Pipeline</Label>
+              <Select
+                value={step.config.pipelineId ?? ""}
+                onValueChange={(v) => updateConfig({ pipelineId: v, stageId: undefined })}
+              >
+                <SelectTrigger className="h-9 w-full text-sm">
+                  <SelectValue placeholder="Select pipeline..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {pipelines?.map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {step.config.pipelineId && (
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Stage</Label>
+                <Select
+                  value={step.config.stageId ?? ""}
+                  onValueChange={(v) => updateConfig({ stageId: v })}
+                >
+                  <SelectTrigger className="h-9 w-full text-sm">
+                    <SelectValue placeholder="Select stage..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stages?.map((s) => (
+                      <SelectItem key={s._id} value={s._id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
         )}
 
         {step.type === "wait" && (

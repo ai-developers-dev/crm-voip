@@ -5,7 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
   UserPlus, Tag, PhoneMissed, MessageSquare,
-  CalendarClock, AlertCircle, Play, Bot, PhoneForwarded,
+  CalendarClock, AlertCircle, Play, Bot, PhoneForwarded, Columns3,
 } from "lucide-react";
 import {
   Select,
@@ -26,12 +26,15 @@ export type TriggerType =
   | "task_overdue"
   | "ai_call_completed"
   | "ai_call_transferred"
+  | "pipeline_stage_entered"
   | "manual";
 
 export interface TriggerConfig {
   tagId?: Id<"contactTags">;
   reminderMinutes?: number;
   overdueMinutes?: number;
+  pipelineId?: string;
+  stageId?: string;
 }
 
 const triggerOptions: {
@@ -50,6 +53,7 @@ const triggerOptions: {
   { value: "task_overdue", label: "Task Overdue", shortLabel: "Overdue", icon: AlertCircle, color: "text-amber-600", bgColor: "bg-amber-100 dark:bg-amber-900/30" },
   { value: "ai_call_completed", label: "AI Call Completed", shortLabel: "AI Call Done", icon: Bot, color: "text-cyan-600", bgColor: "bg-cyan-100 dark:bg-cyan-900/30" },
   { value: "ai_call_transferred", label: "AI Call Transferred", shortLabel: "AI Transfer", icon: PhoneForwarded, color: "text-indigo-600", bgColor: "bg-indigo-100 dark:bg-indigo-900/30" },
+  { value: "pipeline_stage_entered", label: "Pipeline Stage Entered", shortLabel: "Stage Enter", icon: Columns3, color: "text-teal-600", bgColor: "bg-teal-100 dark:bg-teal-900/30" },
   { value: "manual", label: "Manual", shortLabel: "Manual", icon: Play, color: "text-gray-600", bgColor: "bg-gray-100 dark:bg-gray-800/50" },
 ];
 
@@ -77,6 +81,11 @@ export function WorkflowTriggerSelect({
   onTriggerConfigChange,
 }: WorkflowTriggerSelectProps) {
   const tags = useQuery(api.contactTags.getActive, { organizationId });
+  const pipelines = useQuery(api.pipelines.getByOrganization, { organizationId });
+  const stages = useQuery(
+    api.pipelineStages.getByPipeline,
+    triggerConfig?.pipelineId ? { pipelineId: triggerConfig.pipelineId as Id<"pipelines"> } : "skip"
+  );
 
   return (
     <div className="space-y-3">
@@ -168,6 +177,49 @@ export function WorkflowTriggerSelect({
             </SelectContent>
           </Select>
         </div>
+      )}
+
+      {triggerType === "pipeline_stage_entered" && (
+        <>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Pipeline</Label>
+            <Select
+              value={triggerConfig?.pipelineId ?? ""}
+              onValueChange={(v) => onTriggerConfigChange({ ...triggerConfig, pipelineId: v, stageId: undefined })}
+            >
+              <SelectTrigger className="w-full h-9 text-sm">
+                <SelectValue placeholder="Select pipeline..." />
+              </SelectTrigger>
+              <SelectContent>
+                {pipelines?.map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {triggerConfig?.pipelineId && (
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Stage (optional - any if blank)</Label>
+              <Select
+                value={triggerConfig?.stageId ?? ""}
+                onValueChange={(v) => onTriggerConfigChange({ ...triggerConfig, stageId: v })}
+              >
+                <SelectTrigger className="w-full h-9 text-sm">
+                  <SelectValue placeholder="Any stage..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {stages?.map((s) => (
+                    <SelectItem key={s._id} value={s._id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

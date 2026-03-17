@@ -2,7 +2,7 @@
 
 import {
   MessageSquare, Mail, ClipboardCheck, Tag,
-  PenLine, UserPlus, Clock, Pencil, Trash2, Plus, Bot,
+  PenLine, UserPlus, Clock, Pencil, Trash2, Plus, Bot, Columns3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,7 @@ export type StepType =
   | "create_note"
   | "assign_contact"
   | "ai_outbound_call"
+  | "move_pipeline_stage"
   | "wait";
 
 export interface StepConfig {
@@ -32,6 +33,9 @@ export interface StepConfig {
   waitMinutes?: number;
   // AI outbound call
   retellAgentId?: string;
+  // Pipeline
+  pipelineId?: string;
+  stageId?: string;
 }
 
 export interface WorkflowStep {
@@ -55,6 +59,7 @@ const stepTypeInfo: Record<StepType, {
   create_note: { label: "Create Note", icon: PenLine, color: "text-purple-600", bgColor: "bg-purple-100 dark:bg-purple-900/30" },
   assign_contact: { label: "Assign Contact", icon: UserPlus, color: "text-indigo-600", bgColor: "bg-indigo-100 dark:bg-indigo-900/30" },
   ai_outbound_call: { label: "AI Call", icon: Bot, color: "text-cyan-600", bgColor: "bg-cyan-100 dark:bg-cyan-900/30" },
+  move_pipeline_stage: { label: "Move Pipeline", icon: Columns3, color: "text-teal-600", bgColor: "bg-teal-100 dark:bg-teal-900/30" },
   wait: { label: "Wait", icon: Clock, color: "text-gray-600", bgColor: "bg-gray-100 dark:bg-gray-800/50" },
 };
 
@@ -81,6 +86,8 @@ function getStepSummary(step: WorkflowStep): string {
       return config.assignToUserId ? "User selected" : "No user selected";
     case "ai_outbound_call":
       return config.retellAgentId ? "AI agent selected" : "No AI agent selected";
+    case "move_pipeline_stage":
+      return config.pipelineId && config.stageId ? "Pipeline stage selected" : "No stage selected";
     case "wait": {
       if (!config.waitMinutes) return "No duration set";
       if (config.waitMinutes < 60) return `${config.waitMinutes} minutes`;
