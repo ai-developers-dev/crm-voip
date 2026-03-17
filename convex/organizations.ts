@@ -36,6 +36,35 @@ export const getByTwilioAccountSid = query({
   },
 });
 
+// Update platform billing config (Stripe keys + Twilio markup)
+export const updatePlatformBillingConfig = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    stripePublishableKey: v.string(),
+    stripeSecretKey: v.string(),
+    stripeWebhookSecret: v.string(),
+    twilioMarkupPercent: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.organizationId, {
+      settings: {
+        ...org.settings,
+        stripeConfig: {
+          publishableKey: args.stripePublishableKey,
+          secretKey: args.stripeSecretKey,
+          webhookSecret: args.stripeWebhookSecret,
+          isConfigured: true,
+        },
+        twilioMarkupPercent: args.twilioMarkupPercent,
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // Update master Twilio credentials (platform org only)
 export const updateTwilioMaster = mutation({
   args: {

@@ -32,7 +32,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ synced: 0, message: "No tenants found" });
     }
 
-    const results: Array<{ orgName: string; calls: number; minutes: number; sms: number; cost: number }> = [];
+    // Get markup percentage from platform settings
+    const markupPercent = (platformOrg?.settings as any)?.twilioMarkupPercent ?? 50;
+
+    const results: Array<{ orgName: string; calls: number; minutes: number; sms: number; twilioCoast: number; markedUpCost: number }> = [];
 
     for (const tenant of allTenants) {
       const twilioCredentials = tenant.settings?.twilioCredentials;
@@ -85,12 +88,15 @@ export async function POST(req: Request) {
           }
         }
 
+        const markedUpCost = Math.round(totalCost * (1 + markupPercent / 100) * 100) / 100;
+
         results.push({
           orgName: tenant.name,
           calls: totalCalls,
           minutes: Math.round(totalMinutes),
           sms: totalSms,
-          cost: Math.round(totalCost * 100) / 100, // dollars
+          twilioCoast: Math.round(totalCost * 100) / 100,
+          markedUpCost,
         });
       } catch (err) {
         console.error(`[usage-sync] Failed for ${tenant.name}:`, err);
@@ -99,6 +105,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       synced: results.length,
+      markupPercent,
       tenants: results,
       syncedAt: new Date().toISOString(),
     });

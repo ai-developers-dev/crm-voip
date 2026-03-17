@@ -28,7 +28,7 @@ import {
 import {
   Loader2, Plus, Pencil, Trash2,
   ToggleLeft, ToggleRight, Shield, ChevronDown,
-  Building, Users, Briefcase, Phone
+  Building, Users, Briefcase, Phone, DollarSign
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SettingsRow } from "@/components/settings/settings-row";
@@ -74,6 +74,37 @@ export default function AdminSettingsPage() {
       console.error("Failed to save master Twilio credentials:", err);
     } finally {
       setSavingTwilioMaster(false);
+    }
+  };
+
+  // Billing state
+  const stripeConfigured = !!(platformOrg?.settings as any)?.stripeConfig?.isConfigured;
+  const currentMarkup = (platformOrg?.settings as any)?.twilioMarkupPercent ?? 50;
+  const [stripePublishable, setStripePublishable] = useState("");
+  const [stripeSecret, setStripeSecret] = useState("");
+  const [stripeWebhook, setStripeWebhook] = useState("");
+  const [twilioMarkup, setTwilioMarkup] = useState(50);
+  const [savingBilling, setSavingBilling] = useState(false);
+  const updatePlatformBillingConfig = useMutation(api.organizations.updatePlatformBillingConfig);
+
+  const handleSaveBilling = async () => {
+    if (!platformOrg?._id || !stripePublishable.trim() || !stripeSecret.trim()) return;
+    setSavingBilling(true);
+    try {
+      await updatePlatformBillingConfig({
+        organizationId: platformOrg._id,
+        stripePublishableKey: stripePublishable.trim(),
+        stripeSecretKey: stripeSecret.trim(),
+        stripeWebhookSecret: stripeWebhook.trim(),
+        twilioMarkupPercent: twilioMarkup,
+      });
+      setStripePublishable("");
+      setStripeSecret("");
+      setStripeWebhook("");
+    } catch (err) {
+      console.error("Failed to save billing config:", err);
+    } finally {
+      setSavingBilling(false);
     }
   };
 
@@ -721,6 +752,72 @@ export default function AdminSettingsPage() {
             </div>
             <Button size="sm" onClick={handleSaveRetellKey} disabled={!retellApiKey || savingRetellKey}>
               {savingRetellKey ? "Saving..." : retellConfigured ? "Update Key" : "Save Key"}
+            </Button>
+          </div>
+        </SettingsRow>
+
+        {/* ====== BILLING ====== */}
+        <SettingsRow
+          icon={<DollarSign className="h-4 w-4 text-green-600" />}
+          label="Billing"
+          summary={stripeConfigured ? "Connected" : "Not configured"}
+          isExpanded={expandedSection === "billing"}
+          onToggle={() => toggleSection("billing")}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Configure Stripe for tenant billing.</p>
+
+            <div className="space-y-2">
+              <Label className="text-xs">Publishable Key</Label>
+              <Input
+                value={stripePublishable}
+                onChange={(e) => setStripePublishable(e.target.value)}
+                placeholder="pk_..."
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Secret Key</Label>
+              <Input
+                type="password"
+                value={stripeSecret}
+                onChange={(e) => setStripeSecret(e.target.value)}
+                placeholder="sk_..."
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Webhook Secret</Label>
+              <Input
+                type="password"
+                value={stripeWebhook}
+                onChange={(e) => setStripeWebhook(e.target.value)}
+                placeholder="whsec_..."
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+
+            <div className="border-t pt-3">
+              <Label className="text-xs">Twilio Markup %</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="number"
+                  value={twilioMarkup}
+                  onChange={(e) => setTwilioMarkup(parseInt(e.target.value) || 0)}
+                  className="h-9 text-sm w-20"
+                  min={0}
+                  max={500}
+                />
+                <span className="text-xs text-muted-foreground">% added to actual Twilio costs when billing tenants</span>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={handleSaveBilling}
+              disabled={!stripePublishable || !stripeSecret || savingBilling}
+            >
+              {savingBilling ? "Saving..." : stripeConfigured ? "Update Billing Settings" : "Save Billing Settings"}
             </Button>
           </div>
         </SettingsRow>

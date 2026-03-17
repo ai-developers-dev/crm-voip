@@ -219,7 +219,16 @@ export default defineSchema({
       retellConfigured: v.optional(v.boolean()),
       // A2P 10DLC compliance
       a2pMessagingServiceSid: v.optional(v.string()),
-      a2pStatus: v.optional(v.string()), // "none" | "brand_pending" | "brand_approved" | "campaign_pending" | "campaign_approved"
+      a2pStatus: v.optional(v.string()),
+      // Stripe billing (platform org only)
+      stripeConfig: v.optional(v.object({
+        secretKey: v.string(),
+        publishableKey: v.string(),
+        webhookSecret: v.optional(v.string()),
+        isConfigured: v.boolean(),
+      })),
+      // Twilio markup % for billing (platform org only)
+      twilioMarkupPercent: v.optional(v.number()), // Default 50 = 50%
       // Deprecated: goals now in salesGoals table. Kept for existing data.
       salesGoals: v.optional(v.object({
         dailyPremium: v.optional(v.number()),

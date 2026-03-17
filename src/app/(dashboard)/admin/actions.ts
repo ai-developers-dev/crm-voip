@@ -6,6 +6,7 @@ import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { provisionTenant } from "@/lib/twilio/provisioning";
 import { encrypt, decrypt } from "@/lib/credentials/crypto";
+import { getStripeClient } from "@/lib/stripe/client";
 
 async function getConvexClient() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -151,6 +152,25 @@ export async function createTenant(data: CreateTenantData) {
     } catch (provisionErr) {
       // Non-fatal: tenant can still set up Twilio manually
       console.error("Failed to auto-provision Twilio subaccount:", provisionErr);
+    }
+
+    // 2c. Create Stripe customer
+    try {
+      const stripe = getStripeClient();
+      const customer = await stripe.customers.create({
+        name: data.businessName,
+        email: data.ownerEmail,
+        metadata: { organizationId: convexOrgId, clerkOrgId: org.id },
+      });
+
+      await convex.mutation(api.billing.updateStripeCustomer, {
+        organizationId: convexOrgId,
+        stripeCustomerId: customer.id,
+      });
+      console.log(`Created Stripe customer for ${data.businessName}: ${customer.id}`);
+    } catch (stripeErr) {
+      // Non-fatal: billing can be set up later
+      console.error("Failed to create Stripe customer:", stripeErr);
     }
 
     // 3. Find or invite the owner

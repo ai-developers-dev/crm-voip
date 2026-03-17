@@ -881,6 +881,34 @@ export default function DashboardLayout({
         </div>
       </header>
 
+      {/* Past-due billing banner */}
+      {(currentOrg?.billing as any)?.subscriptionStatus === "past_due" && (
+        <div className="bg-destructive/10 border-b border-destructive/30 px-6 py-2 flex items-center justify-between">
+          <p className="text-sm text-destructive font-medium">
+            Your subscription payment has failed. Please update your payment method to avoid service interruption.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/stripe/portal", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ organizationId: currentOrg?._id }),
+                });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+              } catch (err) {
+                console.error("Failed to open billing portal:", err);
+              }
+            }}
+          >
+            Update Payment
+          </Button>
+        </div>
+      )}
+
       {/* Main content */}
       <main className="flex-1">{children}</main>
     </div>

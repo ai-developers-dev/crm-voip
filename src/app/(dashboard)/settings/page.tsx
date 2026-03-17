@@ -28,7 +28,7 @@ import {
   Phone, Users, CheckCircle, XCircle, Loader2,
   Building2, Pencil, AlertCircle, Mail, Unplug, Briefcase,
   Music, Settings, ImageIcon, Plus, Trash2, UserPlus, MoreHorizontal, Tag, Workflow,
-  MessageSquare
+  MessageSquare, CreditCard, Clock
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useMutation } from "convex/react";
@@ -389,6 +389,26 @@ export default function SettingsPage() {
   const twilioConfigured = convexOrg?.settings?.twilioCredentials?.isConfigured ?? false;
   const a2pStatus = (convexOrg?.settings as any)?.a2pStatus || "none";
 
+  // Billing
+  const subscriptionStatus = (convexOrg?.billing as any)?.subscriptionStatus;
+
+  const handleManageBilling = async () => {
+    if (!convexOrg?._id) return;
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationId: convexOrg._id }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Failed to open billing portal:", err);
+    }
+  };
+
   return (
     <PageContainer variant="settings">
       <PageHeader
@@ -455,6 +475,51 @@ export default function SettingsPage() {
           onToggle={() => toggleRow("sms-compliance")}
         >
           {convexOrg?._id && <A2pRegistration organizationId={convexOrg._id} />}
+        </SettingsRow>
+
+        {/* Billing */}
+        <SettingsRow
+          icon={<CreditCard className="h-4 w-4 text-green-600" />}
+          label="Billing"
+          summary={subscriptionStatus === "active" ? "Active" : subscriptionStatus === "trialing" ? "Trial" : "Not set up"}
+          isExpanded={expandedRow === "billing"}
+          onToggle={() => toggleRow("billing")}
+        >
+          <div className="space-y-3">
+            {subscriptionStatus === "active" && (
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Subscription Active</span>
+              </div>
+            )}
+            {subscriptionStatus === "trialing" && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Free Trial</span>
+                {(convexOrg?.billing as any)?.trialEndsAt && (
+                  <span className="text-xs text-muted-foreground">ends {new Date((convexOrg?.billing as any)?.trialEndsAt).toLocaleDateString()}</span>
+                )}
+              </div>
+            )}
+            {subscriptionStatus === "past_due" && (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+                <span className="text-sm font-medium text-destructive">Payment Past Due</span>
+              </div>
+            )}
+            {!subscriptionStatus && (
+              <p className="text-sm text-muted-foreground">No active subscription. Set up billing to access all features.</p>
+            )}
+            <div className="flex items-center justify-between text-sm">
+              <span>Monthly plan</span>
+              <span className="font-semibold">${convexOrg?.billing?.basePlanPrice || 97}/mo</span>
+            </div>
+            {(convexOrg?.billing as any)?.stripeCustomerId && (
+              <Button variant="outline" size="sm" onClick={handleManageBilling}>
+                Manage Billing
+              </Button>
+            )}
+          </div>
         </SettingsRow>
 
         {/* Users */}

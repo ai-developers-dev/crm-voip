@@ -14,6 +14,7 @@ import { TwilioSetupStep } from "./TwilioSetupStep";
 import { TeamSetupStep } from "./TeamSetupStep";
 import { CallSettingsStep } from "./CallSettingsStep";
 import { BusinessSetupStep } from "./BusinessSetupStep";
+import { PaymentStep } from "./PaymentStep";
 import { EmailSetupStep } from "./EmailSetupStep";
 import { RetellSetupStep } from "./RetellSetupStep";
 import { CompletionStep } from "./CompletionStep";
@@ -29,6 +30,7 @@ const STEPS = [
   { title: "Team", description: "Add members" },
   { title: "Settings", description: "Configure calls" },
   { title: "Business", description: "Agency setup" },
+  { title: "Payment", description: "Start trial" },
   { title: "Email", description: "Connect email" },
   { title: "AI Calling", description: "Voice agents" },
   { title: "Complete", description: "All done!" },
@@ -165,6 +167,13 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
           />
         )}
         {step === 5 && (
+          <PaymentStep
+            onNext={handleNext}
+            onBack={handleBack}
+            onSkip={handleNext}
+          />
+        )}
+        {step === 6 && (
           <EmailSetupStep
             onNext={handleNext}
             onBack={handleBack}
@@ -172,7 +181,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
             onConfigured={setEmailConfigured}
           />
         )}
-        {step === 6 && (
+        {step === 7 && (
           <RetellSetupStep
             onNext={handleNext}
             onBack={handleBack}
@@ -180,7 +189,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
             onConfigured={setRetellConfigured}
           />
         )}
-        {step === 7 && (
+        {step === 8 && (
           <CompletionStep
             twilioConfigured={twilioConfigured}
             emailConfigured={emailConfigured}
@@ -191,7 +200,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
       </Card>
 
       {/* Skip all */}
-      {step < 7 && step > 0 && (
+      {step < 8 && step > 0 && (
         <div className="mt-4 text-center">
           <Button variant="ghost" size="sm" onClick={handleSkip}>
             Skip setup for now

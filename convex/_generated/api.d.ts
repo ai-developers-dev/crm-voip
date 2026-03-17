@@ -16,6 +16,7 @@ import type * as agencyTypes from "../agencyTypes.js";
 import type * as agentRuns from "../agentRuns.js";
 import type * as aiCallHistory from "../aiCallHistory.js";
 import type * as appointments from "../appointments.js";
+import type * as billing from "../billing.js";
 import type * as calendarEvents from "../calendarEvents.js";
 import type * as callStats from "../callStats.js";
 import type * as calls from "../calls.js";
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   agentRuns: typeof agentRuns;
   aiCallHistory: typeof aiCallHistory;
   appointments: typeof appointments;
+  billing: typeof billing;
   calendarEvents: typeof calendarEvents;
   callStats: typeof callStats;
   calls: typeof calls;

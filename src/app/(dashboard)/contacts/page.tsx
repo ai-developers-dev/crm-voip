@@ -149,7 +149,7 @@ export default function ContactsPage() {
       {/* 3-Column Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Column 1: Contact List */}
-        <div className="w-80 border-r flex-shrink-0">
+        <div className="w-80 border-r flex-shrink-0 overflow-hidden h-full">
           <ContactListCompact
             contacts={contacts || []}
             selectedContactId={selectedContact?._id || null}

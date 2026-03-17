@@ -50,6 +50,7 @@ function ContactCard({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDndExpanded, setIsDndExpanded] = useState(false);
   const toggleEmailOptOut = useMutation(api.contacts.toggleEmailOptOut);
   const toggleVoiceOptOut = useMutation(api.contacts.toggleVoiceOptOut);
 
@@ -353,46 +354,60 @@ function ContactCard({
               </div>
             )}
 
-            {/* Do Not Contact */}
-            <div className="mt-3 pt-3 border-t border-border/40" onClick={(e) => e.stopPropagation()}>
-              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Do Not Contact</p>
-              <div className="flex items-center gap-4">
-                {/* SMS - LOCKED when opted out */}
-                <label className="flex items-center gap-1.5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={!!contact.smsOptedOut}
-                    disabled={!!contact.smsOptedOut}
-                    className="rounded h-3.5 w-3.5"
-                    readOnly
-                  />
-                  <span className={contact.smsOptedOut ? "text-destructive" : "text-muted-foreground"}>SMS</span>
-                  {contact.smsOptedOut && (
-                    <Lock className="h-3 w-3 text-muted-foreground" />
-                  )}
-                </label>
+            {/* Do Not Contact — collapsible card */}
+            <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setIsDndExpanded(!isDndExpanded)}
+                className="w-full flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex-1">Do Not Contact</span>
+                {(contact.smsOptedOut || contact.emailOptedOut || contact.voiceOptedOut) && (
+                  <span className="flex items-center gap-0.5">
+                    {contact.smsOptedOut && <span className="text-[8px] px-1 py-0 rounded-full bg-destructive/10 text-destructive font-medium">SMS</span>}
+                    {contact.emailOptedOut && <span className="text-[8px] px-1 py-0 rounded-full bg-destructive/10 text-destructive font-medium">Email</span>}
+                    {contact.voiceOptedOut && <span className="text-[8px] px-1 py-0 rounded-full bg-destructive/10 text-destructive font-medium">Voice</span>}
+                  </span>
+                )}
+                <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isDndExpanded && "rotate-180")} />
+              </button>
+              <div className={cn("overflow-hidden transition-all duration-200", isDndExpanded ? "max-h-40 opacity-100 mt-2" : "max-h-0 opacity-0")}>
+                <div className="flex items-center gap-4 px-3">
+                  {/* SMS - LOCKED when opted out */}
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={!!contact.smsOptedOut}
+                      disabled={!!contact.smsOptedOut}
+                      className="rounded h-3.5 w-3.5"
+                      readOnly
+                    />
+                    <span className={contact.smsOptedOut ? "text-destructive" : "text-muted-foreground"}>SMS</span>
+                    {contact.smsOptedOut && <Lock className="h-3 w-3 text-muted-foreground" />}
+                  </label>
 
-                {/* Email - freely toggleable */}
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!contact.emailOptedOut}
-                    onChange={() => toggleEmailOptOut({ contactId: contact._id })}
-                    className="rounded h-3.5 w-3.5 cursor-pointer"
-                  />
-                  <span className={contact.emailOptedOut ? "text-destructive" : "text-muted-foreground"}>Email</span>
-                </label>
+                  {/* Email - freely toggleable */}
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!contact.emailOptedOut}
+                      onChange={() => toggleEmailOptOut({ contactId: contact._id })}
+                      className="rounded h-3.5 w-3.5 cursor-pointer"
+                    />
+                    <span className={contact.emailOptedOut ? "text-destructive" : "text-muted-foreground"}>Email</span>
+                  </label>
 
-                {/* Voice - freely toggleable */}
-                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!contact.voiceOptedOut}
-                    onChange={() => toggleVoiceOptOut({ contactId: contact._id })}
-                    className="rounded h-3.5 w-3.5 cursor-pointer"
-                  />
-                  <span className={contact.voiceOptedOut ? "text-destructive" : "text-muted-foreground"}>Voice</span>
-                </label>
+                  {/* Voice - freely toggleable */}
+                  <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!contact.voiceOptedOut}
+                      onChange={() => toggleVoiceOptOut({ contactId: contact._id })}
+                      className="rounded h-3.5 w-3.5 cursor-pointer"
+                    />
+                    <span className={contact.voiceOptedOut ? "text-destructive" : "text-muted-foreground"}>Voice</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -495,7 +510,7 @@ export function ContactListCompact({
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-2">
           {filteredContacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center px-2">
@@ -509,7 +524,7 @@ export function ContactListCompact({
               )}
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="divide-y divide-border/40">
               {filteredContacts.map((contact) => (
                 <ContactCard
                   key={contact._id}
