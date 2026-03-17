@@ -94,7 +94,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
       await createLead({
         organizationId,
         firstName: contact.firstName,
-        lastName: contact.lastName,
+        lastName: contact.lastName || "",
         email: contact.email || undefined,
         phone: contact.phoneNumbers?.find((p) => p.isPrimary)?.number || contact.phoneNumbers?.[0]?.number || undefined,
         dob: contact.dateOfBirth || "1990-01-01",

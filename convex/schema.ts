@@ -1015,6 +1015,8 @@ export default defineSchema({
       v.literal("incoming_sms"),
       v.literal("appointment_reminder"),
       v.literal("task_overdue"),
+      v.literal("ai_call_completed"),
+      v.literal("ai_call_transferred"),
       v.literal("manual")
     ),
     triggerConfig: v.optional(v.object({
@@ -1035,6 +1037,7 @@ export default defineSchema({
         v.literal("remove_tag"),
         v.literal("create_note"),
         v.literal("assign_contact"),
+        v.literal("ai_outbound_call"),
         v.literal("wait")
       ),
       config: v.object({
@@ -1049,6 +1052,7 @@ export default defineSchema({
         tagId: v.optional(v.id("contactTags")),
         noteTemplate: v.optional(v.string()),
         assignToUserId: v.optional(v.id("users")),
+        retellAgentId: v.optional(v.string()),
         waitMinutes: v.optional(v.number()),
       }),
     })),

@@ -38,6 +38,8 @@ const triggerTypeValidator = v.union(
   v.literal("incoming_sms"),
   v.literal("appointment_reminder"),
   v.literal("task_overdue"),
+  v.literal("ai_call_completed"),
+  v.literal("ai_call_transferred"),
   v.literal("manual")
 );
 
