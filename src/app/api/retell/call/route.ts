@@ -85,7 +85,6 @@ export async function POST(req: Request) {
       contactId: contactId
         ? (contactId as Id<"contacts">)
         : undefined,
-      createdAt: Date.now(),
     });
 
     return NextResponse.json({
