@@ -91,22 +91,19 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
       // Default to auto if no specific products selected
       if (quoteTypes.length === 0) quoteTypes.push("auto");
 
-      // Get primary address from contact
-      const primaryAddress = contact.addresses?.find((a: any) => a.isPrimary) || contact.addresses?.[0];
-
       await createLead({
         organizationId,
         firstName: contact.firstName,
         lastName: contact.lastName,
-        email: contact.emails?.find((e: any) => e.isPrimary)?.email || contact.emails?.[0]?.email || undefined,
-        phone: contact.phoneNumbers?.find((p: any) => p.isPrimary)?.number || contact.phoneNumbers?.[0]?.number || undefined,
+        email: contact.email || undefined,
+        phone: contact.phoneNumbers?.find((p) => p.isPrimary)?.number || contact.phoneNumbers?.[0]?.number || undefined,
         dob: contact.dateOfBirth || "1990-01-01",
         gender: contact.gender || undefined,
         maritalStatus: contact.maritalStatus || undefined,
-        street: primaryAddress?.street || "",
-        city: primaryAddress?.city || "",
-        state: primaryAddress?.state || "",
-        zip: primaryAddress?.zip || "",
+        street: contact.streetAddress || "",
+        city: contact.city || "",
+        state: contact.state || "",
+        zip: contact.zipCode || "",
         quoteTypes: [...new Set(quoteTypes)],
         notes: `Carriers: ${[...selectedCarrierIds].map((id) => availableCarriers.find((c: any) => c._id === id)?.name).filter(Boolean).join(", ")}`,
       });
