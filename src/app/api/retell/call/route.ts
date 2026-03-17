@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 
     // Get agent record from Convex
     const agent = await convex.query(api.retellAgents.getById, {
-      agentId: retellAgentId as Id<"retellAgents">,
+      id: retellAgentId as Id<"retellAgents">,
     });
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
