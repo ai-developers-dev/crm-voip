@@ -1,33 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import twilio from "twilio";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
+import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
 // Convex HTTP client for database operations
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
-// Validate Twilio webhook signature
-async function validateTwilioRequest(
-  request: NextRequest,
-  params: Record<string, string>
-): Promise<boolean> {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!authToken) {
-    console.warn("TWILIO_AUTH_TOKEN not set - skipping validation");
-    return true; // Allow in development without auth token
-  }
-
-  const signature = request.headers.get("X-Twilio-Signature") || "";
-
-  // Get the full URL that Twilio used (use APP_URL for correct hostname)
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
-  const urlPath = new URL(request.url).pathname;
-  const fullUrl = appUrl.endsWith("/")
-    ? `${appUrl.slice(0, -1)}${urlPath}`
-    : `${appUrl}${urlPath}`;
-
-  return twilio.validateRequest(authToken, signature, fullUrl, params);
-}
 
 export async function POST(request: NextRequest) {
   let messageSid = "unknown";
@@ -48,8 +25,8 @@ export async function POST(request: NextRequest) {
       params[key] = value.toString();
     });
 
-    // Validate webhook signature
-    const isValid = await validateTwilioRequest(request, params);
+    // Validate webhook signature (per-subaccount auth token lookup)
+    const isValid = await validateTwilioWebhook(request, params, convex);
     if (!isValid) {
       console.error("Invalid Twilio webhook signature for SMS webhook");
       return new NextResponse("Forbidden", { status: 403 });

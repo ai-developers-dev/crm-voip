@@ -3,32 +3,12 @@ import twilio from "twilio";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
 // Convex HTTP client for database operations
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
-// Validate Twilio webhook signature
-async function validateTwilioRequest(
-  request: NextRequest,
-  params: Record<string, string>
-): Promise<boolean> {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!authToken) {
-    console.warn("TWILIO_AUTH_TOKEN not set - skipping validation");
-    return true;
-  }
-
-  const signature = request.headers.get("X-Twilio-Signature") || "";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
-  const urlPath = new URL(request.url).pathname;
-  const fullUrl = appUrl.endsWith("/")
-    ? `${appUrl.slice(0, -1)}${urlPath}`
-    : `${appUrl}${urlPath}`;
-
-  return twilio.validateRequest(authToken, signature, fullUrl, params);
-}
 
 // Format phone number to E.164
 function formatPhoneNumber(phone: string): string {
@@ -66,8 +46,8 @@ export async function POST(request: NextRequest) {
       params[key] = value.toString();
     });
 
-    // Validate webhook signature
-    const isValid = await validateTwilioRequest(request, params);
+    // Validate webhook signature (per-subaccount auth token lookup)
+    const isValid = await validateTwilioWebhook(request, params, convex);
     if (!isValid) {
       console.error("Invalid Twilio webhook signature for outbound webhook");
       return new NextResponse("Forbidden", { status: 403 });

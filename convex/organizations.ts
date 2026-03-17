@@ -438,6 +438,7 @@ export const updateTwilioCredentials = mutation({
       apiKey: v.optional(v.string()),
       apiSecret: v.optional(v.string()),
       twimlAppSid: v.optional(v.string()),
+      isAutoProvisioned: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, args) => {
@@ -453,6 +454,8 @@ export const updateTwilioCredentials = mutation({
           isConfigured: true,
         },
       },
+      // Top-level for webhook routing lookup
+      twilioAccountSid: args.twilioCredentials.accountSid,
       updatedAt: Date.now(),
     });
 
@@ -934,6 +937,35 @@ export const saveTwilioCredentials = mutation({
           twimlAppSid: args.twimlAppSid,
           isConfigured: true,
         },
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Save auto-provisioned Twilio subaccount credentials (no auth check - called from server actions)
+export const saveAutoProvisionedCredentials = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    twilioCredentials: v.object({
+      accountSid: v.string(),
+      authToken: v.string(),
+      apiKey: v.optional(v.string()),
+      apiSecret: v.optional(v.string()),
+      twimlAppSid: v.optional(v.string()),
+      isConfigured: v.boolean(),
+      isAutoProvisioned: v.boolean(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.organizationId, {
+      twilioAccountSid: args.twilioCredentials.accountSid,
+      settings: {
+        ...org.settings,
+        twilioCredentials: args.twilioCredentials,
       },
       updatedAt: Date.now(),
     });

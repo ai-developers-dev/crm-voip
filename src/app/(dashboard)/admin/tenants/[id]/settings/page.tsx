@@ -40,6 +40,7 @@ import { ImageUpload } from "@/components/settings/image-upload";
 import { SettingsRow } from "@/components/settings/settings-row";
 import { TwilioSettingsDialog } from "@/components/settings/twilio-settings-dialog";
 import { CarriersSettingsDialog } from "@/components/settings/carriers-settings-dialog";
+import { PhoneNumbersManager } from "@/components/settings/phone-numbers-manager";
 import { tagColors, TAG_COLOR_OPTIONS } from "@/lib/style-constants";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -448,6 +449,11 @@ export default function TenantSettingsPage() {
               <Pencil className="h-4 w-4 mr-2" />
               Configure Phone System
             </Button>
+            {tenant?._id && (
+              <div className="mt-4 pt-4 border-t">
+                <PhoneNumbersManager organizationId={tenant._id} />
+              </div>
+            )}
           </SettingsRow>
 
           {/* Users */}

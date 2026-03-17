@@ -52,6 +52,31 @@ export default function AdminSettingsPage() {
   const platformOrg = useQuery(api.organizations.getPlatformOrg);
   const retellConfigured = !!(platformOrg?.settings as any)?.retellConfigured;
 
+  // Master Twilio config
+  const twilioMasterConfigured = !!(platformOrg?.settings as any)?.twilioMaster?.isConfigured;
+  const [twilioMasterSid, setTwilioMasterSid] = useState("");
+  const [twilioMasterAuth, setTwilioMasterAuth] = useState("");
+  const [savingTwilioMaster, setSavingTwilioMaster] = useState(false);
+  const updateTwilioMaster = useMutation(api.organizations.updateTwilioMaster);
+
+  const handleSaveTwilioMaster = async () => {
+    if (!platformOrg?._id || !twilioMasterSid.trim() || !twilioMasterAuth.trim()) return;
+    setSavingTwilioMaster(true);
+    try {
+      await updateTwilioMaster({
+        organizationId: platformOrg._id,
+        accountSid: twilioMasterSid.trim(),
+        authToken: twilioMasterAuth.trim(),
+      });
+      setTwilioMasterSid("");
+      setTwilioMasterAuth("");
+    } catch (err) {
+      console.error("Failed to save master Twilio credentials:", err);
+    } finally {
+      setSavingTwilioMaster(false);
+    }
+  };
+
   // AI Calling state
   const [retellApiKey, setRetellApiKey] = useState("");
   const [savingRetellKey, setSavingRetellKey] = useState(false);
@@ -625,6 +650,51 @@ export default function AdminSettingsPage() {
               })}
             </div>
           )}
+        </SettingsRow>
+
+        {/* ====== PHONE SYSTEM (Master Twilio) ====== */}
+        <SettingsRow
+          icon={<Phone className="h-4 w-4 text-red-600" />}
+          label="Phone System"
+          summary={twilioMasterConfigured ? "Connected" : "Not configured"}
+          badge={twilioMasterConfigured
+            ? <Badge variant="default" className="gap-1">Connected</Badge>
+            : <Badge variant="secondary" className="gap-1">Not Set Up</Badge>
+          }
+          isExpanded={expandedSection === "phone-system"}
+          onToggle={() => toggleSection("phone-system")}
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Enter your master Twilio credentials. These are used to provision subaccounts and phone numbers for tenants.
+            </p>
+            <div className="field-gap">
+              <Label className="text-xs">Account SID</Label>
+              <Input
+                value={twilioMasterSid}
+                onChange={(e) => setTwilioMasterSid(e.target.value)}
+                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="field-gap">
+              <Label className="text-xs">Auth Token</Label>
+              <Input
+                type="password"
+                value={twilioMasterAuth}
+                onChange={(e) => setTwilioMasterAuth(e.target.value)}
+                placeholder="Your auth token"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSaveTwilioMaster}
+              disabled={!twilioMasterSid || !twilioMasterAuth || savingTwilioMaster}
+            >
+              {savingTwilioMaster ? "Saving..." : twilioMasterConfigured ? "Update Credentials" : "Save Credentials"}
+            </Button>
+          </div>
         </SettingsRow>
 
         {/* ====== AI CALLING ====== */}
