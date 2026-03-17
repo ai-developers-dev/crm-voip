@@ -493,3 +493,67 @@ export const assignConversation = mutation({
     return { success: true };
   },
 });
+
+// ============================================
+// SMS OPT-OUT / OPT-IN (DND COMPLIANCE)
+// ============================================
+
+// Handle SMS opt-out (STOP keyword)
+export const handleOptOut = mutation({
+  args: {
+    phoneNumber: v.string(),
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    // Normalize phone number (strip non-digits, take last 10)
+    const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
+
+    // Find contact by phone number in this org
+    const contacts = await ctx.db.query("contacts")
+      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    const contact = contacts.find(c =>
+      c.phoneNumbers.some(p => p.number.replace(/\D/g, "").slice(-10) === normalized)
+    );
+
+    if (contact) {
+      await ctx.db.patch(contact._id, {
+        smsOptedOut: true,
+        smsOptOutDate: Date.now(),
+        updatedAt: Date.now(),
+      });
+      return contact._id;
+    }
+    return null;
+  },
+});
+
+// Handle SMS opt-in (START keyword)
+export const handleOptIn = mutation({
+  args: {
+    phoneNumber: v.string(),
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
+
+    const contacts = await ctx.db.query("contacts")
+      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    const contact = contacts.find(c =>
+      c.phoneNumbers.some(p => p.number.replace(/\D/g, "").slice(-10) === normalized)
+    );
+
+    if (contact) {
+      await ctx.db.patch(contact._id, {
+        smsOptedOut: false,
+        smsOptInDate: Date.now(),
+        updatedAt: Date.now(),
+      });
+      return contact._id;
+    }
+    return null;
+  },
+});

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
 import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
 // Convex HTTP client for database operations
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+const OPT_OUT_KEYWORDS = ["stop", "stopall", "unsubscribe", "cancel", "end", "quit", "revoke", "optout"];
+const OPT_IN_KEYWORDS = ["start", "yes", "unstop"];
 
 export async function POST(request: NextRequest) {
   let messageSid = "unknown";
@@ -35,6 +39,60 @@ export async function POST(request: NextRequest) {
     console.log(`SMS webhook: ${messageSid} from ${from} to ${to}`);
     console.log(`Message body: ${body.substring(0, 100)}${body.length > 100 ? "..." : ""}`);
 
+    // ── Opt-out / Opt-in keyword detection ──────────────────────────
+    const bodyLower = (body || "").toLowerCase().trim();
+
+    if (OPT_OUT_KEYWORDS.includes(bodyLower)) {
+      console.log(`SMS opt-out keyword detected: "${bodyLower}" from ${from}`);
+      try {
+        // Look up organization by the Twilio number (to)
+        const phoneConfig = await convex.query(api.phoneNumbers.lookupByNumber, { phoneNumber: to });
+        if (phoneConfig) {
+          const orgId = phoneConfig.organizationId as Id<"organizations">;
+          const contactId = await convex.mutation(api.sms.handleOptOut, {
+            phoneNumber: from,
+            organizationId: orgId,
+          });
+          // Log consent event
+          await convex.mutation(api.smsConsent.log, {
+            organizationId: orgId,
+            contactId: contactId || undefined,
+            phoneNumber: from,
+            action: "opt_out",
+            keyword: bodyLower,
+            source: "inbound_sms",
+          });
+        }
+      } catch (err) {
+        console.error("Error handling SMS opt-out:", err);
+      }
+    }
+
+    if (OPT_IN_KEYWORDS.includes(bodyLower)) {
+      console.log(`SMS opt-in keyword detected: "${bodyLower}" from ${from}`);
+      try {
+        const phoneConfig = await convex.query(api.phoneNumbers.lookupByNumber, { phoneNumber: to });
+        if (phoneConfig) {
+          const orgId = phoneConfig.organizationId as Id<"organizations">;
+          const contactId = await convex.mutation(api.sms.handleOptIn, {
+            phoneNumber: from,
+            organizationId: orgId,
+          });
+          // Log consent event
+          await convex.mutation(api.smsConsent.log, {
+            organizationId: orgId,
+            contactId: contactId || undefined,
+            phoneNumber: from,
+            action: "opt_in",
+            keyword: bodyLower,
+            source: "inbound_sms",
+          });
+        }
+      } catch (err) {
+        console.error("Error handling SMS opt-in:", err);
+      }
+    }
+
     // Parse MMS attachments
     const numMedia = parseInt(formData.get("NumMedia") as string || "0");
     const mediaUrls: string[] = [];
@@ -46,7 +104,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save to Convex
+    // Save to Convex (always save message so it shows in conversation timeline)
     const result = await convex.mutation(api.sms.receiveMessage, {
       twilioMessageSid: messageSid,
       from,

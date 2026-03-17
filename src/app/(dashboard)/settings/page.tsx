@@ -420,25 +420,29 @@ export default function SettingsPage() {
         <SettingsRow
           icon={<Phone className="h-4 w-4 text-red-600" />}
           label="Phone System"
-          summary={twilioConfigured ? "Configured" : "Not Set Up"}
+          summary={twilioConfigured ? "Active" : "Not Set Up"}
           badge={twilioConfigured
-            ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Configured</Badge>
+            ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Active</Badge>
             : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />Not Set Up</Badge>
           }
           isExpanded={expandedRow === "twilio"}
           onToggle={() => toggleRow("twilio")}
         >
-          <p className="text-sm text-muted-foreground mb-3">
-            Configure your voice calling credentials.
-          </p>
-          <Button variant="outline" size="sm" className="w-full" onClick={() => setIsTwilioDialogOpen(true)}>
-            <Pencil className="h-4 w-4 mr-2" />
-            Configure Phone System
-          </Button>
-          {convexOrg?._id && (
-            <div className="mt-4 pt-4 border-t">
-              <PhoneNumbersManager organizationId={convexOrg._id} />
-            </div>
+          {convexOrg?.settings?.twilioCredentials?.isAutoProvisioned ? (
+            <>
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Phone system is active and managed by your platform</p>
+              </div>
+              {convexOrg?._id && <PhoneNumbersManager organizationId={convexOrg._id} />}
+            </>
+          ) : twilioConfigured ? (
+            <>
+              <p className="text-sm text-muted-foreground mb-3">Your phone system is configured and active.</p>
+              {convexOrg?._id && <PhoneNumbersManager organizationId={convexOrg._id} />}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Contact your administrator to set up your phone system.</p>
           )}
         </SettingsRow>
 

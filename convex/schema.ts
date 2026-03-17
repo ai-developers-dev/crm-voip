@@ -541,6 +541,10 @@ export default defineSchema({
     tags: v.optional(v.array(v.id("contactTags"))),
     assignedUserId: v.optional(v.id("users")),
     isRead: v.optional(v.boolean()),
+    // SMS opt-out / DND
+    smsOptedOut: v.optional(v.boolean()),
+    smsOptOutDate: v.optional(v.number()),
+    smsOptInDate: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -1349,4 +1353,18 @@ export default defineSchema({
   })
     .index("by_organization", ["organizationId"])
     .index("by_brand", ["brandId"]),
+
+  // ── SMS Consent Audit Log ───────────────────────────────────────────
+  smsConsent: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.optional(v.id("contacts")),
+    phoneNumber: v.string(),
+    action: v.string(),         // "opt_out" | "opt_in" | "first_message" | "error_21610"
+    keyword: v.optional(v.string()),
+    source: v.optional(v.string()), // "inbound_sms" | "status_callback" | "manual"
+    timestamp: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_contact", ["contactId"])
+    .index("by_phone", ["phoneNumber"]),
 });

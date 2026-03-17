@@ -49,6 +49,7 @@ import type * as sales from "../sales.js";
 import type * as salesGoals from "../salesGoals.js";
 import type * as salesReports from "../salesReports.js";
 import type * as sms from "../sms.js";
+import type * as smsConsent from "../smsConsent.js";
 import type * as targetedRinging from "../targetedRinging.js";
 import type * as tasks from "../tasks.js";
 import type * as tenantCommissions from "../tenantCommissions.js";
@@ -106,6 +107,7 @@ declare const fullApi: ApiFromModules<{
   salesGoals: typeof salesGoals;
   salesReports: typeof salesReports;
   sms: typeof sms;
+  smsConsent: typeof smsConsent;
   targetedRinging: typeof targetedRinging;
   tasks: typeof tasks;
   tenantCommissions: typeof tenantCommissions;

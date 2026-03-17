@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
-import { Phone, DollarSign, MailCheck, MailOpen } from "lucide-react";
+import { Phone, DollarSign, MailCheck, MailOpen, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useOptionalCallingContext } from "@/components/calling/calling-provider";
 import { SaleFormDialog } from "./sale-form-dialog";
+import { CsvImportWizard } from "./csv-import-wizard";
 
 interface ContactActionBarProps {
   contact: Doc<"contacts">;
@@ -24,6 +25,7 @@ export function ContactActionBar({ contact, organizationId }: ContactActionBarPr
   const callingContext = useOptionalCallingContext();
   const toggleRead = useMutation(api.contacts.toggleRead);
   const [saleDialogOpen, setSaleDialogOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
   const primaryPhone = contact.phoneNumbers?.find((p) => p.isPrimary)?.number
     || contact.phoneNumbers?.[0]?.number;
@@ -105,6 +107,23 @@ export function ContactActionBar({ contact, organizationId }: ContactActionBarPr
               <p>{isRead ? "Mark as unread" : "Mark as read"}</p>
             </TooltipContent>
           </Tooltip>
+
+          {/* Import CSV */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                onClick={() => setCsvImportOpen(true)}
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Import CSV</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </TooltipProvider>
 
@@ -115,6 +134,15 @@ export function ContactActionBar({ contact, organizationId }: ContactActionBarPr
         contact={contact}
         organizationId={organizationId}
       />
+
+      {/* CSV Import Wizard */}
+      {csvImportOpen && (
+        <CsvImportWizard
+          organizationId={organizationId}
+          onClose={() => setCsvImportOpen(false)}
+          onComplete={() => setCsvImportOpen(false)}
+        />
+      )}
     </>
   );
 }

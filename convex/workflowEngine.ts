@@ -322,6 +322,17 @@ export const executeSendSms = internalAction({
       return;
     }
 
+    // Check if contact has opted out of SMS
+    if (contact.smsOptedOut) {
+      await ctx.runMutation(internal.workflowEngine.advanceStepMutation, {
+        executionId: args.executionId,
+        stepId: args.stepId,
+        status: "skipped",
+        error: "Contact has opted out of SMS (DND)",
+      });
+      return;
+    }
+
     const org = await ctx.runQuery(internal.workflowEngine.getOrganization, {
       organizationId: execution.organizationId,
     });

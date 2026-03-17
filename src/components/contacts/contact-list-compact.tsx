@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, Plus, Phone, User, Loader2, Users, ChevronDown, Mail, Building2, MapPin, Pencil, Trash2, Tag, Check, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils";
 import { tagColors } from "@/lib/style-constants";
@@ -88,8 +89,11 @@ function ContactCard({
             <User className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate">
-              {contact.firstName} {contact.lastName}
+            <p className="text-sm font-medium truncate flex items-center gap-1">
+              <span className="truncate">{contact.firstName} {contact.lastName}</span>
+              {contact.smsOptedOut && (
+                <Badge variant="destructive" className="text-[9px] px-1 py-0 shrink-0">DND</Badge>
+              )}
             </p>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Phone className="h-3 w-3" />

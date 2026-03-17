@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, ArrowDownLeft, ArrowUpRight, MessageCircle, Mail, MailOpen, ChevronRight, StopCircle } from "lucide-react";
+import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, ArrowDownLeft, ArrowUpRight, MessageCircle, Mail, MailOpen, ChevronRight, StopCircle, Ban } from "lucide-react";
 import { ContactActionBar } from "./contact-action-bar";
 import { ComposeBox } from "./compose-box";
 import { commTypeColors } from "@/lib/style-constants";
@@ -372,6 +372,19 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
           <ContactActionBar contact={contact} organizationId={organizationId} />
         </div>
       </div>
+
+      {/* SMS opt-out banner */}
+      {contact?.smsOptedOut && (
+        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <Ban className="h-4 w-4 text-amber-500 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">SMS Opted Out</p>
+            <p className="text-[10px] text-muted-foreground">
+              This contact replied STOP{contact.smsOptOutDate ? ` on ${new Date(contact.smsOptOutDate).toLocaleDateString()}` : ""}. They must reply START to re-subscribe.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       {hasItems ? (

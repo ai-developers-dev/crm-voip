@@ -436,25 +436,39 @@ export default function TenantSettingsPage() {
           <SettingsRow
             icon={<Phone className="h-4 w-4 text-red-600" />}
             label="Phone System"
-            summary={twilioConfigured ? "Configured" : "Not Set Up"}
+            summary={twilioConfigured ? "Active" : "Not Set Up"}
             badge={twilioConfigured
-              ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Configured</Badge>
+              ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Active</Badge>
               : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />Not Set Up</Badge>
             }
             isExpanded={expandedRow === "twilio"}
             onToggle={() => toggleRow("twilio")}
           >
-            <p className="text-sm text-muted-foreground mb-3">
-              Configure voice calling credentials for this tenant.
-            </p>
-            <Button variant="outline" size="sm" className="w-full" onClick={() => setIsTwilioDialogOpen(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Configure Phone System
-            </Button>
-            {tenant?._id && (
-              <div className="mt-4 pt-4 border-t">
-                <PhoneNumbersManager organizationId={tenant._id} />
-              </div>
+            {(tenant?.settings as any)?.twilioCredentials?.isAutoProvisioned ? (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Phone system active — auto-provisioned</p>
+                </div>
+                {tenant?._id && <PhoneNumbersManager organizationId={tenant._id} />}
+              </>
+            ) : twilioConfigured ? (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">Phone system is configured.</p>
+                <Button variant="outline" size="sm" className="w-full mb-3" onClick={() => setIsTwilioDialogOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Credentials
+                </Button>
+                {tenant?._id && <PhoneNumbersManager organizationId={tenant._id} />}
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">Phone system not set up for this tenant.</p>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setIsTwilioDialogOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Set Up Manually
+                </Button>
+              </>
             )}
           </SettingsRow>
 

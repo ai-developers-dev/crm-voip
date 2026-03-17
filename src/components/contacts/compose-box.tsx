@@ -15,6 +15,7 @@ import {
   Mail,
   Check,
   X,
+  Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,7 +84,7 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
 
   const canSend = () => {
     if (!message.trim() || isSending) return false;
-    if (channel === "sms") return !!primaryPhone && !!fromNumber;
+    if (channel === "sms") return !!primaryPhone && !!fromNumber && !contact.smsOptedOut;
     if (channel === "email") {
       const toAddr = emailTo || contactEmail;
       return !!toAddr && !!emailSubject.trim() && !!activeEmailAccount;
@@ -246,6 +247,14 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
   // Expanded state
   return (
     <div className="border-t bg-background">
+      {/* SMS opt-out warning */}
+      {contact.smsOptedOut && channel === "sms" && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 text-xs text-amber-700 dark:text-amber-400">
+          <Ban className="h-3.5 w-3.5 shrink-0" />
+          <span>This contact has opted out of SMS. They must reply START to re-subscribe.</span>
+        </div>
+      )}
+
       {/* From / To header */}
       <div className="border-b px-4 py-2 text-sm">
         <div className="flex items-center justify-between">

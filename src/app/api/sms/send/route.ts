@@ -61,12 +61,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Pre-send opt-out check ──────────────────────────────────────
+    if (contactId) {
+      const contact = await convex.query(api.contacts.getById, {
+        contactId: contactId as Id<"contacts">,
+      });
+      if (contact?.smsOptedOut) {
+        return NextResponse.json(
+          { success: false, error: "This contact has opted out of SMS. They must reply START to re-subscribe." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ── First message compliance ────────────────────────────────────
+    // Check if there is an existing conversation with this number
+    const existingConversation = await convex.query(api.sms.getConversationByPhones, {
+      organizationId: organizationId as Id<"organizations">,
+      customerPhoneNumber: to,
+      businessPhoneNumber: fromNumber,
+    });
+
+    let finalMessageBody = messageBody;
+    if (!existingConversation) {
+      // First message to this number — append opt-out language
+      finalMessageBody += "\n\nReply STOP to opt out. Msg & data rates may apply.";
+
+      // Log first message consent event (fire-and-forget)
+      convex.mutation(api.smsConsent.log, {
+        organizationId: organizationId as Id<"organizations">,
+        contactId: contactId ? (contactId as Id<"contacts">) : undefined,
+        phoneNumber: to,
+        action: "first_message",
+        source: "outbound_sms",
+      }).catch((err) => console.error("Error logging first message consent:", err));
+    }
+
     // Save message to database first (optimistic - with "queued" status)
     const { messageId, conversationId } = await convex.mutation(api.sms.sendMessage, {
       organizationId: organizationId as Id<"organizations">,
       to,
       from: fromNumber,
-      body: messageBody,
+      body: finalMessageBody,
       mediaUrls,
       contactId: contactId as Id<"contacts"> | undefined,
       assignedUserId: assignedUserId as Id<"users"> | undefined,
@@ -96,7 +132,7 @@ export async function POST(request: NextRequest) {
         twilioMessageOptions = {
           messagingServiceSid: a2pServiceSid,
           to,
-          body: messageBody,
+          body: finalMessageBody,
           statusCallback: `${appUrl}/api/twilio/sms-status`,
         };
       } else {
@@ -104,7 +140,7 @@ export async function POST(request: NextRequest) {
         twilioMessageOptions = {
           from: fromNumber,
           to,
-          body: messageBody,
+          body: finalMessageBody,
           statusCallback: `${appUrl}/api/twilio/sms-status`,
         };
       }
