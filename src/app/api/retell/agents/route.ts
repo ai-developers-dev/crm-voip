@@ -134,7 +134,6 @@ export async function POST(req: Request) {
     });
 
     // 3. Save to Convex
-    const now = Date.now();
     const agentId = await convex.mutation(api.retellAgents.create, {
       organizationId: organizationId as Id<"organizations">,
       retellAgentId: agentResponse.agent_id,
@@ -160,8 +159,6 @@ export async function POST(req: Request) {
       analysisSuccessPrompt: analysisSuccessPrompt || undefined,
       postCallAnalysisFields: postCallAnalysisFields || undefined,
       webhookUrl,
-      createdAt: now,
-      updatedAt: now,
     });
 
     return NextResponse.json({
