@@ -14,12 +14,14 @@ type Stage =
 
 interface NatGenLoginTestProps {
   organizationId: string;
+  /** Pass carrierId to look up saved per-carrier credentials */
+  carrierId?: string;
   /** Pass username+password when testing unsaved credentials */
   username?: string;
   password?: string;
 }
 
-export function NatGenLoginTest({ organizationId, username, password }: NatGenLoginTestProps) {
+export function NatGenLoginTest({ organizationId, carrierId, username, password }: NatGenLoginTestProps) {
   const [stage, setStage] = useState<Stage>({ type: "idle" });
   const [code, setCode] = useState("");
 
@@ -29,8 +31,8 @@ export function NatGenLoginTest({ organizationId, username, password }: NatGenLo
     try {
       const body: Record<string, string> =
         username && password
-          ? { action: "start_login", username, password }
-          : { action: "start_login", organizationId };
+          ? { action: "start_login", organizationId, username, password }
+          : { action: "start_login", organizationId, ...(carrierId && { carrierId }) };
 
       const res = await fetch("/api/portal-test", {
         method: "POST",

@@ -7,6 +7,7 @@ import { useCanvasContext } from "./workflow-canvas-provider";
 import { WorkflowCanvasStepCard } from "./workflow-canvas-step-card";
 import { WorkflowDropZone } from "./workflow-drop-zone";
 import { WorkflowTriggerSelect, triggerOptions } from "./workflow-trigger-select";
+import { IfElseBranchView } from "./workflow-if-else-branch";
 import { Input } from "@/components/ui/input";
 import { Workflow, ArrowDown, Zap, ChevronDown } from "lucide-react";
 
@@ -62,17 +63,17 @@ export function WorkflowStepFlow({ isActiveDragFromPalette }: WorkflowStepFlowPr
         if (e.target === e.currentTarget) selectStep(null);
       }}
     >
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-2xl mx-auto">
         {/* Workflow name */}
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Workflow name..."
-          className="h-9 text-sm font-semibold mb-4 border-transparent hover:border-border focus:border-border"
+          className="h-9 text-sm font-semibold mb-4 border-transparent hover:border-border focus:border-border max-w-xs mx-auto block"
         />
 
         {/* Trigger — collapsible */}
-        <div className="rounded-lg border bg-card mb-4">
+        <div className="max-w-xs mx-auto rounded-lg border bg-card mb-4">
           <button
             type="button"
             onClick={() => setTriggerExpanded(!triggerExpanded)}
@@ -118,35 +119,57 @@ export function WorkflowStepFlow({ isActiveDragFromPalette }: WorkflowStepFlowPr
         <WorkflowDropZone index={0} isActiveDragFromPalette={isActiveDragFromPalette} />
 
         <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-          {steps.map((step, i) => (
-            <div key={step.id}>
-              <WorkflowCanvasStepCard step={step} index={i} />
-              {/* Arrow connector */}
-              {i < steps.length - 1 && (
-                <div className="flex justify-center py-1">
-                  <div className="flex flex-col items-center">
-                    <div className="w-px h-2 bg-border" />
-                    <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/50" />
-                    <div className="w-px h-1 bg-border" />
-                  </div>
-                </div>
-              )}
-              <WorkflowDropZone
-                index={i + 1}
-                isActiveDragFromPalette={isActiveDragFromPalette}
-              />
-            </div>
-          ))}
+          {steps.map((step, i) => {
+            // A condition (if_else) is always the last rendered step —
+            // all subsequent steps live inside its branches
+            const isCondition = step.type === "if_else";
+            const nextIsCondition = i < steps.length - 1 && steps[i + 1]?.type === "if_else";
+
+            return (
+              <div key={step.id}>
+                {isCondition ? (
+                  <IfElseBranchView step={step} />
+                ) : (
+                  <WorkflowCanvasStepCard step={step} index={i} />
+                )}
+
+                {/* Don't show connectors or drop zones after a condition step */}
+                {!isCondition && (
+                  <>
+                    {/* Arrow connector */}
+                    {i < steps.length - 1 && (
+                      <div className="flex justify-center py-1">
+                        <div className="flex flex-col items-center">
+                          <div className="w-px h-2 bg-border" />
+                          <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/50" />
+                          <div className="w-px h-1 bg-border" />
+                        </div>
+                      </div>
+                    )}
+                    {/* Don't show drop zone if the next step is a condition (steps go inside it) */}
+                    {!nextIsCondition && (
+                      <WorkflowDropZone
+                        index={i + 1}
+                        isActiveDragFromPalette={isActiveDragFromPalette}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
         </SortableContext>
 
-        {/* End marker */}
-        <div className="flex justify-center pt-3 pb-6">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
-            <div className="w-8 border-t border-border/40" />
-            <span>End</span>
-            <div className="w-8 border-t border-border/40" />
+        {/* End marker — only if last step is not a condition */}
+        {steps.length > 0 && steps[steps.length - 1]?.type !== "if_else" && (
+          <div className="flex justify-center pt-3 pb-6">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/50">
+              <div className="w-8 border-t border-border/40" />
+              <span>End</span>
+              <div className="w-8 border-t border-border/40" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

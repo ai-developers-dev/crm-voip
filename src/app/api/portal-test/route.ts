@@ -63,15 +63,16 @@ export async function POST(req: Request) {
         if (!natgenCreds?.isConfigured) {
           return NextResponse.json({ status: "error", message: "No credentials saved. Add them in Carrier Settings." });
         }
+        // Try decrypt first (encrypted format), fallback to plain text
+        let u = natgenCreds.username;
+        let p = natgenCreds.password;
         try {
-          creds = {
-            username: decrypt(natgenCreds.username, organizationId),
-            password: decrypt(natgenCreds.password, organizationId),
-            portalUrl: natgenCreds.portalUrl,
-          };
+          u = decrypt(natgenCreds.username, organizationId);
+          p = decrypt(natgenCreds.password, organizationId);
         } catch {
-          return NextResponse.json({ status: "error", message: "Failed to decrypt saved credentials." });
+          // Not encrypted — use as-is (plain text from quotes page UI)
         }
+        creds = { username: u, password: p, portalUrl: natgenCreds.portalUrl };
       } else {
         return NextResponse.json({ status: "error", message: "Provide credentials or organizationId + carrierId." });
       }

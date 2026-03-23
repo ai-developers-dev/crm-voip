@@ -7,7 +7,7 @@ import { Id } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3
+  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3, ClipboardCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -233,6 +233,9 @@ export default function TenantSMSPage() {
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/calendar`}>
               <Button variant="ghost" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/tasks`}>
+              <Button variant="ghost" size="sm" className="gap-2"><ClipboardCheck className="h-4 w-4" />Tasks</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
               <Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button>

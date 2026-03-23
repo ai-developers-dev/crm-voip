@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3
+  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3, ClipboardCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -92,6 +92,12 @@ export default function TenantCalendarPage() {
   );
   const appointments = filterByUser ? userAppointments : orgAppointments;
 
+  // Tasks with due dates
+  const tasks = useQuery(
+    api.tasks.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+
   const events: CalendarEvent[] = useMemo(() => {
     const merged: CalendarEvent[] = [];
 
@@ -126,8 +132,24 @@ export default function TenantCalendarPage() {
       }
     }
 
+    // Add tasks with due dates to calendar
+    if (tasks) {
+      for (const task of tasks) {
+        if (task.dueDate && task.status !== "completed" && task.status !== "cancelled") {
+          merged.push({
+            id: task._id,
+            title: `📋 ${task.title}`,
+            startTime: task.dueDate,
+            endTime: task.dueDate + 1800000, // 30min block
+            status: task.status === "todo" ? "scheduled" : "confirmed",
+            type: "appointment", // Render same as appointments
+          });
+        }
+      }
+    }
+
     return merged.sort((a, b) => a.startTime - b.startTime);
-  }, [calendarEvents, appointments]);
+  }, [calendarEvents, appointments, tasks]);
 
   if (!userLoaded || isPlatformUser === undefined) {
     return (
@@ -206,6 +228,9 @@ export default function TenantCalendarPage() {
             <Link href={`/admin/tenants/${tenant._id}/calendar`}>
               <Button variant="secondary" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button>
             </Link>
+            <Link href={`/admin/tenants/${tenant._id}/tasks`}>
+              <Button variant="ghost" size="sm" className="gap-2"><ClipboardCheck className="h-4 w-4" />Tasks</Button>
+            </Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
               <Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button>
             </Link>
@@ -255,7 +280,7 @@ export default function TenantCalendarPage() {
             setShowNewAppt(true);
           }}
           onEventClick={(event) => {
-            if (event.type === "appointment") {
+            if (event.type === "appointment" && !event.title.startsWith("📋")) {
               setEditApptId(event.id as Id<"appointments">);
             }
           }}

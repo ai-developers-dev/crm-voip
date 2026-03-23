@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Users, Headphones, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react";
+import { PricingDisplay } from "@/components/pricing/pricing-display";
 
 export default function Home() {
   return (
@@ -144,6 +145,9 @@ export default function Home() {
           </Card>
         </div>
       </section>
+
+      {/* Pricing */}
+      <PricingDisplay />
 
       {/* CTA */}
       <section className="bg-primary py-20">

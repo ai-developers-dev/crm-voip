@@ -2,7 +2,7 @@
 
 import {
   MessageSquare, Mail, ClipboardCheck, Tag,
-  PenLine, UserPlus, Clock, Pencil, Trash2, Plus, Bot, Columns3,
+  PenLine, UserPlus, Clock, Pencil, Trash2, Plus, Bot, Columns3, GitBranch, BrainCircuit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,26 @@ export type StepType =
   | "assign_contact"
   | "ai_outbound_call"
   | "move_pipeline_stage"
-  | "wait";
+  | "ai_sms_agent"
+  | "wait"
+  | "if_else";
+
+export interface ConditionDef {
+  id: string;
+  field: string;
+  fieldCategory: string;
+  operator: string;
+  value?: string;
+}
+
+export interface BranchDef {
+  id: string;
+  name: string;
+  conditions: ConditionDef[];
+  conditionLogic: "and" | "or";
+  steps: WorkflowStep[];
+  isDefault?: boolean;
+}
 
 export interface StepConfig {
   messageTemplate?: string;
@@ -33,9 +52,17 @@ export interface StepConfig {
   waitMinutes?: number;
   // AI outbound call
   retellAgentId?: string;
+  smsAgentId?: string;
   // Pipeline
   pipelineId?: string;
   stageId?: string;
+  // If/Else — legacy (kept for backward compat)
+  conditions?: ConditionDef[];
+  conditionLogic?: "and" | "or";
+  yesBranch?: WorkflowStep[];
+  noBranch?: WorkflowStep[];
+  // If/Else — new multi-branch format
+  branches?: BranchDef[];
 }
 
 export interface WorkflowStep {
@@ -61,9 +88,34 @@ const stepTypeInfo: Record<StepType, {
   ai_outbound_call: { label: "AI Call", icon: Bot, color: "text-cyan-600", bgColor: "bg-cyan-100 dark:bg-cyan-900/30" },
   move_pipeline_stage: { label: "Move Pipeline", icon: Columns3, color: "text-teal-600", bgColor: "bg-teal-100 dark:bg-teal-900/30" },
   wait: { label: "Wait", icon: Clock, color: "text-gray-600", bgColor: "bg-gray-100 dark:bg-gray-800/50" },
+  if_else: { label: "If/Else", icon: GitBranch, color: "text-yellow-600", bgColor: "bg-yellow-100 dark:bg-yellow-900/30" },
+  ai_sms_agent: { label: "AI SMS Agent", icon: BrainCircuit, color: "text-violet-600", bgColor: "bg-violet-100 dark:bg-violet-900/30" },
 };
 
-function getStepSummary(step: WorkflowStep): string {
+/** Convert legacy yesBranch/noBranch format to multi-branch format */
+export function normalizeBranches(config: StepConfig): BranchDef[] {
+  if (config.branches && config.branches.length > 0) return config.branches;
+  // Legacy format → new format
+  return [
+    {
+      id: "legacy-yes",
+      name: "Branch",
+      conditions: (config.conditions || []) as ConditionDef[],
+      conditionLogic: (config.conditionLogic as "and" | "or") || "and",
+      steps: (config.yesBranch || []) as WorkflowStep[],
+    },
+    {
+      id: "legacy-none",
+      name: "None",
+      conditions: [],
+      conditionLogic: "and" as const,
+      steps: (config.noBranch || []) as WorkflowStep[],
+      isDefault: true,
+    },
+  ];
+}
+
+export function getStepSummary(step: WorkflowStep): string {
   const { type, config } = step;
   switch (type) {
     case "send_sms":
@@ -86,6 +138,8 @@ function getStepSummary(step: WorkflowStep): string {
       return config.assignToUserId ? "User selected" : "No user selected";
     case "ai_outbound_call":
       return config.retellAgentId ? "AI agent selected" : "No AI agent selected";
+    case "ai_sms_agent":
+      return config.smsAgentId ? "SMS agent selected" : "No SMS agent selected";
     case "move_pipeline_stage":
       return config.pipelineId && config.stageId ? "Pipeline stage selected" : "No stage selected";
     case "wait": {
@@ -93,6 +147,14 @@ function getStepSummary(step: WorkflowStep): string {
       if (config.waitMinutes < 60) return `${config.waitMinutes} minutes`;
       if (config.waitMinutes < 1440) return `${Math.round(config.waitMinutes / 60)} hours`;
       return `${Math.round(config.waitMinutes / 1440)} days`;
+    }
+    case "if_else": {
+      const branches = normalizeBranches(config);
+      const namedBranches = branches.filter(b => !b.isDefault);
+      if (namedBranches.length === 0) return "No branches set";
+      const totalConditions = namedBranches.reduce((sum, b) => sum + b.conditions.length, 0);
+      if (totalConditions === 0) return `${namedBranches.length} branch${namedBranches.length !== 1 ? "es" : ""} — no conditions`;
+      return `${namedBranches.length} branch${namedBranches.length !== 1 ? "es" : ""}, ${totalConditions} condition${totalConditions !== 1 ? "s" : ""}`;
     }
     default:
       return "";

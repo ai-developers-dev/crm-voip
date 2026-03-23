@@ -332,6 +332,7 @@ export const receiveMessage = mutation({
       messageId,
       conversationId: conversation!._id,
       organizationId,
+      contactId,
     };
   },
 });

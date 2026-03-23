@@ -79,6 +79,65 @@ export default defineSchema({
     .index("by_agency_type_active", ["agencyTypeId", "isActive"])
     .index("by_carrier", ["carrierId"]),
 
+  // Portal Field Mappings - captured selectors per carrier/quoteType for automation
+  portalFieldMappings: defineTable({
+    carrierId: v.id("agencyCarriers"),
+    quoteType: v.string(), // "auto", "home", "package", etc.
+    screens: v.array(v.object({
+      name: v.string(),
+      order: v.number(),
+      url: v.optional(v.string()),
+      pageSource: v.optional(v.string()), // DEPRECATED: kept for backward compat, new sources go to portalPageSources table
+      // Automation metadata
+      action: v.optional(v.string()),
+      nextButton: v.optional(v.string()),
+      sidebarLink: v.optional(v.string()),
+      waitAfterNext: v.optional(v.number()),
+      progressStage: v.optional(v.string()),
+      fields: v.array(v.object({
+        selector: v.string(),
+        tag: v.string(),
+        type: v.string(),
+        label: v.optional(v.string()),
+        id: v.optional(v.string()),
+        name: v.optional(v.string()),
+        contactField: v.optional(v.string()),
+        defaultValue: v.optional(v.string()),
+        selectedValue: v.optional(v.string()),
+        transform: v.optional(v.string()), // "formatDob", "uppercase", "phoneDigitsOnly"
+        required: v.optional(v.boolean()),
+        options: v.optional(v.array(v.object({
+          value: v.string(),
+          text: v.string(),
+        }))),
+      })),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_carrier", ["carrierId"])
+    .index("by_carrier_quote_type", ["carrierId", "quoteType"]),
+
+  // Portal Page Sources - cleaned HTML per screen (stored separately to avoid 1MB doc limit)
+  portalPageSources: defineTable({
+    mappingId: v.id("portalFieldMappings"),
+    screenName: v.string(),
+    screenOrder: v.number(),
+    pageSource: v.string(), // cleaned HTML (up to 200KB)
+    url: v.optional(v.string()),
+    capturedAt: v.number(),
+  })
+    .index("by_mapping", ["mappingId"])
+    .index("by_mapping_screen", ["mappingId", "screenName"]),
+
+  // Portal Sessions - persisted browser cookies for 2FA "remember device"
+  portalSessions: defineTable({
+    carrierKey: v.string(),         // "natgen"
+    credentialHash: v.string(),     // SHA-256 of username (first 12 chars)
+    storageState: v.string(),       // JSON blob of cookies + localStorage
+    updatedAt: v.number(),
+  }).index("by_carrier_cred", ["carrierKey", "credentialHash"]),
+
   // Carrier Commissions - Commission rates per carrier x product
   carrierCommissions: defineTable({
     agencyTypeId: v.id("agencyTypes"),
@@ -177,6 +236,7 @@ export default defineSchema({
       )),
       currentPeriodEnd: v.optional(v.number()),
       trialEndsAt: v.optional(v.number()),
+      enabledAddons: v.optional(v.array(v.string())),  // Feature keys enabled for this tenant
     })),
     // Onboarding tracking for tenant owners
     onboarding: v.optional(v.object({
@@ -227,8 +287,24 @@ export default defineSchema({
         webhookSecret: v.optional(v.string()),
         isConfigured: v.boolean(),
       })),
-      // Twilio markup % for billing (platform org only)
-      twilioMarkupPercent: v.optional(v.number()), // Default 50 = 50%
+      // OpenAI (platform org only — for SMS AI agents)
+      openaiApiKey: v.optional(v.string()),
+      openaiConfigured: v.optional(v.boolean()),
+      // Nylas email & calendar (platform org only)
+      nylasConfig: v.optional(v.object({
+        clientId: v.string(),
+        apiKey: v.string(),
+        webhookSecret: v.optional(v.string()),
+        isConfigured: v.boolean(),
+      })),
+      // Cost markups for billing (platform org only)
+      twilioMarkupPercent: v.optional(v.number()),  // Default 50 = 50% on calls & SMS
+      retellMarkupPercent: v.optional(v.number()),  // Default 50 = 50% on AI voice calling
+      // Support ticket auto-reply
+      supportAutoReply: v.optional(v.string()),       // Auto-reply message on new ticket
+      supportNoAgentMessage: v.optional(v.string()),  // Message if no response within delay
+      supportAutoReplyDelaySec: v.optional(v.number()), // Seconds before no-agent message
+      openaiMarkupPercent: v.optional(v.number()),  // Default 50 = 50% on AI SMS agents
       // Deprecated: goals now in salesGoals table. Kept for existing data.
       salesGoals: v.optional(v.object({
         dailyPremium: v.optional(v.number()),
@@ -304,10 +380,21 @@ export default defineSchema({
       v.literal("ring_all"),
       v.literal("round_robin"),
       v.literal("least_recent"),
-      v.literal("direct")
+      v.literal("direct"),
+      v.literal("ring_group")
     ),
+    ringGroupUserIds: v.optional(v.array(v.id("users"))),
     voicemailEnabled: v.boolean(),
-    aiAgentId: v.optional(v.id("retellAgents")), // If set, inbound calls route to AI agent
+    aiAgentId: v.optional(v.id("retellAgents")),
+    // Unanswered call fallback
+    unansweredAction: v.optional(v.union(
+      v.literal("voicemail"),
+      v.literal("parking"),
+      v.literal("ai_agent")
+    )),
+    unansweredTimeoutSeconds: v.optional(v.number()),
+    unansweredAiAgentId: v.optional(v.id("retellAgents")),
+    voicemailGreeting: v.optional(v.string()), // If set, inbound calls route to AI agent
     monthlyCost: v.optional(v.number()),       // Monthly cost in cents
     purchasedAt: v.optional(v.number()),       // When purchased via platform
     capabilities: v.optional(v.object({
@@ -550,6 +637,30 @@ export default defineSchema({
     tags: v.optional(v.array(v.id("contactTags"))),
     assignedUserId: v.optional(v.id("users")),
     isRead: v.optional(v.boolean()),
+    // Prior Insurance (for quoting)
+    priorInsuranceCarrier: v.optional(v.string()),     // e.g. "State Farm", "Progressive"
+    priorBiCoverage: v.optional(v.string()),           // e.g. "100/300", "25/50"
+    priorInsuranceExpDate: v.optional(v.string()),     // MM/DD/YYYY
+    monthsWithRecentCarrier: v.optional(v.number()),   // e.g. 36
+
+    // Household Drivers (captured from quoting portals)
+    drivers: v.optional(v.array(v.object({
+      firstName: v.string(),
+      lastName: v.string(),
+      dateOfBirth: v.optional(v.string()),            // MM/DD/YYYY
+      relationship: v.optional(v.string()),           // e.g. "Insured", "Spouse", "Child"
+      licenseNumber: v.optional(v.string()),
+      licenseState: v.optional(v.string()),
+    }))),
+
+    // Vehicles (captured from quoting portals)
+    vehicles: v.optional(v.array(v.object({
+      year: v.string(),
+      make: v.string(),
+      model: v.string(),
+      vin: v.optional(v.string()),
+    }))),
+
     // DND (Do Not Contact)
     smsOptedOut: v.optional(v.boolean()),
     smsOptOutDate: v.optional(v.number()),
@@ -599,6 +710,7 @@ export default defineSchema({
     readAt: v.optional(v.number()),
     createdAt: v.number(),
     workflowExecutionId: v.optional(v.id("workflowExecutions")),
+    isAiGenerated: v.optional(v.boolean()),
   })
     .index("by_organization", ["organizationId"])
     .index("by_organization_date", ["organizationId", "sentAt"])
@@ -1080,7 +1192,9 @@ export default defineSchema({
         v.literal("assign_contact"),
         v.literal("ai_outbound_call"),
         v.literal("move_pipeline_stage"),
-        v.literal("wait")
+        v.literal("wait"),
+        v.literal("if_else"),
+        v.literal("ai_sms_agent")
       ),
       config: v.object({
         messageTemplate: v.optional(v.string()),
@@ -1095,9 +1209,22 @@ export default defineSchema({
         noteTemplate: v.optional(v.string()),
         assignToUserId: v.optional(v.id("users")),
         retellAgentId: v.optional(v.string()),
+        smsAgentId: v.optional(v.string()),
         pipelineId: v.optional(v.string()),
         stageId: v.optional(v.string()),
         waitMinutes: v.optional(v.number()),
+        // If/Else condition fields
+        conditions: v.optional(v.array(v.object({
+          id: v.string(),
+          field: v.string(),
+          fieldCategory: v.string(),
+          operator: v.string(),
+          value: v.optional(v.string()),
+        }))),
+        conditionLogic: v.optional(v.union(v.literal("and"), v.literal("or"))),
+        yesBranch: v.optional(v.any()), // Legacy recursive step array
+        noBranch: v.optional(v.any()),  // Legacy recursive step array
+        branches: v.optional(v.any()), // Multi-branch format (new)
       }),
     })),
 
@@ -1141,10 +1268,13 @@ export default defineSchema({
       ),
       executedAt: v.optional(v.number()),
       error: v.optional(v.string()),
+      branchPath: v.optional(v.string()),    // e.g. "step123.yes"
+      branchResult: v.optional(v.string()),  // "yes" or "no" — which branch was taken
     })),
 
     triggerData: v.optional(v.any()),
     nextStepScheduledId: v.optional(v.string()),
+    executionPointer: v.optional(v.any()), // Stack-based pointer for branch execution
 
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
@@ -1181,8 +1311,29 @@ export default defineSchema({
     property: v.optional(v.object({
       yearBuilt: v.optional(v.number()),
       sqft: v.optional(v.number()),
+      stories: v.optional(v.number()),
       constructionType: v.optional(v.string()),
       ownershipType: v.optional(v.string()),
+      roofType: v.optional(v.string()),
+      primaryHeatType: v.optional(v.string()),
+      numberOfFamilies: v.optional(v.number()),
+      occupancy: v.optional(v.string()),
+      residenceClass: v.optional(v.string()),
+      hasPool: v.optional(v.boolean()),
+      hasTrampoline: v.optional(v.boolean()),
+      burglarAlarm: v.optional(v.string()),
+      fireAlarm: v.optional(v.string()),
+      sprinklerSystem: v.optional(v.string()),
+      numberOfFullBath: v.optional(v.number()),
+      numberOfHalfBath: v.optional(v.number()),
+      numberOfGarages: v.optional(v.number()),
+      numberOfFireplaces: v.optional(v.number()),
+    })),
+    priorInsurance: v.optional(v.object({
+      carrier: v.optional(v.string()),
+      biCoverage: v.optional(v.string()),
+      expirationDate: v.optional(v.string()),
+      yearsContinuous: v.optional(v.number()),
     })),
     status: v.string(),
     notes: v.optional(v.string()),
@@ -1220,6 +1371,7 @@ export default defineSchema({
     succeeded: v.number(),
     failed: v.number(),
     currentLeadName: v.optional(v.string()),
+    currentStage: v.optional(v.string()),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
   })
@@ -1431,4 +1583,175 @@ export default defineSchema({
     .index("by_stage", ["stageId"])
     .index("by_contact", ["contactId"])
     .index("by_pipeline_stage", ["pipelineId", "stageId"]),
+
+  // ── SMS AI Agents ──────────────────────────────────────────────────
+  smsAgents: defineTable({
+    organizationId: v.id("organizations"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    systemPrompt: v.string(),
+    objective: v.optional(v.string()),
+    model: v.string(), // "gpt-4.1-mini", "gpt-4.1"
+    temperature: v.optional(v.number()),
+    maxTurns: v.optional(v.number()),
+    enabledTools: v.optional(v.array(v.string())),
+    beginMessage: v.optional(v.string()),
+    handoffMessage: v.optional(v.string()),
+    handoffPhoneNumber: v.optional(v.string()),
+    handoffUserId: v.optional(v.id("users")),
+    completionMessage: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"]),
+
+  smsAgentConversations: defineTable({
+    organizationId: v.id("organizations"),
+    smsAgentId: v.id("smsAgents"),
+    contactId: v.id("contacts"),
+    conversationId: v.optional(v.id("conversations")),
+    status: v.union(
+      v.literal("active"),
+      v.literal("completed"),
+      v.literal("handed_off"),
+      v.literal("expired")
+    ),
+    turnCount: v.number(),
+    aiMessages: v.array(v.object({
+      role: v.string(),
+      content: v.string(),
+      toolCalls: v.optional(v.any()),
+      toolResult: v.optional(v.any()),
+      timestamp: v.number(),
+    })),
+    objectiveAchieved: v.optional(v.boolean()),
+    handoffReason: v.optional(v.string()),
+    workflowExecutionId: v.optional(v.id("workflowExecutions")),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    totalTokensUsed: v.optional(v.number()),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_contact", ["contactId"])
+    .index("by_agent", ["smsAgentId"])
+    .index("by_conversation", ["conversationId"])
+    .index("by_status", ["organizationId", "status"]),
+
+  // ── Pricing Plans & Add-Ons ────────────────────────────────────────
+  // ── Usage Invoices ──────────────────────────────────────────────────
+  usageInvoices: defineTable({
+    organizationId: v.id("organizations"),
+    month: v.number(),
+    year: v.number(),
+    // Twilio
+    twilioCallMinutes: v.number(),
+    twilioSmsSent: v.number(),
+    twilioCostCents: v.number(),
+    twilioMarkupPercent: v.number(),
+    twilioChargedCents: v.number(),
+    // Retell
+    retellCallCount: v.number(),
+    retellCallMinutes: v.number(),
+    retellCostCents: v.number(),
+    retellMarkupPercent: v.number(),
+    retellChargedCents: v.number(),
+    // OpenAI
+    openaiConversations: v.number(),
+    openaiTokensUsed: v.number(),
+    openaiCostCents: v.number(),
+    openaiMarkupPercent: v.number(),
+    openaiChargedCents: v.number(),
+    // Totals
+    totalCostCents: v.number(),
+    totalChargedCents: v.number(),
+    profitCents: v.number(),
+    // Stripe
+    stripeInvoiceId: v.optional(v.string()),
+    stripePaymentStatus: v.optional(v.string()),
+    // Status
+    status: v.union(
+      v.literal("draft"),
+      v.literal("sent"),
+      v.literal("paid"),
+      v.literal("failed"),
+      v.literal("void")
+    ),
+    createdAt: v.number(),
+    paidAt: v.optional(v.number()),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_month", ["year", "month"])
+    .index("by_status", ["status"]),
+
+  // ── Pricing Plans & Add-Ons ────────────────────────────────────────
+  pricingPlans: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    basePriceMonthly: v.number(),
+    perUserPrice: v.number(),
+    includedUsers: v.number(),
+    trialDays: v.number(),
+    isActive: v.boolean(),
+    isDefault: v.optional(v.boolean()),
+    stripeProductId: v.optional(v.string()),
+    stripeBasePriceId: v.optional(v.string()),
+    stripePerUserPriceId: v.optional(v.string()),
+    maxUsers: v.optional(v.number()),
+    maxContacts: v.optional(v.number()),
+    maxDailyCallMinutes: v.optional(v.number()),
+    maxWorkflows: v.optional(v.number()),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
+
+  pricingAddons: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    priceMonthly: v.number(),
+    category: v.string(),
+    icon: v.optional(v.string()),
+    isActive: v.boolean(),
+    isIncludedInBase: v.optional(v.boolean()),
+    stripeProductId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
+    featureKey: v.string(),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }),
+
+  // ── Support Tickets ────────────────────────────────────────────────
+  supportTickets: defineTable({
+    organizationId: v.id("organizations"),
+    userId: v.optional(v.id("users")),
+    userName: v.string(),
+    orgName: v.string(),
+    subject: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("in_progress"), v.literal("resolved"), v.literal("closed")),
+    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
+    assignedToId: v.optional(v.string()),
+    lastMessageAt: v.number(),
+    lastMessagePreview: v.string(),
+    unreadByTenant: v.number(),
+    unreadByAdmin: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_status", ["status"])
+    .index("by_last_message", ["lastMessageAt"]),
+
+  supportMessages: defineTable({
+    ticketId: v.id("supportTickets"),
+    senderType: v.union(v.literal("tenant"), v.literal("admin")),
+    senderName: v.string(),
+    senderUserId: v.optional(v.string()),
+    body: v.string(),
+    createdAt: v.number(),
+    readAt: v.optional(v.number()),
+  })
+    .index("by_ticket", ["ticketId"]),
 });

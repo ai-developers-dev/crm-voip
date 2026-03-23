@@ -42,9 +42,19 @@ export async function POST(req: Request) {
       }
       case "invoice.paid": {
         const invoice = event.data.object as any;
+
+        // Check if this is a usage invoice
+        if (invoice.metadata?.type === "usage_invoice") {
+          await convex.mutation(api.usageInvoices.updateStatusByStripeId, {
+            stripeInvoiceId: invoice.id,
+            status: "paid",
+          });
+          break;
+        }
+
+        // Subscription invoice
         const sub = invoice.subscription as string | null;
         if (sub) {
-          // Find org by subscription ID
           const subscription = await stripe.subscriptions.retrieve(sub);
           const orgId = subscription.metadata?.organizationId;
           if (orgId) {
@@ -60,6 +70,17 @@ export async function POST(req: Request) {
       }
       case "invoice.payment_failed": {
         const invoice = event.data.object as any;
+
+        // Check if this is a usage invoice
+        if (invoice.metadata?.type === "usage_invoice") {
+          await convex.mutation(api.usageInvoices.updateStatusByStripeId, {
+            stripeInvoiceId: invoice.id,
+            status: "failed",
+          });
+          break;
+        }
+
+        // Subscription invoice
         const sub = invoice.subscription as string | null;
         if (sub) {
           const subscription = await stripe.subscriptions.retrieve(sub);

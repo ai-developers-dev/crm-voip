@@ -15,7 +15,9 @@ const stepValidator = v.object({
     v.literal("assign_contact"),
     v.literal("ai_outbound_call"),
     v.literal("move_pipeline_stage"),
-    v.literal("wait")
+    v.literal("wait"),
+    v.literal("if_else"),
+    v.literal("ai_sms_agent")
   ),
   config: v.object({
     messageTemplate: v.optional(v.string()),
@@ -30,9 +32,23 @@ const stepValidator = v.object({
     noteTemplate: v.optional(v.string()),
     assignToUserId: v.optional(v.id("users")),
     retellAgentId: v.optional(v.string()),
+    smsAgentId: v.optional(v.string()),
     pipelineId: v.optional(v.string()),
     stageId: v.optional(v.string()),
     waitMinutes: v.optional(v.number()),
+    // If/Else condition fields
+    conditions: v.optional(v.array(v.object({
+      id: v.string(),
+      field: v.string(),
+      fieldCategory: v.string(),
+      operator: v.string(),
+      value: v.optional(v.string()),
+    }))),
+    conditionLogic: v.optional(v.union(v.literal("and"), v.literal("or"))),
+    yesBranch: v.optional(v.any()),
+    noBranch: v.optional(v.any()),
+    // Multi-branch format (new)
+    branches: v.optional(v.any()),
   }),
 });
 

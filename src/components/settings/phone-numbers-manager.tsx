@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   Phone, Search, Loader2, Trash2, Plus, PhoneCall, MessageSquare,
-  ToggleLeft, ToggleRight, AlertCircle,
+  ToggleLeft, ToggleRight, AlertCircle, Settings,
 } from "lucide-react";
+import { PhoneRoutingDialog } from "./phone-routing-dialog";
 
 interface PhoneNumbersManagerProps {
   organizationId: Id<"organizations">;
@@ -51,6 +52,9 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
 
   // Toggle active
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Routing dialog
+  const [routingPhone, setRoutingPhone] = useState<any>(null);
 
   const handleSearch = async () => {
     setSearching(true);
@@ -155,44 +159,48 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
         </div>
       ) : (
         <div className="space-y-2">
-          {phoneNumbers.map((num) => (
-            <div
-              key={num._id}
-              className="flex items-center gap-3 border rounded-md px-3 py-2 text-sm"
-            >
-              <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="font-mono font-medium">{num.phoneNumber}</div>
-                <div className="caption-text truncate">
-                  {num.friendlyName} &middot; {num.type}
-                  {num.monthlyCost ? ` &middot; $${(num.monthlyCost / 100).toFixed(2)}/mo` : ""}
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {num.capabilities?.voice && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    <PhoneCall className="h-3 w-3 mr-0.5" />Voice
-                  </Badge>
-                )}
-                {num.capabilities?.sms && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    <MessageSquare className="h-3 w-3 mr-0.5" />SMS
-                  </Badge>
-                )}
-                <Badge variant={num.isActive ? "default" : "outline"} className="text-[10px] px-1.5 py-0">
-                  {num.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                onClick={() => setReleaseTarget({ id: num._id, number: num.phoneNumber })}
+          {phoneNumbers.map((num) => {
+            const routingLabel = num.routingType === "direct" ? "Direct" : num.routingType === "ring_group" ? "Ring Group" : "Ring All";
+            return (
+              <div
+                key={num._id}
+                className="flex items-center gap-3 border rounded-md px-3 py-2.5 text-sm"
               >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))}
+                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono font-medium">{num.phoneNumber}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {num.friendlyName} · <span className="capitalize">{num.type}</span> · {routingLabel}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                    {routingLabel}
+                  </Badge>
+                  <Badge variant={num.isActive ? "default" : "outline"} className="text-[10px] px-1.5 py-0">
+                    {num.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setRoutingPhone(num)}
+                  title="Edit Routing"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                  onClick={() => setReleaseTarget({ id: num._id, number: num.phoneNumber })}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -327,6 +335,14 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Phone Routing Dialog */}
+      <PhoneRoutingDialog
+        open={!!routingPhone}
+        onOpenChange={(open) => { if (!open) setRoutingPhone(null); }}
+        phoneNumber={routingPhone}
+        organizationId={organizationId}
+      />
     </div>
   );
 }

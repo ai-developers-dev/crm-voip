@@ -2,6 +2,17 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { authorizeOrgMember } from "./lib/auth";
 
+export const getByOrganization = query({
+  args: { organizationId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("tasks")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect()
+      .then((tasks) => tasks.sort((a, b) => b.createdAt - a.createdAt));
+  },
+});
+
 export const getByContact = query({
   args: { contactId: v.id("contacts") },
   handler: async (ctx, args) => {
@@ -78,6 +89,7 @@ export const update = mutation({
       )
     ),
     dueDate: v.optional(v.number()),
+    assignedToUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;

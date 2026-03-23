@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../../convex/_generated/dataModel";
-import { Loader2, Plus, Workflow, Users, Activity, Trash2, Phone, MessageSquare, Calendar, BarChart3, Bot, Settings } from "lucide-react";
+import { Loader2, Plus, Workflow, Users, Activity, Trash2, Phone, MessageSquare, Calendar, BarChart3, Bot, Settings, Columns3, ClipboardCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -55,8 +55,10 @@ export default function TenantWorkflowsPage() {
             <Link href={`/admin/tenants/${tenant._id}/sms`}><Button variant="ghost" size="sm" className="gap-2"><MessageSquare className="h-4 w-4" />SMS</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/contacts`}><Button variant="ghost" size="sm" className="gap-2"><Users className="h-4 w-4" />Contacts</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/calendar`}><Button variant="ghost" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/tasks`}><Button variant="ghost" size="sm" className="gap-2"><ClipboardCheck className="h-4 w-4" />Tasks</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}><Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/workflows`}><Button variant="secondary" size="sm" className="gap-2"><Workflow className="h-4 w-4" />Workflows</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/pipelines`}><Button variant="ghost" size="sm" className="gap-2"><Columns3 className="h-4 w-4" />Pipelines</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/agents`}><Button variant="ghost" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button></Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}><Button variant="outline" size="sm"><Settings className="h-4 w-4 mr-2" />Settings</Button></Link>

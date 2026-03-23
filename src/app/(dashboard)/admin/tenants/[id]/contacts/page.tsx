@@ -8,7 +8,7 @@ import { Id, Doc } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3
+  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3, ClipboardCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -162,6 +162,9 @@ export default function TenantContactsPage() {
             <Link href={`/admin/tenants/${tenant._id}/calendar`}>
               <Button variant="ghost" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button>
             </Link>
+            <Link href={`/admin/tenants/${tenant._id}/tasks`}>
+              <Button variant="ghost" size="sm" className="gap-2"><ClipboardCheck className="h-4 w-4" />Tasks</Button>
+            </Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
               <Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button>
             </Link>
@@ -206,9 +209,9 @@ export default function TenantContactsPage() {
         </div>
 
         {/* Column 3: Panel + Icon Menu */}
-        <div className="flex flex-shrink-0">
+        <div className="flex flex-shrink-0 h-full overflow-hidden">
           {activePanel && (activePanel === "sort" || selectedContact) && (
-            <div className="w-80 border-r overflow-hidden">
+            <div className="w-80 border-r h-full flex flex-col">
               <ContactPanelDrawer
                 type={activePanel}
                 contact={selectedContact}

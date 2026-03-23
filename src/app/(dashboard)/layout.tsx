@@ -9,9 +9,11 @@ import Link from "next/link";
 import {
   Phone, Settings, Building2, Shield, LogOut, UserCog,
   ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3, Users,
-  Wifi, WifiOff, RefreshCw, Calendar, TrendingUp, Workflow, FileText
+  Wifi, WifiOff, RefreshCw, Calendar, TrendingUp, Workflow, FileText, CreditCard, MessageCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { SupportWidget } from "@/components/support/support-widget";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -642,6 +644,14 @@ function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvat
                   Admin Dashboard
                 </Link>
                 <Link
+                  href="/admin/billing"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  Billing & Revenue
+                </Link>
+                <Link
                   href="/admin/settings"
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
@@ -686,26 +696,21 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  // Check if user is super_admin for showing admin link
-  const isSuperAdmin = useQuery(
-    api.platformUsers.isSuperAdmin,
-    user?.id ? { clerkUserId: user.id } : "skip"
-  );
-
-  // Check if user is any platform user (super_admin or platform_staff)
-  const isPlatformUser = useQuery(
-    api.platformUsers.isPlatformUser,
-    user?.id ? { clerkUserId: user.id } : "skip"
-  );
-
-  // Get platform user role for display
+  // Single platform user query (replaces 3 separate queries)
   const platformUser = useQuery(
     api.platformUsers.getCurrent,
     user?.id ? { clerkUserId: user.id } : "skip"
   );
-
+  const isPlatformUser = !!(platformUser && platformUser.isActive);
+  const isSuperAdmin = !!(platformUser && platformUser.isActive && platformUser.role === "super_admin");
   const roleLabel = platformUser?.role === "super_admin" ? "Super Admin" :
                     platformUser?.role === "platform_staff" ? "Platform Staff" : null;
+
+  // Support ticket unread count (for admin badge)
+  const supportUnread = useQuery(
+    api.support.getAdminUnreadCount,
+    isPlatformUser ? {} : "skip"
+  );
 
   // Check onboarding status for tenant users
   const onboardingStatus = useQuery(
@@ -821,17 +826,53 @@ export default function DashboardLayout({
           </div>
           <div className="flex items-center gap-3">
             {/* Connection status indicator */}
-            <ConnectionStatus />
+            {/* ConnectionStatus removed — not useful for users */}
+            {/* Notification bell:
+                - Tenant users: always show
+                - Platform admins: show only when viewing a specific tenant (/admin/tenants/...)
+                - Platform admin pages (/admin, /admin/settings): hide */}
+            {currentOrg?._id && !currentOrg.isPlatformOrg && (
+              !isPlatformUser || pathname?.startsWith("/admin/tenants/")
+            ) && (
+              <NotificationBell organizationId={currentOrg._id} userId={currentUser?._id} />
+            )}
             {/* Platform admins only see Settings — tenant features are in tenant inline nav */}
             {isPlatformUser ? (
-              !pathname?.startsWith("/admin/tenants/") && (
-                <Link href="/admin/settings">
+              <>
+                <Link href="/admin">
                   <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
-                    <Settings className="h-3 w-3" />
-                    Settings
+                    <Building2 className="h-3 w-3" />
+                    Admin
                   </Badge>
                 </Link>
-              )
+                {!pathname?.startsWith("/admin/tenants/") && (
+                  <>
+                  <Link href="/admin/support">
+                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors relative">
+                      <MessageCircle className="h-3 w-3" />
+                      Support
+                      {(supportUnread ?? 0) > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
+                          {supportUnread}
+                        </span>
+                      )}
+                    </Badge>
+                  </Link>
+                  <Link href="/admin/billing">
+                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                      <CreditCard className="h-3 w-3" />
+                      Billing
+                    </Badge>
+                  </Link>
+                  <Link href="/admin/settings">
+                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                      <Settings className="h-3 w-3" />
+                      Settings
+                    </Badge>
+                  </Link>
+                </>
+                )}
+              </>
             ) : (
               <>
                 <Link href="/stats">
@@ -911,6 +952,16 @@ export default function DashboardLayout({
 
       {/* Main content */}
       <main className="flex-1">{children}</main>
+
+      {/* Support widget — only for tenant users (not platform admins) */}
+      {!isPlatformUser && currentOrg?._id && !currentOrg.isPlatformOrg && currentUser?._id && (
+        <SupportWidget
+          organizationId={currentOrg._id}
+          userId={currentUser._id}
+          userName={currentUser.name || "User"}
+          orgName={currentOrg.name || ""}
+        />
+      )}
     </div>
   );
 

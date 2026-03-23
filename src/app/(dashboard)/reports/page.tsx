@@ -5,8 +5,17 @@ import { useOrganization } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Loader2, Download } from "lucide-react";
-import { SalesReportDashboard, MonthPicker } from "@/components/reports/sales-report-dashboard";
-import { CallReportDashboard } from "@/components/reports/call-report-dashboard";
+import { MonthPicker } from "@/components/reports/sales-report-dashboard";
+import dynamic from "next/dynamic";
+
+const SalesReportDashboard = dynamic(
+  () => import("@/components/reports/sales-report-dashboard").then(m => ({ default: m.SalesReportDashboard })),
+  { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> }
+);
+const CallReportDashboard = dynamic(
+  () => import("@/components/reports/call-report-dashboard").then(m => ({ default: m.CallReportDashboard })),
+  { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> }
+);
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageContainer } from "@/components/layout/page-container";

@@ -104,7 +104,13 @@ export default function CalendarPage() {
   );
   const appointments = filterByUser ? userAppointments : orgAppointments;
 
-  // Merge both event types into unified format
+  // Tasks with due dates
+  const tasks = useQuery(
+    api.tasks.getByOrganization,
+    convexOrg?._id ? { organizationId: convexOrg._id } : "skip"
+  );
+
+  // Merge all event types into unified format
   const events: CalendarEvent[] = useMemo(() => {
     const merged: CalendarEvent[] = [];
 
@@ -139,8 +145,24 @@ export default function CalendarPage() {
       }
     }
 
+    // Tasks with due dates show on calendar
+    if (tasks) {
+      for (const task of tasks) {
+        if (task.dueDate && task.status !== "completed" && task.status !== "cancelled") {
+          merged.push({
+            id: task._id,
+            title: `📋 ${task.title}`,
+            startTime: task.dueDate,
+            endTime: task.dueDate + 1800000,
+            status: task.status === "todo" ? "scheduled" : "confirmed",
+            type: "appointment",
+          });
+        }
+      }
+    }
+
     return merged.sort((a, b) => a.startTime - b.startTime);
-  }, [calendarEvents, appointments]);
+  }, [calendarEvents, appointments, tasks]);
 
   if (!convexOrg) {
     return (
@@ -187,7 +209,7 @@ export default function CalendarPage() {
             setShowNewAppt(true);
           }}
           onEventClick={(event) => {
-            if (event.type === "appointment") {
+            if (event.type === "appointment" && !event.title.startsWith("📋")) {
               setEditApptId(event.id as Id<"appointments">);
             }
           }}

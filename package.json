@@ -34,6 +34,7 @@
     "next": "16.1.1",
     "nodemailer": "^8.0.2",
     "nylas": "^8.0.2",
+    "openai": "^6.32.0",
     "playwright-core": "^1.58.2",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",

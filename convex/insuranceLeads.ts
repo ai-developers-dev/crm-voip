@@ -1,6 +1,14 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { authorizeOrgMember } from "./lib/auth";
+
+/** Internal: delete a lead without auth (for admin cleanup) */
+export const internalRemove = internalMutation({
+  args: { id: v.id("insuranceLeads") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+  },
+});
 
 // ── Queries ──────────────────────────────────────────────────────────
 

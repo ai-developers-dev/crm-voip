@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
 import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
+import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
+import { registerPhoneCall } from "@/lib/retell/client";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
@@ -53,29 +56,138 @@ export async function POST(request: NextRequest) {
 
       case "no-answer":
       case "busy":
-      case "failed":
-        // No agent answered - go to voicemail
-        console.log(`No agent answered (${dialCallStatus}) - sending to voicemail`);
-        twiml.say(
-          { voice: "alice" },
-          "We are sorry, but all of our agents are currently unavailable. Please leave a message after the beep."
-        );
-        twiml.record({
-          timeout: 3,
-          transcribe: true,
-          maxLength: 120,
-          transcribeCallback: `${appUrl}/api/twilio/transcription`,
-        });
-        twiml.say({ voice: "alice" }, "Thank you for your message. Goodbye.");
-        twiml.hangup();
+      case "failed": {
+        // No agent answered — check fallback preference
+        const url = new URL(request.url);
+        const phoneId = url.searchParams.get("phoneId");
+        const orgId = url.searchParams.get("orgId");
 
-        // Update call status
-        await convex.mutation(api.calls.updateStatusFromWebhook, {
-          twilioCallSid: callSid,
-          state: "ended",
-          outcome: dialCallStatus === "no-answer" ? "missed" : dialCallStatus,
-        });
+        let unansweredAction = "voicemail";
+        let voicemailGreeting = "We are sorry, but all of our agents are currently unavailable. Please leave a message after the beep.";
+        let unansweredAiAgentId: string | null = null;
+
+        // Look up phone config for fallback settings
+        if (phoneId) {
+          try {
+            const phoneConfig = await convex.query(api.phoneNumbers.getById, {
+              id: phoneId as Id<"phoneNumbers">,
+            });
+            if (phoneConfig) {
+              unansweredAction = phoneConfig.unansweredAction || "voicemail";
+              if (phoneConfig.voicemailGreeting) voicemailGreeting = phoneConfig.voicemailGreeting;
+              unansweredAiAgentId = phoneConfig.unansweredAiAgentId || null;
+            }
+          } catch (err) {
+            console.error("Failed to fetch phone config for fallback:", err);
+          }
+        }
+
+        console.log(`No agent answered (${dialCallStatus}) — fallback: ${unansweredAction}`);
+
+        if (unansweredAction === "parking" && orgId) {
+          // ── AUTO-PARK: Put caller in a conference with hold music ──
+          const conferenceName = `auto-park-${callSid}-${Date.now()}`;
+          twiml.say({ voice: "alice" }, "Please hold while we find someone to help you.");
+          const dialConf = twiml.dial();
+          dialConf.conference(
+            {
+              waitUrl: "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical",
+              waitMethod: "GET",
+              startConferenceOnEnter: false,
+              endConferenceOnExit: false,
+              statusCallback: `${appUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`,
+              statusCallbackEvent: "end leave" as any,
+            },
+            conferenceName
+          );
+
+          // Create parking slot
+          convex.mutation(api.parkingLot.autopark, {
+            organizationId: orgId as Id<"organizations">,
+            conferenceName,
+            pstnCallSid: callSid,
+            callerNumber: from || "Unknown",
+            callerName: undefined,
+          }).catch((err) => console.error("Failed to autopark:", err));
+
+          // Update call as parked (not ended)
+          await convex.mutation(api.calls.updateStatusFromWebhook, {
+            twilioCallSid: callSid,
+            state: "parked",
+            outcome: "missed",
+          }).catch(() => {});
+
+        } else if (unansweredAction === "ai_agent" && unansweredAiAgentId) {
+          // ── AI AGENT: Route to Retell AI ──
+          try {
+            const retellApiKey = await getPlatformRetellApiKey(convex);
+            const agent = await convex.query(api.retellAgents.getById, {
+              id: unansweredAiAgentId as Id<"retellAgents">,
+            });
+
+            if (agent && agent.isActive) {
+              console.log(`[AI FALLBACK] Routing to AI agent: ${agent.name}`);
+              const registration = await registerPhoneCall(retellApiKey, {
+                agent_id: agent.retellAgentId,
+                metadata: { organizationId: orgId, callerNumber: from, fallback: true },
+              });
+
+              const sipDial = twiml.dial({ timeout: 60 });
+              sipDial.sip(`sip:${registration.call_id}@sip.retellai.com`);
+
+              // Log AI call
+              if (orgId) {
+                convex.mutation(api.aiCallHistory.create, {
+                  organizationId: orgId as Id<"organizations">,
+                  retellAgentId: agent.retellAgentId,
+                  retellCallId: registration.call_id,
+                  direction: "inbound",
+                  status: "registered",
+                  fromNumber: from,
+                  toNumber: "",
+                }).catch((err) => console.error("Failed to log AI fallback call:", err));
+              }
+            } else {
+              // AI agent not active — fall back to voicemail
+              twiml.say({ voice: "alice" }, voicemailGreeting);
+              twiml.record({ timeout: 3, transcribe: true, maxLength: 120, transcribeCallback: `${appUrl}/api/twilio/transcription` });
+              twiml.say({ voice: "alice" }, "Thank you for your message. Goodbye.");
+              twiml.hangup();
+            }
+          } catch (err) {
+            console.error("[AI FALLBACK] Failed, falling back to voicemail:", err);
+            twiml.say({ voice: "alice" }, voicemailGreeting);
+            twiml.record({ timeout: 3, transcribe: true, maxLength: 120, transcribeCallback: `${appUrl}/api/twilio/transcription` });
+            twiml.say({ voice: "alice" }, "Thank you for your message. Goodbye.");
+            twiml.hangup();
+          }
+
+          await convex.mutation(api.calls.updateStatusFromWebhook, {
+            twilioCallSid: callSid,
+            state: "ended",
+            outcome: "missed",
+          }).catch(() => {});
+
+        } else {
+          // ── VOICEMAIL (default) ──
+          twiml.say({ voice: "alice" }, voicemailGreeting);
+          twiml.record({
+            timeout: 3,
+            transcribe: true,
+            maxLength: 120,
+            transcribeCallback: `${appUrl}/api/twilio/transcription`,
+          });
+          twiml.say({ voice: "alice" }, "Thank you for your message. Goodbye.");
+          twiml.hangup();
+
+          await convex.mutation(api.calls.updateStatusFromWebhook, {
+            twilioCallSid: callSid,
+            state: "ended",
+            outcome: dialCallStatus === "no-answer" ? "missed" : dialCallStatus as any,
+          });
+        }
         break;
+      }
 
       case "canceled":
         // Caller hung up before agent answered

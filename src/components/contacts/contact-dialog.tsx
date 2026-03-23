@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
 import {
@@ -92,6 +92,10 @@ export function ContactDialog({
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
   const [notes, setNotes] = useState("");
+  const [priorInsuranceCarrier, setPriorInsuranceCarrier] = useState("");
+  const [priorBiCoverage, setPriorBiCoverage] = useState("");
+  const [priorInsuranceExpDate, setPriorInsuranceExpDate] = useState("");
+  const [monthsWithRecentCarrier, setMonthsWithRecentCarrier] = useState("");
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneEntry[]>([
     { number: "", type: "mobile", isPrimary: true },
   ]);
@@ -105,6 +109,8 @@ export function ContactDialog({
   // Convex mutations
   const createContact = useMutation(api.contacts.create);
   const updateContact = useMutation(api.contacts.update);
+  const updateDriversVehicles = useMutation(api.contacts.updateDriversAndVehicles);
+  const updatePriorIns = useMutation(api.contacts.updatePriorInsurance);
   const deleteContact = useMutation(api.contacts.remove);
 
   // Initialize form when contact changes or dialog opens
@@ -122,6 +128,10 @@ export function ContactDialog({
         setState(contact.state || "");
         setZipCode(contact.zipCode || "");
         setNotes(contact.notes || "");
+        setPriorInsuranceCarrier((contact as any).priorInsuranceCarrier || "");
+        setPriorBiCoverage((contact as any).priorBiCoverage || "");
+        setPriorInsuranceExpDate((contact as any).priorInsuranceExpDate || "");
+        setMonthsWithRecentCarrier((contact as any).monthsWithRecentCarrier?.toString() || "");
         setPhoneNumbers(
           contact.phoneNumbers.map((p) => ({
             number: formatPhoneInput(p.number),
@@ -254,6 +264,10 @@ export function ContactDialog({
           zipCode: zipCode.trim() || "",
           notes: notes.trim() || "",
           phoneNumbers: validPhones,
+          priorInsuranceCarrier: priorInsuranceCarrier.trim() || undefined,
+          priorBiCoverage: priorBiCoverage.trim() || undefined,
+          priorInsuranceExpDate: priorInsuranceExpDate.trim() || undefined,
+          monthsWithRecentCarrier: monthsWithRecentCarrier ? parseInt(monthsWithRecentCarrier) : undefined,
         });
       } else {
         await createContact({
@@ -521,6 +535,123 @@ export function ContactDialog({
               </div>
             </div>
 
+            {/* Last Quote (read-only, from insurance quotes) */}
+            {isEditMode && contact && (
+              <LastQuoteCard contact={contact} organizationId={organizationId} />
+            )}
+
+            {/* Prior Insurance */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prior Insurance</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-1">
+                  <Label htmlFor="priorCarrier" className="text-xs">Prior Carrier</Label>
+                  <Input
+                    id="priorCarrier"
+                    value={priorInsuranceCarrier}
+                    onChange={(e) => setPriorInsuranceCarrier(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="e.g. State Farm"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="priorBi" className="text-xs">Prior BI Coverage</Label>
+                  <Input
+                    id="priorBi"
+                    value={priorBiCoverage}
+                    onChange={(e) => setPriorBiCoverage(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="e.g. 100/300"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="priorExpDate" className="text-xs">Prior Exp Date</Label>
+                  <Input
+                    id="priorExpDate"
+                    value={priorInsuranceExpDate}
+                    onChange={(e) => setPriorInsuranceExpDate(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="MM/DD/YYYY"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="monthsCarrier" className="text-xs">Months w/ Carrier</Label>
+                  <Input
+                    id="monthsCarrier"
+                    type="number"
+                    value={monthsWithRecentCarrier}
+                    onChange={(e) => setMonthsWithRecentCarrier(e.target.value)}
+                    disabled={isSaving}
+                    placeholder="e.g. 36"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Drivers (read-only, populated from quoting) */}
+            {(contact as any)?.drivers?.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Household Drivers</Label>
+                <div className="space-y-1">
+                  {((contact as any).drivers as any[]).map((d: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1.5">
+                      <span className="font-medium">{d.firstName} {d.lastName}</span>
+                      {d.dateOfBirth && <span className="text-muted-foreground">DOB: {d.dateOfBirth}</span>}
+                      {d.relationship && <span className="text-muted-foreground">({d.relationship})</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Vehicles (read-only, populated from quoting) */}
+            {(contact as any)?.vehicles?.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vehicles</Label>
+                <div className="space-y-1">
+                  {((contact as any).vehicles as any[]).map((v: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-xs bg-muted/50 rounded px-2 py-1.5">
+                      <span className="font-medium">{v.year} {v.make} {v.model}</span>
+                      {v.vin && <span className="text-muted-foreground font-mono text-[10px]">{v.vin}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Clear Quote Data (testing) */}
+            {isEditMode && contact && ((contact as any).drivers?.length > 0 || (contact as any).vehicles?.length > 0 || (contact as any).priorInsuranceCarrier) && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm("Clear all prior insurance, drivers, and vehicles data?")) return;
+                  try {
+                    await updatePriorIns({
+                      contactId: contact._id,
+                      priorInsuranceCarrier: "",
+                      priorBiCoverage: "",
+                      priorInsuranceExpDate: "",
+                      monthsWithRecentCarrier: 0,
+                    });
+                  } catch (e) { console.error("Clear prior insurance failed:", e); }
+                  try {
+                    await updateDriversVehicles({
+                      contactId: contact._id,
+                      drivers: [],
+                      vehicles: [],
+                    });
+                  } catch (e) { console.error("Clear drivers/vehicles failed:", e); }
+                  setPriorInsuranceCarrier("");
+                  setPriorBiCoverage("");
+                  setPriorInsuranceExpDate("");
+                  setMonthsWithRecentCarrier("");
+                }}
+                className="text-[10px] text-destructive hover:underline self-start"
+              >
+                Clear quote data (testing)
+              </button>
+            )}
+
             {/* Notes */}
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes</Label>
@@ -612,5 +743,47 @@ export function ContactDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Last Quote card — shows the most recent quote result for this contact
+function LastQuoteCard({ contact, organizationId }: { contact: any; organizationId: string }) {
+  const leads = useQuery(api.insuranceLeads.list, {
+    organizationId: organizationId as Id<"organizations">,
+  });
+
+  // Find leads matching this contact
+  const contactLeads = (leads || []).filter(
+    (l: any) => l.firstName === contact.firstName && l.lastName === (contact.lastName || "")
+  );
+
+  const quotes = useQuery(
+    api.insuranceQuotes.listByLead,
+    contactLeads[0] ? { insuranceLeadId: contactLeads[0]._id } : "skip"
+  );
+
+  // Get latest successful quote
+  const latestQuote = (quotes || [])
+    .filter((q: any) => q.status === "success")
+    .sort((a: any, b: any) => b.quotedAt - a.quotedAt)[0];
+
+  if (!latestQuote) return null;
+
+  return (
+    <div className="rounded-lg border border-green-200 bg-green-50/30 p-3 space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Last Quote</span>
+        <span className="text-xs text-muted-foreground">{new Date(latestQuote.quotedAt).toLocaleDateString()}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">{latestQuote.carrier || latestQuote.portal}</span>
+        <span className="text-sm font-bold text-green-700">
+          {latestQuote.annualPremium ? `$${latestQuote.annualPremium}/yr` : latestQuote.monthlyPremium ? `$${latestQuote.monthlyPremium}/mo` : "Quoted"}
+        </span>
+      </div>
+      {latestQuote.quoteId && (
+        <p className="text-[10px] text-muted-foreground">Quote #: {latestQuote.quoteId}</p>
+      )}
+    </div>
   );
 }

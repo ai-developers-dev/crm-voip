@@ -28,10 +28,12 @@ import {
 import {
   Loader2, Plus, Pencil, Trash2,
   ToggleLeft, ToggleRight, Shield, ChevronDown,
-  Building, Users, Briefcase, Phone, DollarSign
+  Building, Users, Briefcase, Phone, DollarSign, Mail
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SettingsRow } from "@/components/settings/settings-row";
+import { PricingBuilder } from "@/components/admin/pricing-builder";
+import { PlatformFieldMapper } from "@/components/admin/platform-field-mapper";
 
 export default function AdminSettingsPage() {
   const { user, isLoaded: userLoaded } = useUser();
@@ -84,6 +86,8 @@ export default function AdminSettingsPage() {
   const [stripeSecret, setStripeSecret] = useState("");
   const [stripeWebhook, setStripeWebhook] = useState("");
   const [twilioMarkup, setTwilioMarkup] = useState(50);
+  const [retellMarkup, setRetellMarkup] = useState(50);
+  const [openaiMarkup, setOpenaiMarkup] = useState(50);
   const [savingBilling, setSavingBilling] = useState(false);
   const updatePlatformBillingConfig = useMutation(api.organizations.updatePlatformBillingConfig);
 
@@ -97,6 +101,8 @@ export default function AdminSettingsPage() {
         stripeSecretKey: stripeSecret.trim(),
         stripeWebhookSecret: stripeWebhook.trim(),
         twilioMarkupPercent: twilioMarkup,
+        retellMarkupPercent: retellMarkup,
+        openaiMarkupPercent: openaiMarkup,
       });
       setStripePublishable("");
       setStripeSecret("");
@@ -108,9 +114,41 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // AI Calling state
+  // Nylas state
+  const nylasConfigured = !!(platformOrg?.settings as any)?.nylasConfig?.isConfigured;
+  const [nylasClientId, setNylasClientId] = useState("");
+  const [nylasApiKey, setNylasApiKey] = useState("");
+  const [nylasWebhookSecret, setNylasWebhookSecret] = useState("");
+  const [savingNylas, setSavingNylas] = useState(false);
+  const updateNylasConfig = useMutation(api.organizations.updateNylasConfig);
+
+  const handleSaveNylas = async () => {
+    if (!platformOrg?._id || !nylasClientId.trim() || !nylasApiKey.trim()) return;
+    setSavingNylas(true);
+    try {
+      await updateNylasConfig({
+        organizationId: platformOrg._id,
+        nylasClientId: nylasClientId.trim(),
+        nylasApiKey: nylasApiKey.trim(),
+        nylasWebhookSecret: nylasWebhookSecret.trim() || undefined,
+      });
+      setNylasClientId("");
+      setNylasApiKey("");
+      setNylasWebhookSecret("");
+    } catch (err) {
+      console.error("Failed to save Nylas config:", err);
+    } finally {
+      setSavingNylas(false);
+    }
+  };
+
+  // AI Agents state
   const [retellApiKey, setRetellApiKey] = useState("");
   const [savingRetellKey, setSavingRetellKey] = useState(false);
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [savingOpenaiKey, setSavingOpenaiKey] = useState(false);
+  const openaiConfigured = !!(platformOrg?.settings as any)?.openaiConfigured;
+  const updateOpenAiConfig = useMutation(api.organizations.updateOpenAiConfig);
 
   const handleSaveRetellKey = async () => {
     if (!platformOrg?._id || !retellApiKey.trim()) return;
@@ -125,9 +163,25 @@ export default function AdminSettingsPage() {
         setRetellApiKey("");
       }
     } catch (err) {
-      console.error("Failed to save AI Calling API key:", err);
+      console.error("Failed to save Retell API key:", err);
     } finally {
       setSavingRetellKey(false);
+    }
+  };
+
+  const handleSaveOpenaiKey = async () => {
+    if (!platformOrg?._id || !openaiApiKey.trim()) return;
+    setSavingOpenaiKey(true);
+    try {
+      await updateOpenAiConfig({
+        organizationId: platformOrg._id,
+        openaiApiKey: openaiApiKey.trim(),
+      });
+      setOpenaiApiKey("");
+    } catch (err) {
+      console.error("Failed to save OpenAI API key:", err);
+    } finally {
+      setSavingOpenaiKey(false);
     }
   };
 
@@ -728,97 +782,247 @@ export default function AdminSettingsPage() {
           </div>
         </SettingsRow>
 
-        {/* ====== AI CALLING ====== */}
+        {/* ====== AI AGENTS ====== */}
         <SettingsRow
           icon={<Phone className="h-4 w-4 text-cyan-600" />}
-          label="AI Calling"
-          summary={retellConfigured ? "Connected" : "Not configured"}
+          label="AI Agents"
+          summary={
+            retellConfigured && openaiConfigured ? "Voice + SMS configured" :
+            retellConfigured ? "Voice configured" :
+            openaiConfigured ? "SMS configured" :
+            "Not configured"
+          }
           isExpanded={expandedSection === "ai-calling"}
           onToggle={() => toggleSection("ai-calling")}
         >
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Enter your AI Calling API key to enable AI-powered calling agents for all tenants.
-            </p>
-            <div className="field-gap">
-              <Label className="text-xs">API Key</Label>
+          <div className="space-y-4">
+            {/* Retell — Voice AI */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs font-semibold">Retell AI (Voice Agents)</Label>
+                {retellConfigured && <Badge variant="default" className="text-[10px] px-1.5 py-0">Connected</Badge>}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Powers AI outbound calling agents. Get your key from{" "}
+                <a href="https://www.retellai.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">retellai.com</a>.
+              </p>
               <Input
                 type="password"
                 value={retellApiKey}
                 onChange={(e) => setRetellApiKey(e.target.value)}
-                placeholder="key_..."
+                placeholder={retellConfigured ? "••••••••" : "key_..."}
                 className="h-9 text-sm font-mono"
               />
+              <Button size="sm" onClick={handleSaveRetellKey} disabled={!retellApiKey || savingRetellKey}>
+                {savingRetellKey ? "Saving..." : retellConfigured ? "Update Key" : "Save Key"}
+              </Button>
             </div>
-            <Button size="sm" onClick={handleSaveRetellKey} disabled={!retellApiKey || savingRetellKey}>
-              {savingRetellKey ? "Saving..." : retellConfigured ? "Update Key" : "Save Key"}
-            </Button>
+
+            <div className="border-t" />
+
+            {/* OpenAI — SMS AI */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs font-semibold">OpenAI (SMS AI Agents)</Label>
+                {openaiConfigured && <Badge variant="default" className="text-[10px] px-1.5 py-0">Connected</Badge>}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Powers AI SMS conversation agents (appointment booking, customer service, etc.). Get your key from{" "}
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary underline">platform.openai.com</a>.
+              </p>
+              <Input
+                type="password"
+                value={openaiApiKey}
+                onChange={(e) => setOpenaiApiKey(e.target.value)}
+                placeholder={openaiConfigured ? "••••••••" : "sk-..."}
+                className="h-9 text-sm font-mono"
+              />
+              <Button size="sm" onClick={handleSaveOpenaiKey} disabled={!openaiApiKey || savingOpenaiKey}>
+                {savingOpenaiKey ? "Saving..." : openaiConfigured ? "Update Key" : "Save Key"}
+              </Button>
+            </div>
+
+            <div className="border-t" />
+
+            {/* Insurance Portal Field Mapper */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs font-semibold">Insurance Portal Field Mapper</Label>
+              </div>
+              <PlatformFieldMapper />
+            </div>
           </div>
         </SettingsRow>
 
-        {/* ====== BILLING ====== */}
+        {/* ====== PRICING ====== */}
         <SettingsRow
           icon={<DollarSign className="h-4 w-4 text-green-600" />}
-          label="Billing"
-          summary={stripeConfigured ? "Connected" : "Not configured"}
+          label="Pricing"
+          summary={stripeConfigured ? "Stripe connected" : "Not configured"}
           isExpanded={expandedSection === "billing"}
           onToggle={() => toggleSection("billing")}
         >
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Configure Stripe for tenant billing.</p>
+          <div className="space-y-6">
+            {/* Pricing Builder */}
+            <PricingBuilder />
 
-            <div className="space-y-2">
-              <Label className="text-xs">Publishable Key</Label>
-              <Input
-                value={stripePublishable}
-                onChange={(e) => setStripePublishable(e.target.value)}
-                placeholder="pk_..."
-                className="h-9 text-sm font-mono"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Secret Key</Label>
-              <Input
-                type="password"
-                value={stripeSecret}
-                onChange={(e) => setStripeSecret(e.target.value)}
-                placeholder="sk_..."
-                className="h-9 text-sm font-mono"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Webhook Secret</Label>
-              <Input
-                type="password"
-                value={stripeWebhook}
-                onChange={(e) => setStripeWebhook(e.target.value)}
-                placeholder="whsec_..."
-                className="h-9 text-sm font-mono"
-              />
-            </div>
+            {/* Stripe Configuration */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold mb-3">Stripe Configuration</h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Publishable Key</Label>
+                    <Input
+                      value={stripePublishable}
+                      onChange={(e) => setStripePublishable(e.target.value)}
+                      placeholder="pk_..."
+                      className="h-9 text-sm font-mono mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Secret Key</Label>
+                    <Input
+                      type="password"
+                      value={stripeSecret}
+                      onChange={(e) => setStripeSecret(e.target.value)}
+                      placeholder="sk_..."
+                      className="h-9 text-sm font-mono mt-1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Webhook Secret</Label>
+                  <Input
+                    type="password"
+                    value={stripeWebhook}
+                    onChange={(e) => setStripeWebhook(e.target.value)}
+                    placeholder="whsec_..."
+                    className="h-9 text-sm font-mono mt-1"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSaveBilling}
+                  disabled={!stripePublishable || !stripeSecret || savingBilling}
+                >
+                  {savingBilling ? "Saving..." : stripeConfigured ? "Update Stripe Keys" : "Save Stripe Keys"}
+                </Button>
 
-            <div className="border-t pt-3">
-              <Label className="text-xs">Twilio Markup %</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input
-                  type="number"
-                  value={twilioMarkup}
-                  onChange={(e) => setTwilioMarkup(parseInt(e.target.value) || 0)}
-                  className="h-9 text-sm w-20"
-                  min={0}
-                  max={500}
-                />
-                <span className="text-xs text-muted-foreground">% added to actual Twilio costs when billing tenants</span>
+                {/* Cost Markups */}
+                <div className="border-t pt-4 mt-4 space-y-3">
+                  <h4 className="text-xs font-semibold">Cost Markups</h4>
+                  <p className="text-[10px] text-muted-foreground">
+                    Percentage added to actual provider costs when billing tenants.
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-xs">Twilio Markup %</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          type="number"
+                          value={twilioMarkup}
+                          onChange={(e) => setTwilioMarkup(parseInt(e.target.value) || 0)}
+                          className="h-9 text-sm w-20"
+                          min={0}
+                          max={500}
+                        />
+                        <span className="text-[10px] text-muted-foreground">% on calls & SMS</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Retell AI Markup %</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          type="number"
+                          value={retellMarkup}
+                          onChange={(e) => setRetellMarkup(parseInt(e.target.value) || 0)}
+                          className="h-9 text-sm w-20"
+                          min={0}
+                          max={500}
+                        />
+                        <span className="text-[10px] text-muted-foreground">% on AI voice</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">OpenAI Markup %</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          type="number"
+                          value={openaiMarkup}
+                          onChange={(e) => setOpenaiMarkup(parseInt(e.target.value) || 0)}
+                          className="h-9 text-sm w-20"
+                          min={0}
+                          max={500}
+                        />
+                        <span className="text-[10px] text-muted-foreground">% on AI SMS</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+        </SettingsRow>
 
+        {/* ====== EMAIL & CALENDAR (NYLAS) ====== */}
+        <SettingsRow
+          icon={<Mail className="h-4 w-4 text-amber-600" />}
+          label="Email & Calendar"
+          summary={nylasConfigured ? "Connected" : "Not configured"}
+          badge={nylasConfigured
+            ? <Badge variant="default" className="gap-1">Connected</Badge>
+            : <Badge variant="secondary" className="gap-1">Not Set Up</Badge>
+          }
+          isExpanded={expandedSection === "nylas"}
+          onToggle={() => toggleSection("nylas")}
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Configure Nylas for email and calendar sync. Tenants will use these credentials to connect their Gmail/Outlook accounts. Get your keys from{" "}
+              <a href="https://dashboard.nylas.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">dashboard.nylas.com</a>.
+            </p>
+            <div className="space-y-2">
+              <Label className="text-xs">Client ID</Label>
+              <Input
+                value={nylasClientId}
+                onChange={(e) => setNylasClientId(e.target.value)}
+                placeholder={nylasConfigured ? "••••••••" : "Your Nylas Client ID"}
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">API Key</Label>
+              <Input
+                type="password"
+                value={nylasApiKey}
+                onChange={(e) => setNylasApiKey(e.target.value)}
+                placeholder={nylasConfigured ? "••••••••" : "nyk_v0_..."}
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Webhook Secret (optional)</Label>
+              <Input
+                type="password"
+                value={nylasWebhookSecret}
+                onChange={(e) => setNylasWebhookSecret(e.target.value)}
+                placeholder={nylasConfigured ? "••••••••" : "For verifying webhook signatures"}
+                className="h-9 text-sm font-mono"
+              />
+            </div>
             <Button
               size="sm"
-              onClick={handleSaveBilling}
-              disabled={!stripePublishable || !stripeSecret || savingBilling}
+              onClick={handleSaveNylas}
+              disabled={!nylasClientId || !nylasApiKey || savingNylas}
             >
-              {savingBilling ? "Saving..." : stripeConfigured ? "Update Billing Settings" : "Save Billing Settings"}
+              {savingNylas ? "Saving..." : nylasConfigured ? "Update Nylas Credentials" : "Save Nylas Credentials"}
             </Button>
+            {nylasConfigured && (
+              <p className="text-xs text-muted-foreground">
+                Nylas is configured. Tenants can connect their email accounts from their Settings page. Cost: ~$2/connected account/month (included in per-user billing).
+              </p>
+            )}
           </div>
         </SettingsRow>
 

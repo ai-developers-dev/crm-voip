@@ -47,7 +47,7 @@ export function SettingsRow({
           <div
             className={cn(
               "overflow-hidden transition-all duration-200 ease-in-out",
-              isExpanded ? "max-h-[2000px] opacity-100 mt-3" : "max-h-0 opacity-0"
+              isExpanded ? "max-h-none opacity-100 mt-3" : "max-h-0 opacity-0"
             )}
             onClick={(e) => e.stopPropagation()}
           >

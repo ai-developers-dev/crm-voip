@@ -184,6 +184,10 @@ export const update = mutation({
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.id("contactTags"))),
     assignedUserId: v.optional(v.id("users")),
+    priorInsuranceCarrier: v.optional(v.string()),
+    priorBiCoverage: v.optional(v.string()),
+    priorInsuranceExpDate: v.optional(v.string()),
+    monthsWithRecentCarrier: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const contact = await ctx.db.get(args.contactId);
@@ -493,5 +497,62 @@ export const toggleRead = mutation({
       isRead: !contact.isRead,
       updatedAt: Date.now(),
     });
+  },
+});
+
+// Update prior insurance info (called by quote automation after scraping underwriting page)
+export const updatePriorInsurance = mutation({
+  args: {
+    contactId: v.id("contacts"),
+    priorInsuranceCarrier: v.optional(v.string()),
+    priorBiCoverage: v.optional(v.string()),
+    priorInsuranceExpDate: v.optional(v.string()),
+    monthsWithRecentCarrier: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+
+    const { contactId, ...updates } = args;
+    const cleanUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    }
+    if (Object.keys(cleanUpdates).length > 0) {
+      cleanUpdates.updatedAt = Date.now();
+      await ctx.db.patch(contactId, cleanUpdates);
+    }
+  },
+});
+
+// Update drivers and vehicles captured from quoting portals
+export const updateDriversAndVehicles = mutation({
+  args: {
+    contactId: v.id("contacts"),
+    drivers: v.optional(v.array(v.object({
+      firstName: v.string(),
+      lastName: v.string(),
+      dateOfBirth: v.optional(v.string()),
+      relationship: v.optional(v.string()),
+      licenseNumber: v.optional(v.string()),
+      licenseState: v.optional(v.string()),
+    }))),
+    vehicles: v.optional(v.array(v.object({
+      year: v.string(),
+      make: v.string(),
+      model: v.string(),
+      vin: v.optional(v.string()),
+    }))),
+  },
+  handler: async (ctx, args) => {
+    const contact = await ctx.db.get(args.contactId);
+    if (!contact) throw new Error("Contact not found");
+
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
+    if (args.drivers) updates.drivers = args.drivers;
+    if (args.vehicles) updates.vehicles = args.vehicles;
+    await ctx.db.patch(args.contactId, updates);
   },
 });

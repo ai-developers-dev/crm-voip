@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOrganization, useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
+import { useSearchParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
-import { Doc } from "../../../../convex/_generated/dataModel";
+import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Users } from "lucide-react";
 import { ContactListCompact } from "@/components/contacts/contact-list-compact";
@@ -18,6 +19,9 @@ type Contact = Doc<"contacts">;
 export default function ContactsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
   const { user } = useUser();
+  const searchParams = useSearchParams();
+  const contactIdParam = searchParams.get("id");
+  const panelParam = searchParams.get("panel");
 
   // Dialog state (for create/edit)
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -42,6 +46,19 @@ export default function ContactsPage() {
     api.contacts.getByOrganization,
     org?._id ? { organizationId: org._id } : "skip"
   );
+
+  // Auto-select contact and open panel from URL params (e.g., from notification click)
+  useEffect(() => {
+    if (contactIdParam && contacts && !selectedContact) {
+      const match = contacts.find((c) => c._id === contactIdParam);
+      if (match) {
+        setSelectedContact(match);
+        if (panelParam) {
+          setActivePanel(panelParam as PanelType);
+        }
+      }
+    }
+  }, [contactIdParam, panelParam, contacts, selectedContact]);
 
   // Get current user for panel operations
   const currentUser = useQuery(
@@ -174,7 +191,7 @@ export default function ContactsPage() {
         <div className="flex flex-shrink-0">
           {/* Panel content (expands when active) */}
           {activePanel && (activePanel === "sort" || selectedContact) && (
-            <div className="w-80 border-r overflow-hidden">
+            <div className="w-80 border-r overflow-y-auto">
               <ContactPanelDrawer
                 type={activePanel}
                 contact={selectedContact}

@@ -29,6 +29,7 @@ export const updateProgress = mutation({
     succeeded: v.number(),
     failed: v.number(),
     currentLeadName: v.optional(v.string()),
+    currentStage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const run = await ctx.db.get(args.id);
@@ -39,6 +40,7 @@ export const updateProgress = mutation({
       succeeded: args.succeeded,
       failed: args.failed,
       currentLeadName: args.currentLeadName,
+      currentStage: args.currentStage,
     });
   },
 });
@@ -60,6 +62,7 @@ export const complete = mutation({
       succeeded: args.succeeded,
       failed: args.failed,
       currentLeadName: undefined,
+      currentStage: undefined,
       completedAt: Date.now(),
     });
   },

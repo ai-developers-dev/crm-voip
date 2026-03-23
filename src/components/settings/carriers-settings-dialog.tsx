@@ -589,6 +589,7 @@ export function CarriersSettingsDialog({
                                     {carrier.name.toLowerCase().includes("national general") && (
                                       <NatGenLoginTest
                                         organizationId={organizationId as string}
+                                        carrierId={carrier._id}
                                         username={carrierCredentials.get(carrier._id)?.username || undefined}
                                         password={carrierCredentials.get(carrier._id)?.password || undefined}
                                       />

@@ -5,6 +5,8 @@ import {
   useContext,
   useEffect,
   useCallback,
+  useMemo,
+  useRef,
   ReactNode,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
@@ -117,15 +119,15 @@ export function CallingProvider({
   const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
   const heartbeat = useMutation(api.presence.heartbeat);
 
-  // Presence heartbeat - runs every 30 seconds
+  // Track call count in a ref so heartbeat doesn't restart on every call change
+  const callCountRef = useRef(twilioDevice.callCount);
+  callCountRef.current = twilioDevice.callCount;
+
+  // Presence heartbeat - runs every 30 seconds (stable deps, no re-render cascade)
   useEffect(() => {
     if (!currentUser?._id || !convexOrg?._id) return;
 
-    // Determine status based on call count
-    const getStatus = () => {
-      if (twilioDevice.callCount > 0) return "on_call";
-      return "available";
-    };
+    const getStatus = () => (callCountRef.current > 0 ? "on_call" : "available");
 
     // Initial heartbeat
     heartbeat({
@@ -151,7 +153,7 @@ export function CallingProvider({
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [currentUser?._id, convexOrg?._id, heartbeat, twilioDevice.callCount]);
+  }, [currentUser?._id, convexOrg?._id, heartbeat]);
 
   // Handle incoming Twilio calls - sync all to Convex
   useEffect(() => {
@@ -170,7 +172,7 @@ export function CallingProvider({
     }
   }, [twilioDevice.getAllCalls, convexOrg?._id, createOrGetIncomingCall]);
 
-  const contextValue: CallingContextValue = {
+  const contextValue: CallingContextValue = useMemo(() => ({
     // Connection state
     isReady: twilioDevice.isReady,
     isConnecting: twilioDevice.isConnecting,
@@ -224,7 +226,20 @@ export function CallingProvider({
     convexOrgId: convexOrg?._id,
     currentUserId: currentUser?._id,
     clerkOrgId: organizationId,
-  };
+  }), [
+    twilioDevice.isReady, twilioDevice.isConnecting, twilioDevice.isReconnecting,
+    twilioDevice.error, twilioDevice.device,
+    twilioDevice.calls, twilioDevice.focusedCallSid, twilioDevice.callCount,
+    twilioDevice.activeCall, twilioDevice.callStatus,
+    twilioDevice.getAllCalls, twilioDevice.getPendingCalls, twilioDevice.getActiveCalls,
+    twilioDevice.initializeDevice, twilioDevice.makeCall,
+    twilioDevice.answerCall, twilioDevice.answerCallBySid,
+    twilioDevice.rejectCall, twilioDevice.rejectCallBySid,
+    twilioDevice.hangUp, twilioDevice.hangUpBySid,
+    twilioDevice.holdCall, twilioDevice.unholdCall, twilioDevice.focusCall,
+    twilioDevice.toggleMute, twilioDevice.toggleMuteBySid,
+    maxConcurrentCalls, convexOrg?._id, currentUser?._id, organizationId,
+  ]);
 
   return (
     <CallingContext.Provider value={contextValue}>

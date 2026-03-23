@@ -148,3 +148,59 @@ export const remove = mutation({
     await ctx.db.delete(args.phoneNumberId);
   },
 });
+
+// Update phone number routing configuration
+export const updateRouting = mutation({
+  args: {
+    phoneNumberId: v.id("phoneNumbers"),
+    type: v.optional(v.union(v.literal("main"), v.literal("department"), v.literal("direct"), v.literal("tracking"))),
+    routingType: v.union(v.literal("ring_all"), v.literal("round_robin"), v.literal("least_recent"), v.literal("direct"), v.literal("ring_group")),
+    assignedUserId: v.optional(v.id("users")),
+    ringGroupUserIds: v.optional(v.array(v.id("users"))),
+    voicemailEnabled: v.optional(v.boolean()),
+    friendlyName: v.optional(v.string()),
+    // Unanswered fallback
+    unansweredAction: v.optional(v.union(v.literal("voicemail"), v.literal("parking"), v.literal("ai_agent"))),
+    unansweredTimeoutSeconds: v.optional(v.number()),
+    unansweredAiAgentId: v.optional(v.id("retellAgents")),
+    voicemailGreeting: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { phoneNumberId, ...updates } = args;
+    const phone = await ctx.db.get(phoneNumberId);
+    if (!phone) throw new Error("Phone number not found");
+
+    const patch: Record<string, any> = {
+      routingType: updates.routingType,
+    };
+
+    if (updates.type !== undefined) patch.type = updates.type;
+    if (updates.friendlyName !== undefined) patch.friendlyName = updates.friendlyName;
+    if (updates.voicemailEnabled !== undefined) patch.voicemailEnabled = updates.voicemailEnabled;
+
+    // Unanswered fallback settings
+    if (updates.unansweredAction !== undefined) patch.unansweredAction = updates.unansweredAction;
+    if (updates.unansweredTimeoutSeconds !== undefined) patch.unansweredTimeoutSeconds = updates.unansweredTimeoutSeconds;
+    if (updates.unansweredAiAgentId !== undefined) patch.unansweredAiAgentId = updates.unansweredAiAgentId;
+    if (updates.voicemailGreeting !== undefined) patch.voicemailGreeting = updates.voicemailGreeting;
+
+    // Clear AI agent if not using AI fallback
+    if (updates.unansweredAction && updates.unansweredAction !== "ai_agent") {
+      patch.unansweredAiAgentId = undefined;
+    }
+
+    // Set/clear assignment based on routing type
+    if (updates.routingType === "direct") {
+      patch.assignedUserId = updates.assignedUserId || null;
+      patch.ringGroupUserIds = undefined;
+    } else if (updates.routingType === "ring_group") {
+      patch.ringGroupUserIds = updates.ringGroupUserIds || [];
+      patch.assignedUserId = undefined;
+    } else {
+      patch.assignedUserId = undefined;
+      patch.ringGroupUserIds = undefined;
+    }
+
+    await ctx.db.patch(phoneNumberId, patch);
+  },
+});

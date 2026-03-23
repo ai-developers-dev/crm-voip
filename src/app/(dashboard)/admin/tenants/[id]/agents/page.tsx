@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users,
-  Calendar, BarChart3, Bot, FileText, Zap, ChevronRight, Workflow,
+  Calendar, BarChart3, Bot, FileText, Zap, ChevronRight, Workflow, Columns3, BrainCircuit, ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -45,9 +45,17 @@ export default function TenantAgentsPage() {
     tenant?._id ? { organizationId: tenant._id } : "skip"
   );
 
-  // Check platform org for Retell configuration
+  // Check platform org for AI configuration
   const platformOrg = useQuery(api.organizations.getPlatformOrg);
   const hasRetellConfigured = !!(platformOrg?.settings as any)?.retellConfigured;
+  const hasOpenaiConfigured = !!(platformOrg?.settings as any)?.openaiConfigured;
+
+  // SMS agents for this tenant
+  const smsAgents = useQuery(
+    api.smsAgents.getByOrganization,
+    tenant?._id ? { organizationId: tenant._id } : "skip"
+  );
+  const activeSmsAgents = (smsAgents ?? []).filter((a: any) => a.isActive).length;
 
   if (!userLoaded || tenant === undefined) {
     return (
@@ -102,6 +110,12 @@ export default function TenantAgentsPage() {
                 Calendar
               </Button>
             </Link>
+            <Link href={`/admin/tenants/${tenant._id}/tasks`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ClipboardCheck className="h-4 w-4" />
+                Tasks
+              </Button>
+            </Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}>
               <Button variant="ghost" size="sm" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
@@ -112,6 +126,12 @@ export default function TenantAgentsPage() {
               <Button variant="ghost" size="sm" className="gap-2">
                 <Workflow className="h-4 w-4" />
                 Workflows
+              </Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/pipelines`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Columns3 className="h-4 w-4" />
+                Pipelines
               </Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/agents`}>
@@ -192,6 +212,34 @@ export default function TenantAgentsPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   {hasRetellConfigured ? (
                     <Badge className="bg-cyan-500/15 text-cyan-600 border-cyan-500/30 text-xs">AI Calling Connected</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">Not configured</Badge>
+                  )}
+                </div>
+              </div>
+            </Link>
+
+            {/* AI SMS Agent */}
+            <Link href={`/admin/tenants/${tenant._id}/agents/sms`}>
+              <div className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all cursor-pointer">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                    <BrainCircuit className="h-5 w-5 text-violet-600" />
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <h3 className="text-sm font-semibold mb-1">AI SMS</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  AI-powered SMS conversation agents. Book appointments, qualify leads, and handle customer service via text message.
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {hasOpenaiConfigured ? (
+                    <>
+                      <Badge className="bg-violet-500/15 text-violet-600 border-violet-500/30 text-xs">OpenAI Connected</Badge>
+                      {activeSmsAgents > 0 && (
+                        <Badge variant="outline" className="text-xs">{activeSmsAgents} active</Badge>
+                      )}
+                    </>
                   ) : (
                     <Badge variant="secondary" className="text-xs">Not configured</Badge>
                   )}

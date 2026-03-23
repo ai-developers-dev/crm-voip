@@ -143,3 +143,50 @@ export const clearByConference = mutation({
     return { success: true, slotNumber: slot.slotNumber };
   },
 });
+
+/** Auto-park an unanswered call into the first available slot */
+export const autopark = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    conferenceName: v.string(),
+    pstnCallSid: v.string(),
+    callerNumber: v.string(),
+    callerName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Find first empty slot
+    const slots = await ctx.db
+      .query("parkingLots")
+      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
+      .collect();
+
+    let emptySlot = slots.find((s) => !s.isOccupied);
+
+    // If no slots exist, initialize them
+    if (slots.length === 0) {
+      for (let i = 1; i <= 10; i++) {
+        const id = await ctx.db.insert("parkingLots", {
+          organizationId: args.organizationId,
+          slotNumber: i,
+          isOccupied: false,
+        });
+        if (i === 1) emptySlot = (await ctx.db.get(id)) ?? undefined;
+      }
+    }
+
+    if (!emptySlot) {
+      return { success: false, reason: "All parking slots full" };
+    }
+
+    await ctx.db.patch(emptySlot._id, {
+      isOccupied: true,
+      conferenceName: args.conferenceName,
+      pstnCallSid: args.pstnCallSid,
+      callerNumber: args.callerNumber,
+      callerName: args.callerName,
+      parkedAt: Date.now(),
+    });
+
+    return { success: true, slotNumber: emptySlot.slotNumber };
+  },
+});

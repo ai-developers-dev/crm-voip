@@ -118,6 +118,34 @@ export async function POST(request: NextRequest) {
       console.error(`Failed to save inbound SMS: ${result.reason}`);
     } else {
       console.log(`Inbound SMS saved: messageId=${result.messageId}, conversationId=${result.conversationId}`);
+
+      // ── AI SMS Agent routing (fire-and-forget) ──────────────────────
+      // Check if this contact has an active AI conversation
+      if (result.contactId && result.organizationId && !OPT_OUT_KEYWORDS.includes(bodyLower)) {
+        try {
+          const aiConversation = await convex.query(api.smsAgents.getActiveAiConversationForContact, {
+            contactId: result.contactId as Id<"contacts">,
+            organizationId: result.organizationId as Id<"organizations">,
+          });
+
+          if (aiConversation) {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+            // Non-blocking: route to AI engine
+            fetch(`${appUrl}/api/sms/ai`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                agentConversationId: aiConversation._id,
+                incomingMessage: body,
+                organizationId: result.organizationId,
+                contactId: result.contactId,
+              }),
+            }).catch((err) => console.error("AI SMS routing error:", err));
+          }
+        } catch (err) {
+          console.error("AI SMS lookup error:", err);
+        }
+      }
     }
 
     // MUST return TwiML (even empty) with 200 status

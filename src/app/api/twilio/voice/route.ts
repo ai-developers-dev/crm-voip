@@ -135,12 +135,34 @@ export async function POST(request: NextRequest) {
         to,
       }).catch(err => console.error("Failed to create call record:", err));
 
-      if (callData.agents.length === 0) {
-        // No agents available - go to voicemail
-        console.log("No agents available - sending to voicemail");
+      // ── Per-Number Routing ──────────────────────────────────────────
+      const routingType = callData.phoneConfig.routingType || "ring_all";
+      const assignedUserId = callData.phoneConfig.assignedUserId;
+      const ringGroupUserIds = callData.phoneConfig.ringGroupUserIds;
+
+      let agentsToDial = callData.agents;
+
+      if (routingType === "direct" && assignedUserId) {
+        // Direct line: only ring the assigned user
+        agentsToDial = callData.agents.filter((a) => a._id === assignedUserId);
+        console.log(`[ROUTING] Direct line → ${assignedUserId}, ${agentsToDial.length} matched`);
+      } else if (routingType === "ring_group" && ringGroupUserIds && ringGroupUserIds.length > 0) {
+        // Ring group: only ring users in the group
+        const groupSet = new Set(ringGroupUserIds as string[]);
+        agentsToDial = callData.agents.filter((a) => groupSet.has(a._id));
+        console.log(`[ROUTING] Ring group (${ringGroupUserIds.length} members) → ${agentsToDial.length} available`);
+      } else {
+        console.log(`[ROUTING] Ring all → ${agentsToDial.length} agents`);
+      }
+
+      if (agentsToDial.length === 0) {
+        // No agents available for this routing — go to voicemail
+        console.log("No agents available for this routing — sending to voicemail");
         twiml.say(
           { voice: "alice" },
-          "We are sorry, but all of our agents are currently busy. Please leave a message after the beep."
+          routingType === "direct"
+            ? "The person you are trying to reach is not available. Please leave a message after the beep."
+            : "We are sorry, but all of our agents are currently busy. Please leave a message after the beep."
         );
         twiml.record({
           timeout: 3,
@@ -156,17 +178,16 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Dial ALL available agents simultaneously
-      // First to answer wins, others stop ringing
+      // Dial filtered agents — configurable timeout from phone config
+      const ringTimeout = callData.phoneConfig.unansweredTimeoutSeconds || 30;
+      const phoneId = callData.phoneConfig._id || "";
       const dial = twiml.dial({
-        timeout: 30,
+        timeout: ringTimeout,
         callerId: from,
-        action: `${appUrl}/api/twilio/dial-status`,
+        action: `${appUrl}/api/twilio/dial-status?phoneId=${phoneId}&orgId=${callData.organizationId}`,
       });
 
-      // Add each agent as a Client element - Twilio rings all simultaneously
-      // IMPORTANT: Client identity must match the token identity format: ${clerkOrgId}-${clerkUserId}
-      for (const agent of callData.agents) {
+      for (const agent of agentsToDial) {
         console.log(`Adding agent to dial: ${agent.name} (${agent.twilioIdentity})`);
         dial.client(agent.twilioIdentity);
       }

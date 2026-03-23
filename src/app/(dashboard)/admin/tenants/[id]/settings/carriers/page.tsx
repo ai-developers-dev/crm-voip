@@ -646,7 +646,19 @@ export default function AdminTenantCarriersPage() {
 
         {/* Save Button */}
         {selectedAgencyTypeId && (
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-3">
+            {success && (
+              <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium animate-in fade-in">
+                <CheckCircle className="h-4 w-4" />
+                Saved successfully!
+              </span>
+            )}
+            {error && (
+              <span className="flex items-center gap-1.5 text-sm text-destructive font-medium">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </span>
+            )}
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}

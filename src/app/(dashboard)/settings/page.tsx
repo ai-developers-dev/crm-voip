@@ -50,6 +50,40 @@ import { A2pRegistration } from "@/components/settings/a2p-registration";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 
+function TenantInvoiceHistory({ organizationId }: { organizationId: any }) {
+  const invoices = useQuery(api.usageInvoices.getByOrganization, { organizationId });
+
+  if (!invoices || invoices.length === 0) return null;
+
+  return (
+    <div>
+      <h4 className="text-xs font-semibold mb-2">Usage Invoices</h4>
+      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+        {invoices.slice(0, 12).map((inv: any) => {
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          return (
+            <div key={inv._id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+              <div>
+                <span className="font-medium">{monthNames[inv.month]} {inv.year}</span>
+                <span className="text-xs text-muted-foreground ml-2">
+                  {inv.twilioCallMinutes}min · {inv.twilioSmsSent} SMS
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">${(inv.totalChargedCents / 100).toFixed(2)}</span>
+                {inv.status === "paid" && <span className="text-[10px] text-green-600 font-medium">Paid</span>}
+                {inv.status === "sent" && <span className="text-[10px] text-blue-600 font-medium">Pending</span>}
+                {inv.status === "failed" && <span className="text-[10px] text-destructive font-medium">Failed</span>}
+                {inv.status === "draft" && <span className="text-[10px] text-muted-foreground">Draft</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
   const { user: clerkUser } = useUser();
@@ -477,48 +511,179 @@ export default function SettingsPage() {
           {convexOrg?._id && <A2pRegistration organizationId={convexOrg._id} />}
         </SettingsRow>
 
-        {/* Billing */}
+        {/* Billing & Account */}
         <SettingsRow
           icon={<CreditCard className="h-4 w-4 text-green-600" />}
-          label="Billing"
+          label="Billing & Account"
           summary={subscriptionStatus === "active" ? "Active" : subscriptionStatus === "trialing" ? "Trial" : "Not set up"}
           isExpanded={expandedRow === "billing"}
           onToggle={() => toggleRow("billing")}
         >
-          <div className="space-y-3">
-            {subscriptionStatus === "active" && (
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Subscription Active</span>
-              </div>
-            )}
-            {subscriptionStatus === "trialing" && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Free Trial</span>
-                {(convexOrg?.billing as any)?.trialEndsAt && (
-                  <span className="text-xs text-muted-foreground">ends {new Date((convexOrg?.billing as any)?.trialEndsAt).toLocaleDateString()}</span>
-                )}
-              </div>
-            )}
-            {subscriptionStatus === "past_due" && (
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-destructive" />
-                <span className="text-sm font-medium text-destructive">Payment Past Due</span>
-              </div>
-            )}
-            {!subscriptionStatus && (
-              <p className="text-sm text-muted-foreground">No active subscription. Set up billing to access all features.</p>
-            )}
-            <div className="flex items-center justify-between text-sm">
-              <span>Monthly plan</span>
-              <span className="font-semibold">${convexOrg?.billing?.basePlanPrice || 97}/mo</span>
+          <div className="space-y-4">
+            {/* Subscription Status */}
+            <div>
+              <h4 className="text-xs font-semibold mb-2">Subscription</h4>
+              {subscriptionStatus === "active" && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Active</span>
+                  {(convexOrg?.billing as any)?.currentPeriodEnd && (
+                    <span className="text-xs text-muted-foreground">· Renews {new Date((convexOrg?.billing as any)?.currentPeriodEnd).toLocaleDateString()}</span>
+                  )}
+                </div>
+              )}
+              {subscriptionStatus === "trialing" && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Free Trial</span>
+                  {(convexOrg?.billing as any)?.trialEndsAt && (
+                    <span className="text-xs text-muted-foreground">· Ends {new Date((convexOrg?.billing as any)?.trialEndsAt).toLocaleDateString()}</span>
+                  )}
+                </div>
+              )}
+              {subscriptionStatus === "past_due" && (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm font-medium text-destructive">Payment Past Due — please update your payment method</span>
+                </div>
+              )}
+              {!subscriptionStatus && (
+                <p className="text-sm text-muted-foreground">No active subscription.</p>
+              )}
             </div>
+
+            {/* Monthly Breakdown */}
+            <div>
+              <h4 className="text-xs font-semibold mb-2">Monthly Service</h4>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Base plan (includes {convexOrg?.billing?.includedUsers || 1} user)</span>
+                  <span className="font-semibold">${convexOrg?.billing?.basePlanPrice || 97}/mo</span>
+                </div>
+                {(users?.length ?? 0) > (convexOrg?.billing?.includedUsers || 1) && (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Additional users ({(users?.length ?? 0) - (convexOrg?.billing?.includedUsers || 1)} x ${convexOrg?.billing?.perUserPrice || 47})</span>
+                    <span>${((users?.length ?? 0) - (convexOrg?.billing?.includedUsers || 1)) * (convexOrg?.billing?.perUserPrice || 47)}/mo</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between border-t pt-1.5 font-semibold">
+                  <span>Subscription total</span>
+                  <span>${(convexOrg?.billing?.basePlanPrice || 97) + Math.max(0, (users?.length ?? 0) - (convexOrg?.billing?.includedUsers || 1)) * (convexOrg?.billing?.perUserPrice || 47)}/mo</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Usage charges (calls, SMS, AI agents) billed separately based on actual usage.</p>
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <h4 className="text-xs font-semibold mb-2">Payment Method</h4>
+              {(convexOrg?.billing as any)?.stripeCustomerId ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 rounded-md border px-3 py-2 flex-1">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">Card on file via Stripe</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleManageBilling}>
+                    Update Card
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No payment method on file.</p>
+              )}
+            </div>
+
+            {/* Usage Invoices */}
+            {convexOrg?._id && <TenantInvoiceHistory organizationId={convexOrg._id} />}
+
+            {/* Manage Billing Portal */}
             {(convexOrg?.billing as any)?.stripeCustomerId && (
-              <Button variant="outline" size="sm" onClick={handleManageBilling}>
-                Manage Billing
-              </Button>
+              <div className="border-t pt-3">
+                <Button variant="outline" size="sm" onClick={handleManageBilling}>
+                  Open Billing Portal
+                </Button>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  View invoices, update payment method, or cancel subscription in Stripe.
+                </p>
+              </div>
             )}
+          </div>
+        </SettingsRow>
+
+        {/* Email & Calendar */}
+        <SettingsRow
+          icon={<Mail className="h-4 w-4 text-amber-600" />}
+          label="Email & Calendar"
+          summary={(() => {
+            const active = emailAccounts?.filter((a) => a.status === "active") || [];
+            return active.length > 0 ? `${active.length} account${active.length !== 1 ? "s" : ""} connected` : "Not connected";
+          })()}
+          badge={(() => {
+            const active = emailAccounts?.filter((a) => a.status === "active") || [];
+            return active.length > 0
+              ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Connected</Badge>
+              : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />Not Set Up</Badge>;
+          })()}
+          isExpanded={expandedRow === "email"}
+          onToggle={() => toggleRow("email")}
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Connect Gmail or Outlook to sync your calendar and send/receive emails from the CRM.
+            </p>
+
+            {/* Connected accounts */}
+            {(emailAccounts || []).filter((a) => a.status !== "disconnected").length > 0 && (
+              <div className="space-y-1.5">
+                {(emailAccounts || []).filter((a) => a.status !== "disconnected").map((account) => {
+                  const ownerUser = users?.find((u) => u._id === account.userId);
+                  return (
+                    <div key={account._id} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                      <div className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded-md shrink-0 text-xs font-bold",
+                        account.provider === "gmail" ? "bg-red-100 text-red-600 dark:bg-red-900/30" : "bg-blue-100 text-blue-600 dark:bg-blue-900/30"
+                      )}>
+                        {account.provider === "gmail" ? "G" : "O"}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{account.email}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="capitalize">{account.provider}</span>
+                          {ownerUser && isAdmin && <span>· {ownerUser.name}</span>}
+                          {account.status === "active" && (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <CheckCircle className="h-3 w-3" /> Active
+                            </span>
+                          )}
+                          {account.status === "error" && (
+                            <span className="flex items-center gap-1 text-red-500">
+                              <AlertCircle className="h-3 w-3" /> Error
+                            </span>
+                          )}
+                          {account.syncState && (
+                            <span>· Calendar {account.syncState === "synced" ? "synced" : account.syncState === "syncing" ? "syncing..." : "error"}</span>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive shrink-0 h-7 w-7 p-0" onClick={() => handleDisconnectEmail(account._id)}>
+                        <Unplug className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Connect buttons */}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmail("google")} disabled={isConnectingEmail}>
+                {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                Connect Gmail
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmail("microsoft")} disabled={isConnectingEmail}>
+                {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                Connect Outlook
+              </Button>
+            </div>
           </div>
         </SettingsRow>
 
@@ -752,71 +917,6 @@ export default function SettingsPage() {
             onToggle={() => toggleRow("goals")}
           >
             <SalesGoalsManager organizationId={convexOrg._id} />
-          </SettingsRow>
-        )}
-
-        {/* Email connection for non-admin users (admins manage via user cards above) */}
-        {!isAdmin && (
-          <SettingsRow
-            icon={<Mail className="h-4 w-4 text-amber-600" />}
-            label="Email"
-            summary={(() => {
-              const myAccounts = emailAccounts?.filter((a) => a.status === "active") || [];
-              return myAccounts.length > 0 ? myAccounts[0].email : "Not connected";
-            })()}
-            badge={(() => {
-              const myAccounts = emailAccounts?.filter((a) => a.status === "active") || [];
-              return myAccounts.length > 0
-                ? <Badge variant="default" className="gap-1"><CheckCircle className="h-3 w-3" />Connected</Badge>
-                : <Badge variant="secondary" className="gap-1"><XCircle className="h-3 w-3" />Not Set Up</Badge>;
-            })()}
-            isExpanded={expandedRow === "email"}
-            onToggle={() => toggleRow("email")}
-          >
-            {(() => {
-              const myAccounts = emailAccounts?.filter((a) => a.status === "active") || [];
-              return myAccounts.length > 0 ? (
-                <div className="space-y-2">
-                  {myAccounts.map((account) => (
-                    <div key={account._id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{account.email}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{account.provider}</p>
-                      </div>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive shrink-0" onClick={() => handleDisconnectEmail(account._id)}>
-                        <Unplug className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmail("google")} disabled={isConnectingEmail}>
-                      {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
-                      Connect Gmail
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => handleConnectEmail("microsoft")} disabled={isConnectingEmail}>
-                      {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
-                      Connect Outlook
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Connect your Gmail or Outlook account for email and calendar sync.
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleConnectEmail("google")} disabled={isConnectingEmail}>
-                      {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
-                      Connect Gmail
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleConnectEmail("microsoft")} disabled={isConnectingEmail}>
-                      {isConnectingEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
-                      Connect Outlook
-                    </Button>
-                  </div>
-                </div>
-              );
-            })()}
           </SettingsRow>
         )}
 

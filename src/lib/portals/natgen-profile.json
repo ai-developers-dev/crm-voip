@@ -1,0 +1,76 @@
+{
+  "carrier": "National General",
+  "capturedAt": "2026-03-19",
+  "verified": true,
+  "screens": {
+    "dashboard": {
+      "url": "https://natgenagency.com/MainMenu.aspx",
+      "stateDropdown": {
+        "id": "ctl00_MainContent_wgtMainMenuNewQuote_ddlState",
+        "name": "ctl00$MainContent$wgtMainMenuNewQuote$ddlState",
+        "options": ["-Select-", "IL", "MO"],
+        "note": "Triggers ASP.NET autopostback — populates product dropdown"
+      },
+      "productDropdown": {
+        "id": "ctl00_MainContent_wgtMainMenuNewQuote_ddlProduct",
+        "name": "ctl00$MainContent$wgtMainMenuNewQuote$ddlProduct",
+        "note": "EMPTY until state is selected and postback completes"
+      },
+      "beginButton": {
+        "id": "ctl00_MainContent_wgtMainMenuNewQuote_btnContinue",
+        "tag": "a",
+        "href": "javascript: void(0);",
+        "note": "NOT a submit button — it's an <a> tag"
+      }
+    },
+    "clientSearch": {
+      "url": "https://ho.natgenagency.com/ContentPages/ClientSearch",
+      "firstName": { "id": "MainContent_txtFirstName", "name": "ctl00$MainContent$txtFirstName" },
+      "lastName": { "id": "MainContent_txtLastName", "name": "ctl00$MainContent$txtLastName" },
+      "zipCode": { "id": "MainContent_txtZipCode", "name": "ctl00$MainContent$txtZipCode" },
+      "searchButton": { "id": "MainContent_btnSearch", "type": "submit" },
+      "addNewCustomerButton": { "id": "MainContent_btnAddNewClient", "type": "submit" }
+    },
+    "clientInfo": {
+      "url": "https://ho.natgenagency.com/ContentPages/ClientInfo",
+      "inputs": {
+        "agent": { "id": "MainContent_ucGeneralInformation_txtAgent", "disabled": true },
+        "policyEffDate": { "id": "MainContent_ucGeneralInformation_txtPolicyEffDate" },
+        "firstName": { "id": "MainContent_ucNamedInsured_txtFirstName" },
+        "middleName": { "id": "MainContent_ucNamedInsured_txtMiddleName" },
+        "lastName": { "id": "MainContent_ucNamedInsured_txtLastName" },
+        "dateOfBirth": { "id": "MainContent_ucNamedInsured_txtDateOfBirth" },
+        "ssn1": { "id": "MainContent_ucNamedInsured_txtSSN1" },
+        "ssn2": { "id": "MainContent_ucNamedInsured_txtSSN2" },
+        "ssn3": { "id": "MainContent_ucNamedInsured_txtSSN3" },
+        "phoneAreaCode": { "id": "MainContent_ucContactInfo_ucPhoneNumber_txtAreaCode" },
+        "phonePrefix": { "id": "MainContent_ucContactInfo_ucPhoneNumber_txtPrefix" },
+        "phoneLineNumber": { "id": "MainContent_ucContactInfo_ucPhoneNumber_txtLineNumber" },
+        "phoneExtension": { "id": "MainContent_ucContactInfo_ucPhoneNumber_txtExtension" },
+        "email": { "id": "MainContent_ucContactInfo_ucEmailAddress_txtEmailAddress" },
+        "confirmEmail": { "id": "MainContent_ucContactInfo_ucEmailAddress_txtEmailAddressConfirmation" },
+        "streetAddress1": { "id": "MainContent_ucResidentialAddress_txtAddress" },
+        "streetAddress2": { "id": "MainContent_ucResidentialAddress_txtAddress2" },
+        "city": { "id": "MainContent_ucResidentialAddress_txtCity" },
+        "zipCode": { "id": "MainContent_ucResidentialAddress_txtZipCode" },
+        "zip4": { "id": "MainContent_ucResidentialAddress_txtZip4" }
+      },
+      "dropdowns": {
+        "producer": "MainContent_ucGeneralInformation_ddlProducer (need to verify exact ID)",
+        "plan": "MainContent_ucGeneralInformation_ddlPlan (need to verify exact ID)",
+        "suffix": "MainContent_ucNamedInsured_ddlSuffix (need to verify exact ID)",
+        "gender": "MainContent_ucNamedInsured_ddlGender (need to verify exact ID)",
+        "maritalStatus": "MainContent_ucNamedInsured_ddlMaritalStatus (need to verify exact ID)",
+        "occupation": "MainContent_ucNamedInsured_ddlOccupation (need to verify exact ID)",
+        "coApplicant": "MainContent_ucNamedInsured_ddlCoApplicant (need to verify exact ID)",
+        "phoneType": "MainContent_ucContactInfo_ucPhoneNumber_ddlPhoneType (need to verify exact ID)",
+        "optIn": "MainContent_ucContactInfo_ddlOptIn (need to verify exact ID)",
+        "consent": "MainContent_ucContactInfo_ddlConsent (need to verify exact ID)",
+        "state": "MainContent_ucResidentialAddress_ddlState (need to verify exact ID)",
+        "residenceLess3": "MainContent_ucResidentialAddress_ddlResidenceLess3 (need to verify exact ID)"
+      },
+      "continueButton": { "id": "MainContent_btnContinue", "type": "submit" },
+      "note": "Dropdowns IDs follow ASP.NET pattern: MainContent_uc{Section}_ddl{FieldName}. Need discovery to verify exact IDs."
+    }
+  }
+}

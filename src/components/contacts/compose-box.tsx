@@ -24,8 +24,21 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
+import dynamic from "next/dynamic";
+
+const EmojiPicker = dynamic(() =>
+  Promise.all([
+    import("@emoji-mart/data"),
+    import("@emoji-mart/react"),
+  ]).then(([dataModule, pickerModule]) => {
+    const Picker = pickerModule.default;
+    const data = dataModule.default;
+    return {
+      default: (props: any) => <Picker data={data} {...props} />,
+    };
+  }),
+  { ssr: false, loading: () => <div className="p-8 text-center text-xs text-muted-foreground">Loading...</div> }
+);
 
 type ChannelType = "sms" | "email";
 
@@ -396,8 +409,7 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
               </button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0 border-0" side="top">
-              <Picker
-                data={data}
+              <EmojiPicker
                 onEmojiSelect={handleEmojiSelect}
                 theme="light"
                 previewPosition="none"

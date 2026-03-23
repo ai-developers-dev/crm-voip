@@ -933,9 +933,17 @@ export const getIncomingCallData = query({
       clerkOrgId: organization.clerkOrgId,
       aiAgentId: phoneConfig.aiAgentId,
       phoneConfig: {
+        _id: phoneConfig._id,
         friendlyName: phoneConfig.friendlyName,
+        type: phoneConfig.type,
         routingType: phoneConfig.routingType,
+        assignedUserId: phoneConfig.assignedUserId,
+        ringGroupUserIds: phoneConfig.ringGroupUserIds,
         voicemailEnabled: phoneConfig.voicemailEnabled,
+        unansweredAction: phoneConfig.unansweredAction,
+        unansweredTimeoutSeconds: phoneConfig.unansweredTimeoutSeconds,
+        unansweredAiAgentId: phoneConfig.unansweredAiAgentId,
+        voicemailGreeting: phoneConfig.voicemailGreeting,
       },
       agents,
     };

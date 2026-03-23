@@ -65,11 +65,30 @@ export const saveBusinessSetup = mutation({
       updatedAt: Date.now(),
     });
 
-    // 2. Delete existing tenant carriers
+    // 2. Delete existing tenant carriers (preserve portal credentials first)
     const existingCarriers = await ctx.db
       .query("tenantCarriers")
       .withIndex("by_organization", (q) => q.eq("organizationId", org._id))
       .collect();
+
+    // Build credential map BEFORE deleting so we can restore them on re-insert
+    const credentialMap = new Map<string, {
+      portalUrl?: string;
+      portalUsername?: string;
+      portalPassword?: string;
+      portalConfigured?: boolean;
+    }>();
+    for (const tc of existingCarriers) {
+      if (tc.portalConfigured && tc.portalUsername && tc.portalPassword) {
+        credentialMap.set(tc.carrierId, {
+          portalUrl: tc.portalUrl,
+          portalUsername: tc.portalUsername,
+          portalPassword: tc.portalPassword,
+          portalConfigured: tc.portalConfigured,
+        });
+      }
+    }
+
     for (const tc of existingCarriers) {
       await ctx.db.delete(tc._id);
     }
@@ -94,13 +113,20 @@ export const saveBusinessSetup = mutation({
 
     const now = Date.now();
 
-    // 5. Insert new carrier selections
+    // 5. Insert new carrier selections (preserving credentials for retained carriers)
     for (const carrierId of args.carrierIds) {
+      const savedCreds = credentialMap.get(carrierId);
       await ctx.db.insert("tenantCarriers", {
         organizationId: org._id,
         agencyTypeId: args.agencyTypeId,
         carrierId,
         createdAt: now,
+        ...(savedCreds && {
+          portalUrl: savedCreds.portalUrl,
+          portalUsername: savedCreds.portalUsername,
+          portalPassword: savedCreds.portalPassword,
+          portalConfigured: savedCreds.portalConfigured,
+        }),
       });
     }
 

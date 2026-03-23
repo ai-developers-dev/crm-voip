@@ -44,6 +44,8 @@ export const updatePlatformBillingConfig = mutation({
     stripeSecretKey: v.string(),
     stripeWebhookSecret: v.string(),
     twilioMarkupPercent: v.number(),
+    retellMarkupPercent: v.optional(v.number()),
+    openaiMarkupPercent: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const org = await ctx.db.get(args.organizationId);
@@ -59,6 +61,56 @@ export const updatePlatformBillingConfig = mutation({
           isConfigured: true,
         },
         twilioMarkupPercent: args.twilioMarkupPercent,
+        retellMarkupPercent: args.retellMarkupPercent ?? 50,
+        openaiMarkupPercent: args.openaiMarkupPercent ?? 50,
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Update OpenAI API key (platform org only)
+export const updateOpenAiConfig = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    openaiApiKey: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.organizationId, {
+      settings: {
+        ...org.settings,
+        openaiApiKey: args.openaiApiKey,
+        openaiConfigured: true,
+      },
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Update Nylas configuration (platform org only)
+export const updateNylasConfig = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    nylasClientId: v.string(),
+    nylasApiKey: v.string(),
+    nylasWebhookSecret: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db.get(args.organizationId);
+    if (!org) throw new Error("Organization not found");
+
+    await ctx.db.patch(args.organizationId, {
+      settings: {
+        ...org.settings,
+        nylasConfig: {
+          clientId: args.nylasClientId,
+          apiKey: args.nylasApiKey,
+          webhookSecret: args.nylasWebhookSecret || "",
+          isConfigured: true,
+        },
       },
       updatedAt: Date.now(),
     });
@@ -382,6 +434,7 @@ export const updateTenantDetails = mutation({
       perUserPrice: v.number(),
       includedUsers: v.number(),
       billingEmail: v.optional(v.string()),
+      enabledAddons: v.optional(v.array(v.string())),
     }),
     agencyTypeId: v.optional(v.id("agencyTypes")),
   },
@@ -392,7 +445,10 @@ export const updateTenantDetails = mutation({
     await ctx.db.patch(args.organizationId, {
       name: args.name,
       businessInfo: args.businessInfo,
-      billing: args.billing,
+      billing: {
+        ...(org.billing || {}),
+        ...args.billing,
+      },
       ...(args.agencyTypeId !== undefined && { agencyTypeId: args.agencyTypeId }),
       updatedAt: Date.now(),
     });

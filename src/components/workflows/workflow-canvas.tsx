@@ -46,7 +46,7 @@ export function WorkflowCanvas({ workflow, organizationId, basePath = "/workflow
 }
 
 function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<"workflows">; basePath?: string }) {
-  const { steps, insertStep, reorderSteps, rightPanelMode, setRightPanelMode } = useCanvasContext();
+  const { steps, insertStep, reorderSteps, reorderBranchSteps, rightPanelMode, setRightPanelMode } = useCanvasContext();
   const [activeDrag, setActiveDrag] = useState<{ type: string; stepType?: StepType; step?: WorkflowStep } | null>(null);
 
   const sensors = useSensors(
@@ -61,6 +61,8 @@ function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<
       setActiveDrag({ type: "palette-action", stepType: data.stepType as StepType });
     } else if (data?.type === "canvas-step") {
       setActiveDrag({ type: "canvas-step", step: data.step as WorkflowStep });
+    } else if (data?.type === "branch-step") {
+      setActiveDrag({ type: "branch-step", step: data.step as WorkflowStep });
     }
   }
 
@@ -78,19 +80,28 @@ function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<
       insertStep(stepType, index);
     } else if (activeType === "canvas-step") {
       const oldIndex = active.data.current!.index as number;
-      // Find new index from over - could be a step or a drop zone
       let newIndex: number;
       if (over.data.current?.type === "canvas-step") {
         newIndex = over.data.current.index as number;
       } else if (over.data.current?.type === "step-drop-zone") {
         newIndex = over.data.current.index as number;
-        // Adjust for the offset
         if (newIndex > oldIndex) newIndex--;
       } else {
         return;
       }
       if (oldIndex !== newIndex) {
         reorderSteps(oldIndex, newIndex);
+      }
+    } else if (activeType === "branch-step" && over.data.current?.type === "branch-step") {
+      // Reorder within the same branch
+      const activeData = active.data.current!;
+      const overData = over.data.current!;
+      if (activeData.parentStepId === overData.parentStepId && activeData.branchId === overData.branchId) {
+        const oldIndex = activeData.index as number;
+        const newIndex = overData.index as number;
+        if (oldIndex !== newIndex) {
+          reorderBranchSteps(activeData.parentStepId, activeData.branchId, oldIndex, newIndex);
+        }
       }
     }
   }
@@ -112,7 +123,7 @@ function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<
         <span className="text-xs font-medium">{info.label}</span>
       </div>
     );
-  } else if (activeDrag?.type === "canvas-step" && activeDrag.step) {
+  } else if ((activeDrag?.type === "canvas-step" || activeDrag?.type === "branch-step") && activeDrag.step) {
     const info = stepTypeInfo[activeDrag.step.type];
     const Icon = info.icon;
     overlayContent = (

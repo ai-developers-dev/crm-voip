@@ -7,14 +7,19 @@ import { api } from "../../../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+// Note: credentials are stored as-is in Convex. Encryption happens at rest via Convex.
 import {
   Plus, FileText, CheckCircle, XCircle, Clock, TrendingUp,
   DollarSign, ChevronDown, ChevronUp, Trash2, User, Car, Home,
   AlertTriangle, Settings, Zap, Pencil, RotateCcw, Loader2,
-  ArrowLeft, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Briefcase, Workflow,
+  ArrowLeft, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Briefcase, Workflow, Columns3, ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
+import { Compass } from "lucide-react";
 import { CarriersSettingsDialog } from "@/components/settings/carriers-settings-dialog";
+import { PortalDiscoveryDialog } from "@/components/settings/portal-discovery-dialog";
 
 function formatPremium(monthly?: number | null, annual?: number | null) {
   if (monthly) return `$${monthly.toFixed(2)}/mo`;
@@ -126,13 +131,23 @@ export default function TenantQuotesPage() {
   const removeLead = useMutation(api.insuranceLeads.remove);
   const resetLeadStatus = useMutation(api.insuranceLeads.updateStatus);
 
-  // Check for any carrier with portal credentials configured
-  const hasPortalCreds = (selectedCarriers ?? []).some((tc: any) => tc.portalConfigured);
+  // Check for portal credentials in either location
+  const hasPortalCreds = (selectedCarriers ?? []).some((tc: any) => tc.portalConfigured)
+    || !!(tenant?.settings as any)?.natgenCredentials?.isConfigured;
+  const updateNatgenCreds = useMutation(api.organizations.updateNatgenCredentials);
   const unquotedCount = (leads ?? []).filter((l: any) => l.status === "new").length;
   const isAgentRunning = agentRun?.status === "running";
 
+  // Get carrier names for the discovery dialog
+  const allCarriers = useQuery(api.agencyCarriers.getAll);
+
   const [launching, setLaunching] = useState(false);
   const [isCarriersDialogOpen, setIsCarriersDialogOpen] = useState(false);
+  const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
+  const [natgenUser, setNatgenUser] = useState("");
+  const [natgenPass, setNatgenPass] = useState("");
+  const [savingCreds, setSavingCreds] = useState(false);
+  const [credsSaved, setCredsSaved] = useState(false);
   const [typeFilter, setTypeFilter] = useState<"all" | "auto" | "home">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "success" | "error">("all");
 
@@ -176,8 +191,10 @@ export default function TenantQuotesPage() {
             <Link href={`/admin/tenants/${tenant._id}/sms`}><Button variant="ghost" size="sm" className="gap-2"><MessageSquare className="h-4 w-4" />SMS</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/contacts`}><Button variant="ghost" size="sm" className="gap-2"><Users className="h-4 w-4" />Contacts</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/calendar`}><Button variant="ghost" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/tasks`}><Button variant="ghost" size="sm" className="gap-2"><ClipboardCheck className="h-4 w-4" />Tasks</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/reports`}><Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/workflows`}><Button variant="ghost" size="sm" className="gap-2"><Workflow className="h-4 w-4" />Workflows</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/pipelines`}><Button variant="ghost" size="sm" className="gap-2"><Columns3 className="h-4 w-4" />Pipelines</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/agents`}><Button variant="secondary" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button></Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}><Button variant="outline" size="sm"><Settings className="h-4 w-4 mr-2" />Settings</Button></Link>
@@ -198,6 +215,12 @@ export default function TenantQuotesPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {hasPortalCreds && (
+              <Button variant="ghost" size="sm" onClick={() => setIsDiscoveryOpen(true)} className="gap-2">
+                <Compass className="h-4 w-4" />
+                Auto Discover
+              </Button>
+            )}
             {hasPortalCreds && unquotedCount > 0 && !isAgentRunning && (
               <Button onClick={handleRunAgent} disabled={launching} variant="secondary" className="gap-2">
                 <Zap className="h-4 w-4" />
@@ -223,16 +246,81 @@ export default function TenantQuotesPage() {
           </div>
         )}
 
-        {/* Credentials warning */}
-        {!hasPortalCreds && (
-          <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-            <div className="flex-1 text-sm">
-              <p className="font-medium">Carrier portal credentials not configured</p>
-              <p className="text-muted-foreground mt-0.5">Add portal login credentials in Carrier Settings to enable automated quoting.</p>
+        {/* Credentials setup */}
+        {!hasPortalCreds ? (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <p className="text-sm font-medium">NatGen Portal Credentials Required</p>
             </div>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setIsCarriersDialogOpen(true)}>
-              <Briefcase className="h-3.5 w-3.5" />Carrier Settings
+            <p className="text-xs text-muted-foreground">Enter your National General agency portal login to enable automated quoting.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Portal Username</Label>
+                <Input value={natgenUser} onChange={(e) => setNatgenUser(e.target.value)} placeholder="Your NatGen user ID" className="h-9 text-sm mt-1" />
+              </div>
+              <div>
+                <Label className="text-xs">Portal Password</Label>
+                <Input type="password" value={natgenPass} onChange={(e) => setNatgenPass(e.target.value)} placeholder="Your NatGen password" className="h-9 text-sm mt-1" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" disabled={!natgenUser || !natgenPass || savingCreds} onClick={async () => {
+                console.log("SAVE CLICKED", { natgenUser, natgenPass: natgenPass ? "***" : "EMPTY", tenantId: tenant?._id });
+                alert(`Saving credentials for ${natgenUser}...`);
+                if (!tenant?._id) { alert("No tenant ID!"); return; }
+                setSavingCreds(true);
+                try {
+                  // Save via API route (server-side, bypasses client auth issues)
+                  const res = await fetch("/api/natgen-credentials", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      organizationId: tenant._id,
+                      username: natgenUser,
+                      password: natgenPass,
+                    }),
+                    credentials: "include",
+                  });
+                  if (res.ok) {
+                    setCredsSaved(true);
+                    setNatgenUser("");
+                    setNatgenPass("");
+                    setTimeout(() => setCredsSaved(false), 3000);
+                  } else {
+                    const err = await res.json().catch(() => ({}));
+                    console.error("Failed to save credentials:", err);
+                    alert(err.error || "Failed to save credentials");
+                  }
+                } catch (err) {
+                  console.error("Failed to save credentials:", err);
+                  alert("Failed to save credentials");
+                } finally {
+                  setSavingCreds(false);
+                }
+              }}>
+                {savingCreds ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : null}
+                Save Credentials
+              </Button>
+              {credsSaved && <span className="text-xs text-green-600 flex items-center gap-1"><CheckCircle className="h-3 w-3" />Saved!</span>}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50/50 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-sm text-green-700 font-medium">NatGen portal credentials configured</span>
+            </div>
+            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => {
+              // Allow re-entering credentials
+              const settings = tenant?.settings as any;
+              const creds = settings?.natgenCredentials;
+              if (creds) {
+                setNatgenUser(creds.username || "");
+                setNatgenPass("");
+              }
+            }}>
+              <Pencil className="h-3 w-3 mr-1" /> Edit
             </Button>
           </div>
         )}
@@ -268,6 +356,21 @@ export default function TenantQuotesPage() {
             initialAgencyTypeId={tenant.agencyTypeId}
           />
         )}
+
+        <PortalDiscoveryDialog
+          open={isDiscoveryOpen}
+          onOpenChange={setIsDiscoveryOpen}
+          organizationId={tenant._id as string}
+          carriers={(selectedCarriers ?? [])
+            .filter((tc: any) => tc.portalConfigured)
+            .map((tc: any) => {
+              const carrier = (allCarriers ?? []).find((c: any) => c._id === tc.carrierId);
+              return {
+                carrierId: tc.carrierId,
+                carrierName: carrier?.name ?? "Unknown Carrier",
+              };
+            })}
+        />
       </div>
     </div>
   );

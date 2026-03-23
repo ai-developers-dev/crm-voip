@@ -46,24 +46,26 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   // Try to use the global CallingContext first (from layout provider)
   const callingContext = useOptionalCallingContext();
 
-  // Get the Convex organization from Clerk org ID
-  const convexOrg = useQuery(
+  // Use org/user from CallingContext when available (avoids duplicate queries)
+  const convexOrgId = callingContext?.convexOrgId;
+  const currentUserId = callingContext?.currentUserId;
+
+  // Only query if no context (e.g., admin viewing a tenant directly)
+  const convexOrgFallback = useQuery(
     api.organizations.getCurrent,
-    organizationId ? { clerkOrgId: organizationId } : "skip"
+    !callingContext && organizationId ? { clerkOrgId: organizationId } : "skip"
   );
-
-  // Get current user
-  const currentUser = useQuery(
+  const currentUserFallback = useQuery(
     api.users.getCurrentByOrg,
-    convexOrg?._id ? { organizationId: convexOrg._id } : "skip"
+    !callingContext && convexOrgFallback?._id ? { organizationId: convexOrgFallback._id } : "skip"
   );
 
-  // Get max concurrent calls from org settings (default 3)
-  const maxConcurrentCalls = convexOrg?.settings?.maxConcurrentCalls ?? 3;
+  const effectiveOrgId = convexOrgId || convexOrgFallback?._id;
+  const effectiveUserId = currentUserId || currentUserFallback?._id;
+  const maxConcurrentCalls = callingContext?.maxConcurrentCalls ?? 3;
 
   // Fallback to direct useTwilioDevice if not using context (e.g., admin viewing tenant)
   const directTwilioDevice = useTwilioDevice(
-    // Only initialize if we don't have context
     callingContext ? 0 : maxConcurrentCalls
   );
 
@@ -141,7 +143,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           return;
         }
 
-        if (!convexOrg?._id) {
+        if (!effectiveOrgId) {
           console.error("No organization ID available for parking");
           return;
         }
@@ -161,7 +163,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           callerNumber,
           callerName,
           parkedAt: Date.now(),
-          parkedByUserId: currentUser?._id,
+          parkedByUserId: effectiveUserId,
         });
 
         try {
@@ -174,8 +176,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               twilioCallSid: callSid,
               callerNumber,
               callerName,
-              organizationId: convexOrg._id,
-              parkedByUserId: currentUser?._id,
+              organizationId: effectiveOrgId!,
+              parkedByUserId: effectiveUserId,
             }),
           });
 
@@ -226,10 +228,10 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           const targetConvexUserId = targetId.replace("user-", "") as Id<"users">;
 
           // Create targeted ringing record BEFORE calling resume
-          if (convexOrg?._id) {
+          if (effectiveOrgId) {
             try {
               await createTargetedRinging({
-                organizationId: convexOrg._id,
+                organizationId: effectiveOrgId!,
                 targetUserId: targetConvexUserId,
                 callerNumber,
                 callerName,
@@ -300,7 +302,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               targetUserId: targetId,
               targetIdentity: targetTwilioIdentity,
               type: "direct",
-              sourceUserId: currentUser?._id,
+              sourceUserId: effectiveUserId,
             }),
           });
 
@@ -338,8 +340,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             {/* Incoming call banner - above agent grid */}
             <IncomingCallsArea
               organizationId={organizationId}
-              convexOrgId={convexOrg?._id}
-              currentUserId={currentUser?._id}
+              convexOrgId={effectiveOrgId}
+              currentUserId={effectiveUserId}
               twilioActiveCall={twilioActiveCall}
               twilioCallStatus={twilioCallStatus}
               onAnswerTwilio={answerCall}
@@ -354,8 +356,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             <div className="flex-1 overflow-auto p-6 space-y-6">
               <AgentGrid
                 organizationId={organizationId}
-                convexOrgId={convexOrg?._id}
-                currentUserId={currentUser?._id}
+                convexOrgId={effectiveOrgId}
+                currentUserId={effectiveUserId}
                 twilioActiveCall={twilioActiveCall}
                 onHangUp={hangUp}
                 onToggleMute={toggleMute}
@@ -373,14 +375,14 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               />
 
               {/* Daily Call Log */}
-              {convexOrg?._id && (
+              {effectiveOrgId && (
                 <div className="max-w-4xl">
                   <h3 className="text-sm font-medium text-muted-foreground px-3 pb-2">
                     Today&apos;s Call Log
                   </h3>
                   <Card>
                     <CardContent className="p-0">
-                      <DailyCallLog organizationId={convexOrg._id} />
+                      <DailyCallLog organizationId={effectiveOrgId!} />
                     </CardContent>
                   </Card>
                 </div>
@@ -390,7 +392,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
           {/* Parking lot sidebar */}
           <aside className="w-64 border-l bg-muted/30 overflow-auto">
-            {convexOrg?._id && <ParkingLot organizationId={convexOrg._id} />}
+            {effectiveOrgId && <ParkingLot organizationId={effectiveOrgId!} />}
           </aside>
         </div>
       </div>

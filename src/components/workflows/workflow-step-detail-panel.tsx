@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -16,9 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCanvasContext } from "./workflow-canvas-provider";
-import { stepTypeInfo, type StepType, type StepConfig, type WorkflowStep } from "./workflow-step-card";
+import { stepTypeInfo, type StepType, type StepConfig, type WorkflowStep, type BranchDef, normalizeBranches } from "./workflow-step-card";
+import { WorkflowConditionEditor, type ConditionItem } from "./workflow-condition-editor";
 import { cn } from "@/lib/utils";
 import { Id } from "../../../convex/_generated/dataModel";
+import { ChevronDown, ChevronRight, GitBranch, Plus, PlusCircle } from "lucide-react";
 
 const templateVariables = [
   { key: "firstName", label: "First Name" },
@@ -85,13 +87,136 @@ const stepTypeOptions = Object.entries(stepTypeInfo).map(([value, info]) => ({
   bgColor: info.bgColor,
 }));
 
+// ---------------------------------------------------------------------------
+// If/Else Detail Panel — per-branch condition editing
+// ---------------------------------------------------------------------------
+function IfElseDetailPanel({
+  step,
+  organizationId,
+}: {
+  step: WorkflowStep;
+  organizationId: Id<"organizations">;
+}) {
+  const { addBranch, removeBranch, renameBranch, updateBranchConditions } = useCanvasContext();
+  const [expandedBranchId, setExpandedBranchId] = useState<string | null>(null);
+
+  const branches = normalizeBranches(step.config);
+  const namedBranches = branches.filter(b => !b.isDefault);
+  const defaultBranch = branches.find(b => b.isDefault);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">Branches</span>
+        {namedBranches.length < 10 && (
+          <button
+            type="button"
+            onClick={() => addBranch(step.id)}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
+          >
+            <PlusCircle className="h-3 w-3" />
+            Add Branch
+          </button>
+        )}
+      </div>
+
+      {/* Named branches */}
+      {namedBranches.map((branch) => {
+        const isExpanded = expandedBranchId === branch.id;
+        const condCount = branch.conditions?.length || 0;
+
+        return (
+          <div key={branch.id} className="rounded-lg border bg-card overflow-hidden">
+            {/* Branch header */}
+            <div
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setExpandedBranchId(isExpanded ? null : branch.id)}
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+              )}
+              <GitBranch className="h-3 w-3 text-primary shrink-0" />
+              <Input
+                value={branch.name}
+                onChange={(e) => renameBranch(step.id, branch.id, e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                className="h-6 text-xs font-medium border-none bg-transparent px-1 py-0 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 min-w-0"
+              />
+              <span className="text-[10px] text-muted-foreground shrink-0">
+                {condCount} cond{condCount !== 1 ? "s" : ""} / {branch.steps.length} step{branch.steps.length !== 1 ? "s" : ""}
+              </span>
+              {namedBranches.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeBranch(step.id, branch.id);
+                  }}
+                  className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Expanded: condition editor */}
+            {isExpanded && (
+              <div className="border-t px-3 py-3">
+                <WorkflowConditionEditor
+                  conditions={(branch.conditions || []) as ConditionItem[]}
+                  conditionLogic={branch.conditionLogic || "and"}
+                  organizationId={organizationId}
+                  onConditionsChange={(conditions) =>
+                    updateBranchConditions(step.id, branch.id, conditions as any, branch.conditionLogic || "and")
+                  }
+                  onLogicChange={(logic) =>
+                    updateBranchConditions(step.id, branch.id, (branch.conditions || []) as any, logic)
+                  }
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* "None" (default) branch — not expandable, no conditions */}
+      {defaultBranch && (
+        <div className="rounded-lg border bg-muted/30 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <GitBranch className="h-3 w-3 text-muted-foreground shrink-0" />
+            <span className="text-xs font-medium text-muted-foreground flex-1">{defaultBranch.name}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {defaultBranch.steps.length} step{defaultBranch.steps.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            Executes when none of the branch conditions match.
+          </p>
+        </div>
+      )}
+
+      <p className="text-[10px] text-muted-foreground">
+        Add steps to each branch directly on the canvas below. Branches are evaluated top to bottom — first match wins.
+      </p>
+    </div>
+  );
+}
+
 export function WorkflowStepDetailPanel() {
-  const { steps, selectedStepId, updateStep, removeStep, selectStep, organizationId } = useCanvasContext();
-  const step = steps.find((s) => s.id === selectedStepId);
+  const { steps, selectedStepId, updateStep, removeStep, selectStep, organizationId, findStepById, updateBranchStep, addBranch, removeBranch, renameBranch, updateBranchConditions } = useCanvasContext();
+
+  // Find step in top-level or nested branches
+  const topLevelStep = steps.find((s) => s.id === selectedStepId);
+  const branchStep = !topLevelStep && selectedStepId ? findStepById(selectedStepId) : null;
+  const step = topLevelStep || branchStep;
+  const isInBranch = !topLevelStep && !!branchStep;
 
   const tags = useQuery(api.contactTags.getActive, { organizationId });
   const users = useQuery(api.users.getByOrganization, { organizationId });
   const pipelines = useQuery(api.pipelines.getByOrganization, { organizationId });
+  const smsAgents = useQuery(api.smsAgents.getByOrganization, { organizationId });
   const stages = useQuery(
     api.pipelineStages.getByPipeline,
     step?.config.pipelineId ? { pipelineId: step.config.pipelineId as Id<"pipelines"> } : "skip"
@@ -103,8 +228,16 @@ export function WorkflowStepDetailPanel() {
 
   if (!step) return null;
 
+  const doUpdate = (updated: WorkflowStep) => {
+    if (isInBranch) {
+      updateBranchStep(step.id, updated);
+    } else {
+      updateStep(updated);
+    }
+  };
+
   const updateConfig = (patch: Partial<StepConfig>) => {
-    updateStep({ ...step, config: { ...step.config, ...patch } });
+    doUpdate({ ...step, config: { ...step.config, ...patch } });
   };
 
   const updateType = (type: StepType) => {
@@ -115,7 +248,13 @@ export function WorkflowStepDetailPanel() {
       defaultConfig.taskPriority = "medium";
       defaultConfig.taskDueDays = 1;
     }
-    updateStep({ ...step, type, config: defaultConfig });
+    if (type === "if_else") {
+      defaultConfig.branches = [
+        { id: Math.random().toString(36).slice(2, 10), name: "Branch", conditions: [], conditionLogic: "and", steps: [] },
+        { id: Math.random().toString(36).slice(2, 10), name: "None", conditions: [], conditionLogic: "and", steps: [], isDefault: true },
+      ];
+    }
+    doUpdate({ ...step, type, config: defaultConfig });
   };
 
   const currentInfo = stepTypeInfo[step.type];
@@ -364,6 +503,30 @@ export function WorkflowStepDetailPanel() {
           </div>
         )}
 
+        {step.type === "ai_sms_agent" && (
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">SMS AI Agent</Label>
+            <Select
+              value={step.config.smsAgentId ?? ""}
+              onValueChange={(v) => updateConfig({ smsAgentId: v })}
+            >
+              <SelectTrigger className="h-9 w-full text-sm">
+                <SelectValue placeholder="Select SMS agent..." />
+              </SelectTrigger>
+              <SelectContent>
+                {(smsAgents || []).filter(a => a.isActive).map((agent) => (
+                  <SelectItem key={agent._id} value={agent._id}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              The AI agent will start an SMS conversation with the contact to achieve its objective (e.g., book appointment, qualify lead).
+            </p>
+          </div>
+        )}
+
         {step.type === "move_pipeline_stage" && (
           <>
             <div>
@@ -405,6 +568,10 @@ export function WorkflowStepDetailPanel() {
               </div>
             )}
           </>
+        )}
+
+        {step.type === "if_else" && (
+          <IfElseDetailPanel step={step} organizationId={organizationId} />
         )}
 
         {step.type === "wait" && (
@@ -469,7 +636,13 @@ export function WorkflowStepDetailPanel() {
           variant="outline"
           size="sm"
           className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => removeStep(step.id)}
+          onClick={() => {
+            if (isInBranch) {
+              selectStep(null);
+            } else {
+              removeStep(step.id);
+            }
+          }}
         >
           <Trash2 className="h-3.5 w-3.5 mr-1.5" />
           Delete Step
