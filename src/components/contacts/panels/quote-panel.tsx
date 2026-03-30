@@ -63,7 +63,7 @@ function QuotingSteps({ status, hasResults, currentStage }: { status: string; ha
               state === "done" ? "bg-green-100 text-green-600" :
               state === "active" ? "bg-primary/10 text-primary" :
               state === "error" ? "bg-red-100 text-red-600" :
-              "bg-muted text-muted-foreground"
+              "bg-surface-container text-on-surface-variant"
             )}>
               {state === "done" ? <CheckCircle className="h-3 w-3" /> :
                state === "active" ? <Loader2 className="h-3 w-3 animate-spin" /> :
@@ -75,7 +75,7 @@ function QuotingSteps({ status, hasResults, currentStage }: { status: string; ha
               state === "done" ? "text-green-700 font-medium" :
               state === "active" ? "text-primary font-medium" :
               state === "error" ? "text-red-600" :
-              "text-muted-foreground"
+              "text-on-surface-variant"
             )}>
               {step.label}
             </span>
@@ -290,7 +290,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
           <h3 className="text-sm font-semibold flex items-center gap-2">
             <Calculator className="h-4 w-4" /> Quote Status
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto">
@@ -302,7 +302,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                   <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
                   <span className="text-sm font-semibold">Starting quote...</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Logging into carrier portal</p>
+                <p className="text-xs text-on-surface-variant mt-1">Logging into carrier portal</p>
               </div>
             )}
 
@@ -320,7 +320,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                     {isRunning ? "Quoting in progress..." : latestRun.status === "completed" ? "Quoting complete" : "Quoting failed"}
                   </span>
                 </div>
-                <div className="text-xs text-muted-foreground space-y-0.5">
+                <div className="text-xs text-on-surface-variant space-y-0.5">
                   <p>{latestRun.succeeded} succeeded · {latestRun.failed} failed · {latestRun.total} total</p>
                   {latestRun.currentLeadName && isRunning && (
                     <p>Currently quoting: {latestRun.currentLeadName}</p>
@@ -338,7 +338,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold">{lead.firstName} {lead.lastName}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-on-surface-variant">
                       {lead.quoteTypes?.join(", ")} · {new Date(lead.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -354,7 +354,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                 </div>
 
                 {lead.notes && (
-                  <p className="text-[10px] text-muted-foreground">{lead.notes}</p>
+                  <p className="text-[10px] text-on-surface-variant">{lead.notes}</p>
                 )}
               </div>
             ))}
@@ -362,7 +362,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
             {/* Quote Results */}
             {leadQuotes && leadQuotes.length > 0 && (
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Quote Results</h4>
+                <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Quote Results</h4>
                 <div className="space-y-2">
                   {leadQuotes.map((quote: any) => (
                     <div
@@ -392,19 +392,21 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-semibold">{quote.carrier || quote.portal}</span>
                         {quote.status === "success" ? (
-                          <Badge variant="default" className="text-xs gap-1">
-                            <DollarSign className="h-3 w-3" />
-                            {quote.monthlyPremium ? `$${quote.monthlyPremium}/mo` : quote.annualPremium ? `$${quote.annualPremium}/yr` : "Quoted"}
+                          <Badge variant="default" className="text-xs">
+                            {quote.monthlyPremium ? `$${Number(quote.monthlyPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo` : quote.annualPremium ? `$${Number(quote.annualPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/yr` : "Quoted"}
                           </Badge>
                         ) : (
                           <Badge variant="destructive" className="text-xs">Error</Badge>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground space-y-0.5">
+                      <div className="text-xs text-on-surface-variant space-y-0.5">
                         <p>Type: {quote.type} · Portal: {quote.portal}</p>
                         {quote.quoteId && <p>Quote #: {quote.quoteId}</p>}
-                        {quote.monthlyPremium && <p>Monthly: ${quote.monthlyPremium}</p>}
-                        {quote.annualPremium && <p>Annual: ${quote.annualPremium}</p>}
+                        {quote.annualPremium && <p>Annual: ${Number(quote.annualPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>}
+                        {quote.annualPremium && !quote.monthlyPremium && (
+                          <p>Monthly: ${(Number(quote.annualPremium) / 12).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        )}
+                        {quote.monthlyPremium && <p>Monthly: ${Number(quote.monthlyPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>}
                         {quote.errorMessage && <p className="text-destructive">{quote.errorMessage}</p>}
                         <p>{new Date(quote.quotedAt).toLocaleString()}</p>
                         {quote.status === "success" && quote.quoteId && (
@@ -432,7 +434,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
             {/* Quoting Steps Progress — only show while running */}
             {contactLeads.length > 0 && isRunning && (
               <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Quoting Steps</h4>
+                <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Quoting Steps</h4>
                 <QuotingSteps status={latestLead?.status || "new"} hasResults={(leadQuotes?.length ?? 0) > 0} currentStage={latestRun?.currentStage ?? undefined} />
               </div>
             )}
@@ -460,49 +462,72 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Calculator className="h-4 w-4" /> Quote for {contact.firstName}
         </h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface"><X className="h-4 w-4" /></button>
       </div>
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center space-y-2">
             <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-            <p className="text-xs text-muted-foreground">Loading carriers...</p>
+            <p className="text-xs text-on-surface-variant">Loading carriers...</p>
           </div>
         </div>
       ) : (
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 space-y-5">
           {/* Show existing quote link if any */}
-          {contactLeads.length > 0 && (
-            <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50/50 p-2.5">
-              <button
-                onClick={() => setView("status")}
-                className="flex-1 text-left"
-              >
-                <span className="text-xs font-medium text-blue-700">
-                  {contactLeads.length} existing quote{contactLeads.length !== 1 ? "s" : ""} — view status
-                </span>
-              </button>
-              <Badge variant="secondary" className="text-[10px]">{latestLead?.status}</Badge>
-              <button
-                onClick={async () => {
-                  for (const lead of contactLeads) {
-                    await removeLead({ id: lead._id });
-                  }
-                }}
-                className="text-[10px] text-destructive hover:underline shrink-0"
-              >
-                Clear
-              </button>
-            </div>
-          )}
+          {contactLeads.length > 0 && (() => {
+            const latestSuccessQuote = (leadQuotes || []).filter((q: any) => q.status === "success").sort((a: any, b: any) => b.quotedAt - a.quotedAt)[0];
+            return (
+              <div className="w-full rounded-lg border border-green-200 bg-green-50/30 p-3">
+                {latestSuccessQuote ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">{latestSuccessQuote.carrier || latestSuccessQuote.portal}</span>
+                      <span className="text-xs font-bold text-green-700">
+                        ${Number(latestSuccessQuote.annualPremium || (latestSuccessQuote.monthlyPremium || 0) * 12).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/yr
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-on-surface-variant">
+                      <span>{new Date(latestSuccessQuote.quotedAt).toLocaleDateString()}</span>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (!confirm("Remove this quote and lead data?")) return;
+                          for (const lead of contactLeads) {
+                            await removeLead({ id: lead._id });
+                          }
+                        }}
+                        className="text-destructive hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-on-surface-variant">Quote in progress...</span>
+                    <button
+                      onClick={async () => {
+                        for (const lead of contactLeads) {
+                          await removeLead({ id: lead._id });
+                        }
+                      }}
+                      className="text-[10px] text-destructive hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Carriers */}
           <section>
-            <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Select Carriers</h4>
+            <h4 className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Select Carriers</h4>
             {availableCarriers.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No carriers configured. Add carriers in Settings.</p>
+              <p className="text-xs text-on-surface-variant">No carriers configured. Add carriers in Settings.</p>
             ) : (
               <div className="space-y-1.5">
                 {availableCarriers.map((carrier: any) => (
@@ -514,7 +539,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                       "w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-all",
                       selectedCarrierIds.has(carrier._id)
                         ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                        : "hover:bg-muted/50"
+                        : "hover:bg-surface-container/50"
                     )}
                   >
                     <div className={cn(
@@ -533,7 +558,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
           {/* Lines of Business */}
           {selectedCarrierIds.size > 0 && availableProducts.length > 0 && (
             <section>
-              <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Lines of Business</h4>
+              <h4 className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Lines of Business</h4>
               <div className="space-y-1.5">
                 {availableProducts.map((product: any) => {
                   const carrier = availableCarriers.find((c: any) => c._id === product.carrierId);
@@ -546,7 +571,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                         "w-full flex items-center gap-3 rounded-lg border p-2.5 text-left transition-all",
                         selectedProductIds.has(product._id)
                           ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                          : "hover:bg-muted/50"
+                          : "hover:bg-surface-container/50"
                       )}
                     >
                       <div className={cn(
@@ -557,7 +582,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                       </div>
                       <div>
                         <p className="text-sm font-medium">{product.name}</p>
-                        {carrier && <p className="text-[10px] text-muted-foreground">{carrier.name}</p>}
+                        {carrier && <p className="text-[10px] text-on-surface-variant">{carrier.name}</p>}
                       </div>
                     </button>
                   );
@@ -573,7 +598,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
       {twoFaState.type !== "idle" && twoFaState.type !== "verified" && (
         <div className="shrink-0 border-t px-4 py-3 space-y-2">
           {twoFaState.type === "checking" && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               {twoFaState.message}
             </div>
@@ -617,7 +642,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
             </div>
           )}
           {twoFaState.type === "submitting_2fa" && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Submitting verification code...
             </div>
@@ -626,7 +651,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
             <div className="flex items-start gap-2 text-xs text-destructive">
               <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <span className="flex-1">{twoFaState.message}</span>
-              <button onClick={() => setTwoFaState({ type: "idle" })} className="text-muted-foreground hover:text-foreground text-[10px] shrink-0">
+              <button onClick={() => setTwoFaState({ type: "idle" })} className="text-on-surface-variant hover:text-on-surface text-[10px] shrink-0">
                 Retry
               </button>
             </div>

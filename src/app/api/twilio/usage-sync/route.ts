@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 const TWILIO_API_BASE = "https://api.twilio.com/2010-04-01";
 

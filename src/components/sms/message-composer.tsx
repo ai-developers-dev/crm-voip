@@ -83,14 +83,14 @@ export function MessageComposer({
           {attachments.map((url, index) => (
             <div
               key={index}
-              className="relative group bg-muted rounded-lg p-2 flex items-center gap-2"
+              className="relative group bg-surface-container rounded-lg p-2 flex items-center gap-2"
             >
               <span className="text-sm truncate max-w-[150px]">
                 Attachment {index + 1}
               </span>
               <button
                 onClick={() => removeAttachment(index)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-on-surface-variant hover:text-on-surface"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -132,7 +132,7 @@ export function MessageComposer({
           <div
             className={cn(
               "absolute right-3 bottom-2 text-xs",
-              isOverLimit ? "text-destructive" : "text-muted-foreground"
+              isOverLimit ? "text-destructive" : "text-on-surface-variant"
             )}
           >
             {charCount > 0 && (
@@ -160,7 +160,7 @@ export function MessageComposer({
       </div>
 
       {/* Hint */}
-      <p className="text-xs text-muted-foreground mt-2">
+      <p className="text-xs text-on-surface-variant mt-2">
         Press Enter to send, Shift+Enter for new line
       </p>
     </div>

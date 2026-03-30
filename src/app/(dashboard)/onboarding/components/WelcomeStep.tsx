@@ -16,7 +16,7 @@ export function WelcomeStep({ organizationName, onNext, onSkip }: WelcomeStepPro
         <h1 className="text-2xl font-bold mb-2">
           Welcome to VoIP CRM, {organizationName}!
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Let&apos;s get your phone system set up in just a few minutes.
         </p>
       </div>
@@ -66,13 +66,13 @@ function SetupItem({
   description: string;
 }) {
   return (
-    <div className="flex items-start gap-3 p-4 rounded-lg border border-border/60 bg-muted/30">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+    <div className="flex items-start gap-3 p-4 rounded-2xl border bg-surface-container/30">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
         <Icon className="h-5 w-5 text-primary" />
       </div>
       <div>
         <h3 className="font-medium">{title}</h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="text-sm text-on-surface-variant">{description}</p>
       </div>
     </div>
   );

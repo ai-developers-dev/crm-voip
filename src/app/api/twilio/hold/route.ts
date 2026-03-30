@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import twilio from "twilio";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { getOrgTwilioClient } from "@/lib/twilio/client";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * Park a call using conference-based parking
@@ -37,38 +36,17 @@ export async function POST(request: NextRequest) {
 
     console.log(`🚗 PARKING CALL - Starting park flow for ${twilioCallSid}`);
 
-    // Get Twilio credentials (check org settings first, then env vars)
-    const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
-
-    if (!org) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 404 }
-      );
-    }
-
     // Get Twilio credentials
-    const twilioCredentials = org.settings?.twilioCredentials;
-    let accountSid: string;
-    let authToken: string;
-
-    if (twilioCredentials?.isConfigured && twilioCredentials.accountSid && twilioCredentials.authToken) {
-      accountSid = twilioCredentials.accountSid;
-      authToken = twilioCredentials.authToken;
-    } else {
-      accountSid = process.env.TWILIO_ACCOUNT_SID || "";
-      authToken = process.env.TWILIO_AUTH_TOKEN || "";
-    }
-
-    if (!accountSid || !authToken) {
+    let result;
+    try {
+      result = await getOrgTwilioClient(orgId);
+    } catch {
       return NextResponse.json(
         { error: "Twilio credentials not configured" },
         { status: 400 }
       );
     }
-
-    // Create Twilio REST client
-    const client = twilio(accountSid, authToken);
+    const { client, org } = result;
 
     // STEP 1: Fetch the browser SDK call to get the parent call SID
     let browserCall;

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
+import { convex } from "@/lib/convex/client";
 import { api } from "../../../../../convex/_generated/api";
 import { getStripeClient } from "@/lib/stripe/client";
 import type { Id } from "../../../../../convex/_generated/dataModel";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: Request) {
   const body = await req.text();

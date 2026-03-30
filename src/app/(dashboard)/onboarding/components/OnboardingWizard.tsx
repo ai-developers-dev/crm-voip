@@ -97,7 +97,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
                       ? "border-primary bg-primary text-primary-foreground"
                       : index === step
                         ? "border-primary text-primary"
-                        : "border-muted-foreground/30 text-muted-foreground"
+                        : "border-muted-foreground/30 text-on-surface-variant"
                   )}
                 >
                   {index < step ? (
@@ -109,7 +109,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
                 <span
                   className={cn(
                     "mt-2 text-xs font-medium hidden sm:block",
-                    index <= step ? "text-foreground" : "text-muted-foreground"
+                    index <= step ? "text-foreground" : "text-on-surface-variant"
                   )}
                 >
                   {s.title}
@@ -119,7 +119,7 @@ export function OnboardingWizard({ organizationName, currentStep: initialStep }:
                 <div
                   className={cn(
                     "h-0.5 w-full min-w-[2rem] sm:min-w-[4rem] mx-2",
-                    index < step ? "bg-primary" : "bg-muted-foreground/30"
+                    index < step ? "bg-primary" : "bg-surface-container-foreground/30"
                   )}
                 />
               )}

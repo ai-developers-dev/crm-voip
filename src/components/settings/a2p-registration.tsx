@@ -416,8 +416,8 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
                 !isActive &&
                   !isComplete &&
                   !isDisabled &&
-                  "bg-muted text-muted-foreground",
-                isDisabled && "bg-muted/50 text-muted-foreground/50"
+                  "bg-surface-containertext-on-surface-variant",
+                isDisabled && "bg-surface-container/50 text-on-surface-variant/50"
               )}
             >
               {isComplete ? (
@@ -444,7 +444,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold">Brand Information</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-on-surface-variant mt-0.5">
           Business details for A2P 10DLC registration
         </p>
       </div>
@@ -582,7 +582,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold">Authorized Contact</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-on-surface-variant mt-0.5">
           Representative authorized to register on behalf of the business
         </p>
       </div>
@@ -651,7 +651,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             }
             className="mt-0.5"
           />
-          <label className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+          <label className="text-xs text-on-surface-variant leading-relaxed cursor-pointer"
             onClick={() => setContactForm((f) => ({ ...f, certify: !f.certify }))}
           >
             I certify I am an authorized representative and this information is
@@ -701,7 +701,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold">Brand Registration</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-on-surface-variant mt-0.5">
           Your brand has been submitted for review
         </p>
       </div>
@@ -712,7 +712,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
             <div className="flex-1">
               <p className="text-sm font-medium">Brand Under Review</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Checking status every 15 seconds...
               </p>
             </div>
@@ -727,7 +727,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             <CheckCircle className="h-5 w-5 text-green-500" />
             <div className="flex-1">
               <p className="text-sm font-medium">Brand Approved</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 You can now set up your campaign
               </p>
             </div>
@@ -742,7 +742,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             <AlertCircle className="h-5 w-5 text-destructive" />
             <div className="flex-1">
               <p className="text-sm font-medium">Brand Registration Failed</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Please review your information and try again
               </p>
             </div>
@@ -784,7 +784,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold">Campaign Setup</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-on-surface-variant mt-0.5">
           Define how you will use SMS messaging
         </p>
       </div>
@@ -811,7 +811,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             </SelectContent>
           </Select>
           {campaignForm.useCase && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-on-surface-variant">
               {USE_CASES.find((uc) => uc.value === campaignForm.useCase)
                 ?.description}
             </p>
@@ -829,7 +829,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             placeholder="Describe how SMS will be used in your business..."
             rows={3}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-on-surface-variant">
             {campaignForm.description.length}/40 characters minimum
           </p>
         </div>
@@ -867,7 +867,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
                     className="h-8 w-8 p-0 shrink-0 mt-1"
                     onClick={() => removeSampleMessage(idx)}
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Trash2 className="h-3.5 w-3.5 text-on-surface-variant" />
                   </Button>
                 )}
               </div>
@@ -942,7 +942,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
               }
             />
             <label
-              className="text-xs text-muted-foreground cursor-pointer"
+              className="text-xs text-on-surface-variant cursor-pointer"
               onClick={() =>
                 setCampaignForm((f) => ({
                   ...f,
@@ -964,7 +964,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
               }
             />
             <label
-              className="text-xs text-muted-foreground cursor-pointer"
+              className="text-xs text-on-surface-variant cursor-pointer"
               onClick={() =>
                 setCampaignForm((f) => ({
                   ...f,
@@ -1019,7 +1019,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold">Campaign Review</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-xs text-on-surface-variant mt-0.5">
           Your campaign has been submitted for carrier review
         </p>
       </div>
@@ -1030,7 +1030,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
             <div className="flex-1">
               <p className="text-sm font-medium">Campaign Under Review</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Carrier review typically takes 7-14 business days
               </p>
             </div>
@@ -1045,7 +1045,7 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
             <AlertCircle className="h-5 w-5 text-destructive" />
             <div className="flex-1">
               <p className="text-sm font-medium">Campaign Rejected</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Please review your campaign details and resubmit
               </p>
             </div>
@@ -1097,13 +1097,13 @@ export function A2pRegistration({ organizationId }: A2pRegistrationProps) {
         <div className="grid grid-cols-2 gap-3">
           {approvedThroughput && (
             <div className="rounded-md border px-3 py-2">
-              <p className="text-xs text-muted-foreground">Throughput</p>
+              <p className="text-xs text-on-surface-variant">Throughput</p>
               <p className="text-sm font-medium">{approvedThroughput} msg/sec</p>
             </div>
           )}
           {messagingServiceSid && (
             <div className="rounded-md border px-3 py-2">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Messaging Service SID
               </p>
               <p className="text-sm font-mono">

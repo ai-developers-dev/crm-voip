@@ -218,7 +218,7 @@ export function PortalDiscoveryDialog({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[10px] text-on-surface-variant">
                 Uses this contact's real name, address, and zip for the NatGen client search instead of fake test data.
               </p>
             </div>
@@ -279,7 +279,7 @@ export function PortalDiscoveryDialog({
               </Button>
             )}
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-on-surface-variant">
               This will open a browser, log into the portal, and navigate every screen to capture form field data.
               The browser will be visible so you can watch the process. Takes 1-3 minutes.
             </p>
@@ -289,7 +289,7 @@ export function PortalDiscoveryDialog({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <div className="text-center">
               <p className="text-sm font-medium">Scanning portal...</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-on-surface-variant mt-1">
                 Logging in → Navigating screens → Capturing fields
               </p>
             </div>
@@ -327,7 +327,7 @@ export function PortalDiscoveryDialog({
               {results?.loginPage && (
                 <button
                   onClick={() => setActiveScreen("_login")}
-                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === "_login" ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === "_login" ? "bg-primary text-primary-foreground font-medium" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"}`}
                 >
                   Login
                 </button>
@@ -335,7 +335,7 @@ export function PortalDiscoveryDialog({
               {results?.clientSearchFields && (
                 <button
                   onClick={() => setActiveScreen("_search")}
-                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === "_search" ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === "_search" ? "bg-primary text-primary-foreground font-medium" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"}`}
                 >
                   Search
                 </button>
@@ -343,7 +343,7 @@ export function PortalDiscoveryDialog({
               {results?.clientInfoFields && (
                 <button
                   onClick={() => setActiveScreen("_clientInfo")}
-                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === "_clientInfo" ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === "_clientInfo" ? "bg-primary text-primary-foreground font-medium" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"}`}
                 >
                   Client Info
                 </button>
@@ -353,7 +353,7 @@ export function PortalDiscoveryDialog({
                 <button
                   key={name}
                   onClick={() => setActiveScreen(name)}
-                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === name ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  className={`px-2.5 py-1 text-[11px] rounded-md transition-colors ${activeScreen === name ? "bg-primary text-primary-foreground font-medium" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"}`}
                 >
                   {formatScreenName(name)}
                 </button>
@@ -381,7 +381,7 @@ export function PortalDiscoveryDialog({
                 )}
                 {currentScreenData && (
                   <>
-                    <div className="text-xs text-muted-foreground mb-2">
+                    <div className="text-xs text-on-surface-variant mb-2">
                       URL: {currentScreenData.url}
                     </div>
                     {currentScreenData.inputs?.length > 0 && (
@@ -400,12 +400,12 @@ export function PortalDiscoveryDialog({
                   <div className="space-y-3">
                     <div className="text-xs">
                       <span className="font-semibold">Post-login URL:</span>{" "}
-                      <span className="font-mono text-muted-foreground break-all">{results.postLoginUrl}</span>
+                      <span className="font-mono text-on-surface-variant break-all">{results.postLoginUrl}</span>
                     </div>
                     {results.postLoginPageText && (
                       <div>
                         <span className="text-xs font-semibold">Page Text:</span>
-                        <pre className="text-[10px] mt-1 p-2 bg-muted rounded max-h-[200px] overflow-auto whitespace-pre-wrap">{results.postLoginPageText}</pre>
+                        <pre className="text-[10px] mt-1 p-2 bg-surface-container rounded max-h-[200px] overflow-auto whitespace-pre-wrap">{results.postLoginPageText}</pre>
                       </div>
                     )}
                     {results.dashboardFields && (
@@ -420,7 +420,7 @@ export function PortalDiscoveryDialog({
                   </div>
                 )}
                 {!currentScreenData && !["_login", "_search", "_clientInfo"].includes(activeScreen) && !results?.postLoginUrl && (
-                  <p className="text-sm text-muted-foreground py-4 text-center">Select a screen tab above</p>
+                  <p className="text-sm text-on-surface-variant py-4 text-center">Select a screen tab above</p>
                 )}
               </div>
             </ScrollArea>
@@ -435,9 +435,9 @@ export function PortalDiscoveryDialog({
 
 function SectionHeader({ title, count, expanded, onToggle }: { title: string; count: number; expanded: boolean; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} className="flex items-center gap-1.5 w-full text-left hover:bg-muted/30 rounded px-1 py-0.5 -mx-1">
-      <ChevronRight className={`h-3 w-3 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
-      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</span>
+    <button onClick={onToggle} className="flex items-center gap-1.5 w-full text-left hover:bg-surface-container-high/30 rounded px-1 py-0.5 -mx-1">
+      <ChevronRight className={`h-3 w-3 text-on-surface-variant transition-transform ${expanded ? "rotate-90" : ""}`} />
+      <span className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">{title}</span>
       <Badge variant="secondary" className="text-[9px] px-1 py-0">{count}</Badge>
     </button>
   );
@@ -452,7 +452,7 @@ function FieldTable({ title, fields, expanded, onToggle }: { title: string; fiel
         <div className="mt-1.5 overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>
-              <tr className="border-b text-muted-foreground">
+              <tr className="border-b text-on-surface-variant">
                 <th className="text-left py-1 px-1.5 font-medium">Name</th>
                 <th className="text-left py-1 px-1.5 font-medium">ID</th>
                 <th className="text-left py-1 px-1.5 font-medium">Type</th>
@@ -461,13 +461,13 @@ function FieldTable({ title, fields, expanded, onToggle }: { title: string; fiel
             </thead>
             <tbody>
               {visible.map((f: any, i: number) => (
-                <tr key={i} className="border-b border-border/30 hover:bg-muted/20">
+                <tr key={i} className="border-b border-border/30 hover:bg-surface-container-high/20">
                   <td className="py-1 px-1.5 font-mono text-[10px]">{f.name || "—"}</td>
-                  <td className="py-1 px-1.5 font-mono text-[10px] text-muted-foreground">{f.id || "—"}</td>
+                  <td className="py-1 px-1.5 font-mono text-[10px] text-on-surface-variant">{f.id || "—"}</td>
                   <td className="py-1 px-1.5">
                     <Badge variant="outline" className="text-[9px] px-1 py-0">{f.type}</Badge>
                   </td>
-                  <td className="py-1 px-1.5 text-muted-foreground truncate max-w-[150px]">{f.label || "—"}</td>
+                  <td className="py-1 px-1.5 text-on-surface-variant truncate max-w-[150px]">{f.label || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -486,11 +486,11 @@ function SelectTable({ title, selects, expanded, onToggle }: { title: string; se
       {expanded && (
         <div className="mt-1.5 space-y-2">
           {visible.map((s: any, i: number) => (
-            <div key={i} className="rounded border bg-muted/20 p-2">
+            <div key={i} className="rounded border bg-surface-container/20 p-2">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-mono text-[10px] font-medium">{s.name || s.id || "unnamed"}</span>
                 <Badge variant="secondary" className="text-[9px] px-1 py-0">{s.optionCount} options</Badge>
-                {s.label && <span className="text-[10px] text-muted-foreground">({s.label})</span>}
+                {s.label && <span className="text-[10px] text-on-surface-variant">({s.label})</span>}
               </div>
               <div className="flex flex-wrap gap-1">
                 {(s.options || []).slice(0, 8).map((o: any, j: number) => (
@@ -499,7 +499,7 @@ function SelectTable({ title, selects, expanded, onToggle }: { title: string; se
                   </span>
                 ))}
                 {(s.options?.length || 0) > 8 && (
-                  <span className="text-[9px] text-muted-foreground">+{s.options.length - 8} more</span>
+                  <span className="text-[9px] text-on-surface-variant">+{s.options.length - 8} more</span>
                 )}
               </div>
             </div>
@@ -518,7 +518,7 @@ function ButtonTable({ title, buttons, expanded, onToggle }: { title: string; bu
         <div className="mt-1.5 overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>
-              <tr className="border-b text-muted-foreground">
+              <tr className="border-b text-on-surface-variant">
                 <th className="text-left py-1 px-1.5 font-medium">Text/Value</th>
                 <th className="text-left py-1 px-1.5 font-medium">ID</th>
                 <th className="text-left py-1 px-1.5 font-medium">Type</th>
@@ -526,9 +526,9 @@ function ButtonTable({ title, buttons, expanded, onToggle }: { title: string; bu
             </thead>
             <tbody>
               {buttons.map((b: any, i: number) => (
-                <tr key={i} className="border-b border-border/30 hover:bg-muted/20">
+                <tr key={i} className="border-b border-border/30 hover:bg-surface-container-high/20">
                   <td className="py-1 px-1.5 font-medium">{b.text || b.value || "—"}</td>
-                  <td className="py-1 px-1.5 font-mono text-[10px] text-muted-foreground">{b.id || "—"}</td>
+                  <td className="py-1 px-1.5 font-mono text-[10px] text-on-surface-variant">{b.id || "—"}</td>
                   <td className="py-1 px-1.5">
                     <Badge variant="outline" className="text-[9px] px-1 py-0">{b.tag}/{b.type || "link"}</Badge>
                   </td>

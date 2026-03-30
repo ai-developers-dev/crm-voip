@@ -223,7 +223,7 @@ export default function TenantUsersSettingsPage() {
   if (!userLoaded || isPlatformUser === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -252,7 +252,7 @@ export default function TenantUsersSettingsPage() {
   if (tenant === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -322,7 +322,7 @@ export default function TenantUsersSettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Team Members</h1>
-            <p className="text-muted-foreground">
+            <p className="text-on-surface-variant">
               Manage users for {tenant.name}
             </p>
           </div>
@@ -351,7 +351,7 @@ export default function TenantUsersSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-100 dark:bg-blue-900/30">
                 <Users className="h-5 w-5 text-blue-600" />
               </div>
               <div>
@@ -390,7 +390,7 @@ export default function TenantUsersSettingsPage() {
                           </Avatar>
                           <div>
                             <p className="font-medium">{u.name || "Unknown User"}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <p className="text-xs text-on-surface-variant flex items-center gap-1">
                               <Mail className="h-3 w-3" />
                               {u.email || "No email"}
                             </p>
@@ -413,11 +413,11 @@ export default function TenantUsersSettingsPage() {
                       <TableCell>
                         {u.extension ? (
                           <span className="flex items-center gap-1 text-sm">
-                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <Phone className="h-3 w-3 text-on-surface-variant" />
                             {u.extension}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
+                          <span className="text-on-surface-variant text-sm">—</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -453,7 +453,7 @@ export default function TenantUsersSettingsPage() {
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-on-surface-variant">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No users found for this organization.</p>
                 <Button onClick={() => { resetForm(); setIsAddDialogOpen(true); }} className="mt-4">
@@ -473,23 +473,23 @@ export default function TenantUsersSettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-center p-4 bg-surface-container/30 rounded-2xl">
                   <p className="text-lg font-bold text-primary">
                     {users.filter(u => u.role === "tenant_admin").length}
                   </p>
-                  <p className="text-sm text-muted-foreground">Admins</p>
+                  <p className="text-sm text-on-surface-variant">Admins</p>
                 </div>
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-center p-4 bg-surface-container/30 rounded-2xl">
                   <p className="text-lg font-bold text-blue-600">
                     {users.filter(u => u.role === "supervisor").length}
                   </p>
-                  <p className="text-sm text-muted-foreground">Supervisors</p>
+                  <p className="text-sm text-on-surface-variant">Supervisors</p>
                 </div>
-                <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-center p-4 bg-surface-container/30 rounded-2xl">
                   <p className="text-lg font-bold text-green-600">
                     {users.filter(u => u.role === "agent").length}
                   </p>
-                  <p className="text-sm text-muted-foreground">Agents</p>
+                  <p className="text-sm text-on-surface-variant">Agents</p>
                 </div>
               </div>
             </CardContent>
@@ -539,7 +539,7 @@ export default function TenantUsersSettingsPage() {
                 <Label htmlFor="role">Role</Label>
                 <select
                   id="role"
-                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                  className="flex h-9 w-full rounded-xl border border-input bg-surface-container-lowest px-3 py-1 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                   value={formData.role}
                   onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as any }))}
                 >
@@ -569,7 +569,7 @@ export default function TenantUsersSettingsPage() {
                   value={formData.agentCommissionSplit}
                   onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+                <p className="text-xs text-on-surface-variant">Percentage of agency commission this agent receives</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="renewal-split">Agent Renewal %</Label>
@@ -583,7 +583,7 @@ export default function TenantUsersSettingsPage() {
                   value={formData.agentRenewalSplit}
                   onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
+                <p className="text-xs text-on-surface-variant">Percentage of agency renewal commission this agent receives</p>
               </div>
             </div>
             <DialogFooter>
@@ -651,7 +651,7 @@ export default function TenantUsersSettingsPage() {
                 <Label htmlFor="edit-role">Role</Label>
                 <select
                   id="edit-role"
-                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                  className="flex h-9 w-full rounded-xl border border-input bg-surface-container-lowest px-3 py-1 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                   value={formData.role}
                   onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as any }))}
                 >
@@ -680,7 +680,7 @@ export default function TenantUsersSettingsPage() {
                   value={formData.agentCommissionSplit}
                   onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+                <p className="text-xs text-on-surface-variant">Percentage of agency commission this agent receives</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-renewal-split">Agent Renewal %</Label>
@@ -694,7 +694,7 @@ export default function TenantUsersSettingsPage() {
                   value={formData.agentRenewalSplit}
                   onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
+                <p className="text-xs text-on-surface-variant">Percentage of agency renewal commission this agent receives</p>
               </div>
             </div>
             <DialogFooter>

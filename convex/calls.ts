@@ -155,18 +155,15 @@ export const createOrGetIncoming = mutation({
       return existing._id;
     }
 
-    // Lookup contact by phone number for caller ID
-    const contacts = await ctx.db
-      .query("contacts")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-      .collect();
-
+    // Lookup contact by phone number for caller ID (using lookup table for O(1))
     const normalizedFrom = args.from.replace(/\D/g, "").slice(-10);
-    const matchingContact = contacts.find((c) =>
-      c.phoneNumbers.some(
-        (p) => p.number.replace(/\D/g, "").slice(-10) === normalizedFrom
+    const phoneLookup = await ctx.db
+      .query("contactPhoneLookup")
+      .withIndex("by_org_phone", (q) =>
+        q.eq("organizationId", args.organizationId).eq("normalizedPhone", normalizedFrom)
       )
-    );
+      .first();
+    const matchingContact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
 
     const fromName = matchingContact
       ? `${matchingContact.firstName}${matchingContact.lastName ? " " + matchingContact.lastName : ""}`
@@ -234,7 +231,7 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
       return;
     }
 
-    const updates: any = {
+    const updates: Record<string, string | number> = {
       state: args.state,
     };
 
@@ -266,17 +263,15 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
       // Trigger workflow: missed_call (no answer, busy, canceled)
       const callOutcome = (args.outcome as string) || "answered";
       if (callOutcome !== "answered" && call.direction === "inbound") {
-        // Find contact by caller phone number
+        // Find contact by caller phone number (using lookup table for O(1))
         const normalizedFrom = call.from.replace(/\D/g, "").slice(-10);
-        const contacts = await ctx.db
-          .query("contacts")
-          .withIndex("by_organization", (q) => q.eq("organizationId", call.organizationId))
-          .collect();
-        const matchingContact = contacts.find((c) =>
-          c.phoneNumbers.some(
-            (p) => p.number.replace(/\D/g, "").slice(-10) === normalizedFrom
+        const phoneLookup = await ctx.db
+          .query("contactPhoneLookup")
+          .withIndex("by_org_phone", (q) =>
+            q.eq("organizationId", call.organizationId).eq("normalizedPhone", normalizedFrom)
           )
-        );
+          .first();
+        const matchingContact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
         if (matchingContact) {
           await ctx.scheduler.runAfter(0, internal.workflowEngine.checkTriggers, {
             organizationId: call.organizationId,
@@ -872,7 +867,7 @@ export const getIncomingCallData = query({
     // Step 3: Filter to available agents with recent heartbeats
     const availablePresence = presenceRecords.filter(
       (p) =>
-        now - p.lastHeartbeat < 30000 &&
+        now - p.lastHeartbeat < 60000 &&
         (p.status === "available" || p.status === "on_break")
     );
 
@@ -947,5 +942,55 @@ export const getIncomingCallData = query({
       },
       agents,
     };
+  },
+});
+
+// Store voicemail transcription from Twilio webhook
+export const storeTranscription = mutation({
+  args: {
+    twilioCallSid: v.string(),
+    transcriptionSid: v.string(),
+    transcriptionText: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const callHistory = await ctx.db
+      .query("callHistory")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+
+    if (callHistory) {
+      await ctx.db.patch(callHistory._id, {
+        transcriptionText: args.transcriptionText,
+        transcriptionSid: args.transcriptionSid,
+      });
+      return { updated: true, callHistoryId: callHistory._id };
+    }
+
+    return { updated: false };
+  },
+});
+
+// Store recording URL from Twilio recording status callback
+export const storeRecording = mutation({
+  args: {
+    twilioCallSid: v.string(),
+    recordingUrl: v.string(),
+    recordingDuration: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const callHistory = await ctx.db
+      .query("callHistory")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+
+    if (callHistory) {
+      await ctx.db.patch(callHistory._id, {
+        recordingUrl: args.recordingUrl,
+        recordingDuration: args.recordingDuration,
+      });
+      return { updated: true, callHistoryId: callHistory._id };
+    }
+
+    return { updated: false };
   },
 });

@@ -537,7 +537,7 @@ export function FieldMapperDialog({
               Start Field Mapper — {selectedQuoteType || "select quote type"}
             </Button>
 
-            <div className="text-xs text-muted-foreground space-y-1">
+            <div className="text-xs text-on-surface-variant space-y-1">
               <p>1. Browser opens and logs into the carrier portal</p>
               <p>2. A floating "Field Mapper" panel appears on the portal page</p>
               <p>3. <b>Capture Mode:</b> Hover highlights fields, click records the selector</p>
@@ -599,7 +599,7 @@ export function FieldMapperDialog({
         {status === "starting" && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Opening browser and logging in...</p>
+            <p className="text-sm text-on-surface-variant">Opening browser and logging in...</p>
           </div>
         )}
 
@@ -607,7 +607,7 @@ export function FieldMapperDialog({
         {status === "saving" && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Saving field mappings...</p>
+            <p className="text-sm text-on-surface-variant">Saving field mappings...</p>
           </div>
         )}
 
@@ -632,7 +632,7 @@ export function FieldMapperDialog({
             </div>
 
             {currentUrl && (
-              <div className="text-[10px] text-muted-foreground font-mono truncate">
+              <div className="text-[10px] text-on-surface-variant font-mono truncate">
                 {currentUrl}
               </div>
             )}
@@ -642,7 +642,7 @@ export function FieldMapperDialog({
               <span className="text-[10px] text-purple-600">
                 📄 Auto-capturing source on every screen — {Object.keys(sources).length} screen{Object.keys(sources).length !== 1 ? "s" : ""} captured
                 {Object.keys(sources).length > 0 && (
-                  <span className="text-muted-foreground"> ({Object.keys(sources).join(", ")})</span>
+                  <span className="text-on-surface-variant"> ({Object.keys(sources).join(", ")})</span>
                 )}
               </span>
               {Object.keys(sources).length > 0 && (
@@ -818,7 +818,7 @@ function CaptureResults({
             );
           })}
           {total === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-on-surface-variant text-center py-4">
               No fields captured yet. Click on form fields in the portal browser.
             </p>
           )}
@@ -843,7 +843,7 @@ function ScreenWithSource({
 }) {
   return (
     <div>
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">
         {screen}
         {hasSource && (
           <span className="text-purple-500 normal-case font-normal">📄 source captured</span>
@@ -920,7 +920,7 @@ function LiveEditFieldRow({
         {onDelete && (
           <button
             onClick={onDelete}
-            className="text-muted-foreground hover:text-destructive transition-colors p-0.5 rounded shrink-0"
+            className="text-on-surface-variant hover:text-destructive transition-colors p-0.5 rounded shrink-0"
             title="Remove field"
           >
             <AlertCircle className="h-3 w-3" />

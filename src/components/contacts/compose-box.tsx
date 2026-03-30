@@ -37,7 +37,7 @@ const EmojiPicker = dynamic(() =>
       default: (props: any) => <Picker data={data} {...props} />,
     };
   }),
-  { ssr: false, loading: () => <div className="p-8 text-center text-xs text-muted-foreground">Loading...</div> }
+  { ssr: false, loading: () => <div className="p-8 text-center text-xs text-on-surface-variant">Loading...</div> }
 );
 
 type ChannelType = "sms" | "email";
@@ -206,11 +206,12 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
   // Collapsed state
   if (!isExpanded) {
     return (
-      <div className="border-t bg-background px-3 py-2">
-        <div
-          onClick={() => setIsExpanded(true)}
-          className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 cursor-text hover:border-primary/30 transition-colors"
-        >
+      <div
+        onClick={() => setIsExpanded(true)}
+        className="border-t bg-background px-3 py-2 cursor-pointer hover:bg-surface-container-high/20 transition-colors"
+      >
+        <div className="flex items-center gap-2 rounded-lg border bg-surface-container/30 px-3 py-2.5">
+
           {/* Channel selector */}
           <Popover open={channelMenuOpen} onOpenChange={setChannelMenuOpen}>
             <PopoverTrigger asChild>
@@ -230,8 +231,8 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
                   onClick={() => { setChannel(opt.type); setChannelMenuOpen(false); }}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    opt.enabled ? "hover:bg-muted" : "opacity-40 cursor-not-allowed",
-                    channel === opt.type && "bg-muted"
+                    opt.enabled ? "hover:bg-surface-container-high" : "opacity-40 cursor-not-allowed",
+                    channel === opt.type && "bg-surface-container"
                   )}
                 >
                   <opt.icon className="h-5 w-5 text-primary" />
@@ -242,7 +243,7 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
             </PopoverContent>
           </Popover>
 
-          <span className="text-sm text-muted-foreground flex-1">Type a message...</span>
+          <span className="text-sm text-on-surface-variant flex-1">Type a message...</span>
 
           {/* Send button */}
           <Button
@@ -274,17 +275,17 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
           <div className="flex items-center gap-4 flex-1 min-w-0">
             {channel === "sms" ? (
               <>
-                <span className="text-muted-foreground">
+                <span className="text-on-surface-variant">
                   <strong>From:</strong>{" "}
                   <span className="text-foreground">{fromNumber || "No number"}</span>
                 </span>
-                <span className="text-muted-foreground">
+                <span className="text-on-surface-variant">
                   <strong>To:</strong>{" "}
                   <span className="text-foreground">{primaryPhone || "No number"}</span>
                 </span>
               </>
             ) : (
-              <span className="text-muted-foreground">
+              <span className="text-on-surface-variant">
                 <strong>From:</strong>{" "}
                 <span className="text-foreground">{activeEmailAccount?.email || "No email connected"}</span>
               </span>
@@ -303,33 +304,33 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
         {channel === "email" && (
           <div className="mt-2 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground w-8 text-right text-xs">To:</span>
+              <span className="text-on-surface-variant w-8 text-right text-xs">To:</span>
               <input
                 type="email"
                 value={emailTo || contactEmail}
                 onChange={(e) => setEmailTo(e.target.value)}
                 placeholder="recipient@example.com"
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-on-surface-variant"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground w-8 text-right text-xs">Cc:</span>
+              <span className="text-on-surface-variant w-8 text-right text-xs">Cc:</span>
               <input
                 type="text"
                 value={emailCc}
                 onChange={(e) => setEmailCc(e.target.value)}
                 placeholder="cc@example.com"
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-on-surface-variant"
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground w-8 text-right text-xs">Subj:</span>
+              <span className="text-on-surface-variant w-8 text-right text-xs">Subj:</span>
               <input
                 type="text"
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
                 placeholder="Subject"
-                className="flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-on-surface-variant"
               />
             </div>
           </div>
@@ -345,7 +346,7 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
           rows={3}
-          className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="w-full resize-none bg-transparent text-sm outline-none placeholder:text-on-surface-variant"
           style={{ minHeight: "72px", maxHeight: "160px" }}
         />
       </div>
@@ -356,11 +357,11 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
           {attachments.map((file, i) => (
             <div
               key={i}
-              className="flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs"
+              className="flex items-center gap-1.5 rounded-md bg-surface-container px-2 py-1 text-xs"
             >
-              <Paperclip className="h-3 w-3 text-muted-foreground" />
+              <Paperclip className="h-3 w-3 text-on-surface-variant" />
               <span className="max-w-[120px] truncate">{file.name}</span>
-              <button onClick={() => removeAttachment(i)} className="text-muted-foreground hover:text-foreground">
+              <button onClick={() => removeAttachment(i)} className="text-on-surface-variant hover:text-on-surface">
                 <X className="h-3 w-3" />
               </button>
             </div>
@@ -374,7 +375,7 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
           {/* Channel selector */}
           <Popover open={channelMenuOpen} onOpenChange={setChannelMenuOpen}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-0.5 rounded-md px-2 py-1.5 text-primary hover:bg-muted transition-colors">
+              <button className="flex items-center gap-0.5 rounded-md px-2 py-1.5 text-primary hover:bg-surface-container-high transition-colors">
                 <ChannelIcon className="h-5 w-5" />
                 <ChevronDown className="h-3 w-3" />
               </button>
@@ -387,8 +388,8 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
                   onClick={() => { setChannel(opt.type); setChannelMenuOpen(false); }}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                    opt.enabled ? "hover:bg-muted" : "opacity-40 cursor-not-allowed",
-                    channel === opt.type && "bg-muted"
+                    opt.enabled ? "hover:bg-surface-container-high" : "opacity-40 cursor-not-allowed",
+                    channel === opt.type && "bg-surface-container"
                   )}
                 >
                   <opt.icon className="h-5 w-5 text-primary" />
@@ -404,7 +405,7 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
           {/* Emoji picker */}
           <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
             <PopoverTrigger asChild>
-              <button className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+              <button className="rounded-md p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors">
                 <Smile className="h-5 w-5" />
               </button>
             </PopoverTrigger>
@@ -422,7 +423,7 @@ export function ComposeBox({ contact, organizationId }: ComposeBoxProps) {
           {/* Attachment */}
           <button
             onClick={handleAttachClick}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="rounded-md p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
           >
             <Paperclip className="h-5 w-5" />
           </button>

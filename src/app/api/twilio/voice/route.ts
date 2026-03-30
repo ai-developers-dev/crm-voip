@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import twilio from "twilio";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
@@ -9,8 +9,6 @@ import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
-// Convex HTTP client for database operations
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(request: NextRequest) {
   let callSid = "unknown";
@@ -47,8 +45,37 @@ export async function POST(request: NextRequest) {
 
     if (isOutboundFromBrowser && to && !to.startsWith("client:")) {
       // Outbound call from browser to PSTN
+      // Determine caller ID: use org's configured phone number, not browser client identity
+      let callerId = process.env.TWILIO_PHONE_NUMBER || "";
+      try {
+        // Parse org ID from client identity: "client:org_xxx-user_xxx"
+        const clientIdentity = from.replace("client:", "");
+        const clerkOrgId = clientIdentity.split("-user_")[0];
+        if (clerkOrgId) {
+          const org = await convex.query(api.organizations.getCurrent, { clerkOrgId });
+          if (org) {
+            const phoneNumbers = await convex.query(api.phoneNumbers.getByOrganization, {
+              organizationId: org._id,
+            });
+            if (phoneNumbers.length > 0) {
+              callerId = phoneNumbers[0].phoneNumber;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch org phone number for caller ID, using env fallback:", err);
+      }
+
+      if (!callerId) {
+        console.error("No caller ID available for outbound call");
+        twiml.say({ voice: "alice" }, "Unable to place call. Phone system not configured.");
+        return new NextResponse(twiml.toString(), {
+          headers: { "Content-Type": "text/xml" },
+        });
+      }
+
       const dial = twiml.dial({
-        callerId: process.env.TWILIO_PHONE_NUMBER || from,
+        callerId,
         timeout: 30,
         action: `${appUrl}/api/twilio/dial-status`,
         record: "record-from-answer-dual",

@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { getStripeClient } from "@/lib/stripe/client";
 import type { Id } from "../../../../../convex/_generated/dataModel";
 import Stripe from "stripe";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(req: Request) {
   const { userId, orgId } = await auth();

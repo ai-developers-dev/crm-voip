@@ -257,7 +257,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
   const stripCommas = (val: string) => val.replace(/,/g, "");
 
   const selectClasses =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm";
+    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -268,13 +268,13 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
 
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-4">
           {/* Agent & Contact info */}
-          <div className="rounded-md border p-3 space-y-1 bg-muted/30">
+          <div className="rounded-md border p-3 space-y-1 bg-surface-container/30">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Agent</span>
+              <span className="text-on-surface-variant">Agent</span>
               <span className="font-medium">{currentUser?.name ?? "Loading..."}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Insured</span>
+              <span className="text-on-surface-variant">Insured</span>
               <span className="font-medium">
                 {contact.firstName} {contact.lastName}
               </span>
@@ -286,7 +286,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
             <div className="space-y-2">
               <Label htmlFor="saleType">Sale Type</Label>
               {saleTypes && saleTypes.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-on-surface-variant">
                   No sale types configured.
                 </p>
               ) : (
@@ -339,7 +339,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
           <div className="space-y-2">
             <Label htmlFor="carrier">Carrier</Label>
             {carriers && carriers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-on-surface-variant">
                 No carriers configured. Contact your admin to set up carriers.
               </p>
             ) : (
@@ -367,7 +367,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
               <div key={index} className="flex items-end gap-2">
                 <div className="flex-1 space-y-1">
                   {index === 0 && (
-                    <span className="text-xs text-muted-foreground">Line of Business</span>
+                    <span className="text-xs text-on-surface-variant">Line of Business</span>
                   )}
                   <select
                     value={item.productId}
@@ -392,7 +392,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
                 </div>
                 <div className="w-32 space-y-1">
                   {index === 0 && (
-                    <span className="text-xs text-muted-foreground">Premium</span>
+                    <span className="text-xs text-on-surface-variant">Premium</span>
                   )}
                   <Input
                     type="number"
@@ -412,7 +412,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
                   onClick={() => removeLineItem(index)}
                   disabled={lineItems.length === 1}
                 >
-                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  <Trash2 className="h-4 w-4 text-on-surface-variant" />
                 </Button>
               </div>
             ))}
@@ -460,7 +460,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
           {/* End Date (read-only) */}
           {endDate && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">End Date</span>
+              <span className="text-on-surface-variant">End Date</span>
               <span className="font-medium">
                 {(() => {
                   const [y, m, d] = endDate.split("-").map(Number);
@@ -492,7 +492,7 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
               <div className="grid grid-cols-2 gap-3">
                 {mergedCoverageFields.map((field) => (
                   <div key={field.key} className="space-y-1">
-                    <span className="text-xs text-muted-foreground">{field.label}</span>
+                    <span className="text-xs text-on-surface-variant">{field.label}</span>
                     {field.type === "select" && field.options?.length ? (
                       <select
                         value={coverages[field.key] ?? ""}

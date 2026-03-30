@@ -185,7 +185,7 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
 
       <div className="px-4 py-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-on-surface-variant" />
           <Input
             placeholder="Search policies..."
             value={search}
@@ -198,7 +198,7 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
       <ScrollArea className="flex-1">
         <div className="space-y-2 px-4 pb-4">
           {!isLoading && !hasResults && (
-            <p className="text-sm text-muted-foreground text-center py-8">No policies found</p>
+            <p className="text-sm text-on-surface-variant text-center py-8">No policies found</p>
           )}
 
           {/* Sales (from sales table) */}
@@ -226,7 +226,7 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                       </a>
                       {sale.policyNumber && (
                         <div className="flex items-center gap-1 mt-0.5">
-                          <p className="text-xs text-muted-foreground">#{sale.policyNumber}</p>
+                          <p className="text-xs text-on-surface-variant">#{sale.policyNumber}</p>
                           {copiedPolicyId === sale._id && (
                             <span className="flex items-center gap-0.5 text-xs text-green-600 animate-in fade-in duration-200">
                               <ClipboardCheck className="h-3 w-3" /> Copied
@@ -270,11 +270,11 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                         {item.productName}
                       </Badge>
                     ))}
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="text-xs font-medium text-on-surface-variant">
                       {formatCurrency(sale.totalPremium)}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-on-surface-variant">
                     Eff: {new Date(sale.effectiveDate).toLocaleDateString()}
                     {" - "}
                     Exp: {new Date(sale.endDate).toLocaleDateString()}
@@ -290,7 +290,7 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                 >
                   <button
                     onClick={() => toggleExpand(sale._id)}
-                    className="flex items-center justify-center w-8 h-5 rounded-b-md text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center justify-center w-8 h-5 rounded-b-md text-on-surface-variant hover:text-on-surface transition-colors"
                   >
                     <ChevronDown
                       className={cn(
@@ -313,24 +313,24 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                       {/* Policy Details */}
                       {sale.saleTypeName && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Sale Type</span>
+                          <span className="text-on-surface-variant">Sale Type</span>
                           <span className="font-medium">{sale.saleTypeName}</span>
                         </div>
                       )}
                       {sale.policyNumber && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Policy Number</span>
+                          <span className="text-on-surface-variant">Policy Number</span>
                           <span className="font-medium">#{sale.policyNumber}</span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Status</span>
+                        <span className="text-on-surface-variant">Status</span>
                         <Badge variant="secondary" className="text-xs px-1.5 py-0">
                           {sale.status}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Carrier</span>
+                        <span className="text-on-surface-variant">Carrier</span>
                         <a
                           href={(sale as any).carrierUrl || "#"}
                           onClick={(e) => handleCarrierClick(e, sale)}
@@ -340,7 +340,7 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                         </a>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Lines of Business</span>
+                        <span className="text-on-surface-variant">Lines of Business</span>
                         <div className="flex gap-1 flex-wrap justify-end">
                           {sale.lineItems.map((item) => (
                             <Badge key={item._id} variant="outline" className="text-xs px-1.5 py-0">
@@ -350,19 +350,19 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                         </div>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Premium</span>
+                        <span className="text-on-surface-variant">Premium</span>
                         <span className="font-medium">{formatCurrency(sale.totalPremium)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Effective Date</span>
+                        <span className="text-on-surface-variant">Effective Date</span>
                         <span className="font-medium">{new Date(sale.effectiveDate).toLocaleDateString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Expiration Date</span>
+                        <span className="text-on-surface-variant">Expiration Date</span>
                         <span className="font-medium">{new Date(sale.endDate).toLocaleDateString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Agent</span>
+                        <span className="text-on-surface-variant">Agent</span>
                         <span className="font-medium">{sale.userName}</span>
                       </div>
 
@@ -405,14 +405,14 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                         return (
                           <>
                             <div className="border-t border-border/40 pt-1.5 mt-1.5">
-                              <span className="text-xs font-semibold text-muted-foreground">Coverages</span>
+                              <span className="text-xs font-semibold text-on-surface-variant">Coverages</span>
                             </div>
                             {orderedFields.map((field) => {
                               const value = coverages[field.key];
                               if (!value) return null;
                               return (
                                 <div key={field.key} className="flex justify-between">
-                                  <span className="text-muted-foreground">{field.label}</span>
+                                  <span className="text-on-surface-variant">{field.label}</span>
                                   <span className="font-medium">{formatValue(field.key, value, field.type)}</span>
                                 </div>
                               );
@@ -433,7 +433,7 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium leading-tight">{policy.carrier}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">#{policy.policyNumber}</p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">#{policy.policyNumber}</p>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -459,13 +459,13 @@ export function PoliciesPanel({ contact, organizationId, userId, isAdmin, onClos
                   {typeLabels[policy.type]}
                 </Badge>
                 {policy.premiumAmount != null && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-on-surface-variant">
                     {formatCurrency(policy.premiumAmount)}/{policy.premiumFrequency || "annual"}
                   </span>
                 )}
               </div>
               {(policy.effectiveDate || policy.expirationDate) && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-on-surface-variant">
                   {policy.effectiveDate && `Eff: ${new Date(policy.effectiveDate).toLocaleDateString()}`}
                   {policy.effectiveDate && policy.expirationDate && " - "}
                   {policy.expirationDate && `Exp: ${new Date(policy.expirationDate).toLocaleDateString()}`}

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
 import { listVoices } from "@/lib/retell/client";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function GET(req: Request) {
   try {

@@ -9,11 +9,11 @@ export default function OnboardingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-surface">
       {/* Simple header - no sidebar */}
-      <header className="border-b border-border/60 bg-card">
+      <header className="bg-surface-container-lowest">
         <div className="container mx-auto flex h-14 items-center px-4">
-          <Link href="/" className="flex items-center gap-2 text-foreground">
+          <Link href="/" className="flex items-center gap-2 text-on-surface">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
               <Phone className="h-4 w-4 text-primary" />
             </div>

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import twilio from "twilio";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
+import { getOrgTwilioClient } from "@/lib/twilio/client";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * Put a call on hold using conference-based hold
@@ -46,35 +45,16 @@ export async function POST(request: NextRequest) {
     console.log(`⏸️ HOLD CALL - Starting hold flow for ${twilioCallSid}`);
 
     // Get Twilio credentials
-    const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
-
-    if (!org) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 404 }
-      );
-    }
-
-    const twilioCredentials = org.settings?.twilioCredentials;
-    let accountSid: string;
-    let authToken: string;
-
-    if (twilioCredentials?.isConfigured && twilioCredentials.accountSid && twilioCredentials.authToken) {
-      accountSid = twilioCredentials.accountSid;
-      authToken = twilioCredentials.authToken;
-    } else {
-      accountSid = process.env.TWILIO_ACCOUNT_SID || "";
-      authToken = process.env.TWILIO_AUTH_TOKEN || "";
-    }
-
-    if (!accountSid || !authToken) {
+    let result;
+    try {
+      result = await getOrgTwilioClient(orgId);
+    } catch {
       return NextResponse.json(
         { error: "Twilio credentials not configured" },
         { status: 400 }
       );
     }
-
-    const client = twilio(accountSid, authToken);
+    const { client, org } = result;
 
     // STEP 1: Fetch the browser SDK call to get the parent PSTN call
     let browserCall;

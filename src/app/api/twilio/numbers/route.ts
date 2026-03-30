@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 import { searchAvailableNumbers, purchasePhoneNumber, releasePhoneNumber } from "@/lib/twilio/provisioning";
 import type { Id } from "../../../../../convex/_generated/dataModel";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // Search available phone numbers
 export async function GET(req: Request) {

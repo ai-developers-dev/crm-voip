@@ -34,7 +34,7 @@ export function IncomingCallPopup({
   }, [call.startedAt]);
 
   return (
-    <div className="w-full bg-purple-600 text-white px-4 py-2 animate-in slide-in-from-top-2 shadow-md">
+    <div className="w-full border-b border-blue-800/20 bg-primary px-4 py-2 text-white animate-in slide-in-from-top-2">
       <div className="flex items-center justify-between gap-4">
         {/* Pulsing phone icon + Caller info */}
         <div className="flex items-center gap-3">
@@ -42,11 +42,11 @@ export function IncomingCallPopup({
             <Phone className="h-4 w-4" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Incoming Call:</span>
+            <span className="font-extrabold">Incoming Call:</span>
             <span className="font-medium">
               {call.fromName || call.from}
             </span>
-            <span className="text-purple-200 text-sm">
+            <span className="text-blue-100 text-sm">
               ({ringTime}s)
             </span>
           </div>
@@ -85,7 +85,7 @@ export function IncomingCallPopup({
 
       {/* Multi-call indicator */}
       {hasActiveCall && (
-        <div className="mt-1 text-xs text-purple-200">
+        <div className="mt-1 text-xs text-blue-100">
           Your current call will be placed on hold
         </div>
       )}

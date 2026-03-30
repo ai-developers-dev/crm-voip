@@ -58,8 +58,9 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
   });
   const deviceRef = useRef<Device | null>(null);
 
-  // Use ref to track call count to avoid stale closures in event handlers
+  // Use refs to avoid stale closures in event handlers and callbacks
   const callsRef = useRef<Map<string, CallInfo>>(new Map());
+  const focusedCallSidRef = useRef<string | null>(null);
   const maxCallsRef = useRef(maxConcurrentCalls);
 
   // Refs for reconnection logic
@@ -80,6 +81,10 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
   useEffect(() => {
     callsRef.current = state.calls;
   }, [state.calls]);
+
+  useEffect(() => {
+    focusedCallSidRef.current = state.focusedCallSid;
+  }, [state.focusedCallSid]);
 
   useEffect(() => {
     maxCallsRef.current = maxConcurrentCalls;
@@ -203,8 +208,8 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       } catch (error) {
         console.error("Reconnection attempt failed:", error);
         isReconnectingRef.current = false;
-        // Schedule another attempt
-        setTimeout(() => attemptReconnect(), RECONNECT_BASE_DELAY_MS);
+        // Let attemptReconnect handle max-attempt guard and backoff
+        attemptReconnect();
       }
     }, delay);
   }, []);
@@ -578,17 +583,19 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
   // Answer a specific incoming call (by callSid)
   const answerCallBySid = useCallback(async (callSid: string, holdOthers: boolean = true) => {
-    const callInfo = state.calls.get(callSid);
+    // Use refs for latest state to avoid stale closures
+    const callInfo = callsRef.current.get(callSid);
     if (!callInfo || callInfo.status !== "pending") {
       console.error(`Cannot answer call ${callSid} - not found or not pending`);
       return false;
     }
 
     // If holdOthers is true, put current focused call on hold first
-    if (holdOthers && state.focusedCallSid && state.focusedCallSid !== callSid) {
-      const currentCall = state.calls.get(state.focusedCallSid);
+    const currentFocusedSid = focusedCallSidRef.current;
+    if (holdOthers && currentFocusedSid && currentFocusedSid !== callSid) {
+      const currentCall = callsRef.current.get(currentFocusedSid);
       if (currentCall && currentCall.status === "open" && !currentCall.isHeld) {
-        await holdCall(state.focusedCallSid);
+        await holdCall(currentFocusedSid);
       }
     }
 
@@ -631,7 +638,8 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     }
 
     return true;
-  }, [state.calls, state.focusedCallSid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Legacy: Answer the first pending incoming call (backward compatibility)
   const answerCall = useCallback(async () => {

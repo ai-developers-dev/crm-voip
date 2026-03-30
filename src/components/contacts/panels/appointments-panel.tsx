@@ -61,7 +61,7 @@ export function AppointmentsPanel({ contact, organizationId, userId, onClose }: 
 
       <div className="px-4 py-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-on-surface-variant" />
           <Input
             placeholder="Search appointments..."
             value={search}
@@ -74,14 +74,14 @@ export function AppointmentsPanel({ contact, organizationId, userId, onClose }: 
       <ScrollArea className="flex-1">
         <div className="space-y-2 px-4 pb-4">
           {filtered?.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No appointments found</p>
+            <p className="text-sm text-on-surface-variant text-center py-8">No appointments found</p>
           )}
           {filtered?.map((appt) => (
             <div key={appt._id} className="rounded-lg border p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium leading-tight">{appt.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-on-surface-variant mt-0.5">
                     {new Date(appt.appointmentDate).toLocaleDateString()} at{" "}
                     {new Date(appt.appointmentDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
@@ -103,7 +103,7 @@ export function AppointmentsPanel({ contact, organizationId, userId, onClose }: 
                 </DropdownMenu>
               </div>
               {appt.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{appt.description}</p>
+                <p className="text-xs text-on-surface-variant line-clamp-2">{appt.description}</p>
               )}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge variant="secondary" className="text-xs px-1.5 py-0">
@@ -113,7 +113,7 @@ export function AppointmentsPanel({ contact, organizationId, userId, onClose }: 
                   {typeLabels[appt.type]}
                 </Badge>
                 {appt.location && (
-                  <span className="text-xs text-muted-foreground">{appt.location}</span>
+                  <span className="text-xs text-on-surface-variant">{appt.location}</span>
                 )}
               </div>
             </div>

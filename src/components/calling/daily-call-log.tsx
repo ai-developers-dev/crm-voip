@@ -32,7 +32,7 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
 
   if (callLog === undefined) {
     return (
-      <div className="py-4 text-center text-sm text-muted-foreground">
+      <div className="py-4 text-center text-sm text-on-surface-variant">
         Loading call log...
       </div>
     );
@@ -40,7 +40,7 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
 
   if (callLog.length === 0) {
     return (
-      <div className="py-6 text-center text-sm text-muted-foreground">
+      <div className="py-6 text-center text-sm text-on-surface-variant">
         No calls today
       </div>
     );
@@ -63,7 +63,7 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
             key={call._id}
             className={`flex items-center gap-3 px-3 py-2 ${
               hasContact
-                ? "cursor-pointer hover:bg-muted/50 transition-colors"
+                ? "cursor-pointer hover:bg-surface-container-high/50 transition-colors"
                 : ""
             }`}
             onClick={() => {
@@ -94,11 +94,11 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
                   {callerDisplay}
                 </span>
                 {hasContact && (
-                  <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <ExternalLink className="h-3 w-3 text-on-surface-variant shrink-0" />
                 )}
               </div>
               {/* Handler + outcome */}
-              <div className="text-xs text-muted-foreground truncate">
+              <div className="text-xs text-on-surface-variant truncate">
                 {isMissed
                   ? "Missed"
                   : call.handledByName
@@ -110,7 +110,7 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
             </div>
 
             {/* Duration */}
-            <div className="shrink-0 text-xs text-muted-foreground text-right">
+            <div className="shrink-0 text-xs text-on-surface-variant text-right">
               {call.talkTime && call.talkTime > 0 ? (
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
@@ -122,7 +122,7 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
             </div>
 
             {/* Time */}
-            <div className="shrink-0 text-xs text-muted-foreground w-16 text-right">
+            <div className="shrink-0 text-xs text-on-surface-variant w-16 text-right">
               {format(new Date(call.startedAt), "h:mm a")}
             </div>
           </div>

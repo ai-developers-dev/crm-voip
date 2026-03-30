@@ -47,7 +47,7 @@ export default function AICallHistoryPage() {
   if (!tenant) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span></div>
+        <div className="flex items-center gap-2 text-on-surface-variant"><Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span></div>
       </div>
     );
   }
@@ -59,7 +59,7 @@ export default function AICallHistoryPage() {
   return (
     <div className="page-full">
       {/* Tenant header */}
-      <div className="shrink-0 border-b bg-background px-6 py-3">
+      <div className="shrink-0 bg-surface px-6 py-3">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}><Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button></Link>
@@ -76,7 +76,7 @@ export default function AICallHistoryPage() {
 
       <div className="flex-1 overflow-auto p-6 space-y-6">
         <div className="flex items-center gap-3">
-          <Link href={`/admin/tenants/${tenant._id}/agents/calling`} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors">
+          <Link href={`/admin/tenants/${tenant._id}/agents/calling`} className="flex h-8 w-8 items-center justify-center rounded-2xl hover:bg-surface-container-high transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
@@ -96,18 +96,18 @@ export default function AICallHistoryPage() {
         )}
 
         {/* Call list */}
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="rounded-xl border bg-surface-container-lowest overflow-hidden">
           {calls === undefined ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">Loading calls...</div>
+            <div className="p-8 text-center text-on-surface-variant text-sm">Loading calls...</div>
           ) : filteredCalls.length === 0 ? (
             <div className="p-8 text-center space-y-2">
-              <Phone className="h-8 w-8 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm text-muted-foreground">No AI calls yet.</p>
+              <Phone className="h-8 w-8 text-on-surface-variant/30 mx-auto" />
+              <p className="text-sm text-on-surface-variant">No AI calls yet.</p>
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b bg-muted/20">
+                <tr className="border-b bg-surface-container/20">
                   <th className="px-4 py-3 text-left section-heading">Direction</th>
                   <th className="px-4 py-3 text-left section-heading">Contact</th>
                   <th className="px-4 py-3 text-left section-heading">Duration</th>
@@ -128,7 +128,7 @@ export default function AICallHistoryPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">{call.contactName || call.toNumber || call.fromNumber}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{call.durationMs ? `${Math.round(call.durationMs / 1000)}s` : "--"}</td>
+                    <td className="px-4 py-3 text-sm text-on-surface-variant">{call.durationMs ? `${Math.round(call.durationMs / 1000)}s` : "--"}</td>
                     <td className="px-4 py-3"><SentimentBadge sentiment={call.userSentiment} /></td>
                     <td className="px-4 py-3">
                       {call.callSuccessful === true ? <Badge variant="success" className="text-[10px]">Success</Badge> :
@@ -138,7 +138,7 @@ export default function AICallHistoryPage() {
                     <td className="px-4 py-3 caption-text">{new Date(call.createdAt).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <button onClick={() => setExpandedCallId(expandedCallId === call._id ? null : call._id)}>
-                        {expandedCallId === call._id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        {expandedCallId === call._id ? <ChevronUp className="h-4 w-4 text-on-surface-variant" /> : <ChevronDown className="h-4 w-4 text-on-surface-variant" />}
                       </button>
                     </td>
                   </tr>

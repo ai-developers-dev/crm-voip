@@ -199,25 +199,25 @@ export function CsvImportWizard({ organizationId, onClose, onComplete }: CsvImpo
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative m-auto bg-card rounded-xl border shadow-lg w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+      <div className="relative m-auto bg-card rounded-xl border neu-ambient w-full max-w-2xl max-h-[85vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-card z-10">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
             <h2 className="text-base font-semibold">Import Contacts from CSV</h2>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="p-6">
           {/* Step 1: Upload */}
           {step === "upload" && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Upload a CSV file with your contacts. The first row should contain column headers.</p>
+              <p className="text-sm text-on-surface-variant">Upload a CSV file with your contacts. The first row should contain column headers.</p>
               <label className="flex flex-col items-center justify-center w-full py-12 border-2 border-dashed rounded-xl cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all">
-                <Upload className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <Upload className="h-10 w-10 text-on-surface-variant/40 mb-3" />
                 <span className="text-sm font-medium">Click to upload CSV</span>
-                <span className="text-xs text-muted-foreground mt-1">or drag and drop</span>
+                <span className="text-xs text-on-surface-variant mt-1">or drag and drop</span>
                 <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
@@ -241,11 +241,11 @@ export function CsvImportWizard({ organizationId, onClose, onComplete }: CsvImpo
                   <div key={i} className="flex items-center gap-3 px-4 py-2.5">
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium truncate block">{header}</span>
-                      <span className="text-[11px] text-muted-foreground truncate block">
+                      <span className="text-[11px] text-on-surface-variant truncate block">
                         e.g. {csvData.rows[0]?.[i] || "—"}
                       </span>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <ArrowRight className="h-4 w-4 text-on-surface-variant shrink-0" />
                     <Select value={fieldMap[i] || ""} onValueChange={(v) => setFieldMap({ ...fieldMap, [i]: v })}>
                       <SelectTrigger className="w-48 h-8 text-xs">
                         <SelectValue placeholder="Skip" />
@@ -282,9 +282,9 @@ export function CsvImportWizard({ organizationId, onClose, onComplete }: CsvImpo
               <div className="rounded-lg border overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b bg-muted/20">
+                    <tr className="border-b bg-surface-container/20">
                       {Object.entries(fieldMap).filter(([, v]) => v).map(([col, field]) => (
-                        <th key={col} className="px-3 py-2 text-left font-semibold text-muted-foreground">
+                        <th key={col} className="px-3 py-2 text-left font-semibold text-on-surface-variant">
                           {CONTACT_FIELDS.find((f) => f.value === field)?.label || field}
                         </th>
                       ))}
@@ -317,7 +317,7 @@ export function CsvImportWizard({ organizationId, onClose, onComplete }: CsvImpo
               <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
               <p className="text-sm font-medium">Importing contacts...</p>
               <p className="caption-text mt-1">{importedCount + errorCount} / {csvData.rows.length}</p>
-              <div className="w-48 h-2 rounded-full bg-muted mt-3 overflow-hidden">
+              <div className="w-48 h-2 rounded-full bg-surface-container mt-3 overflow-hidden">
                 <div className="h-full bg-primary transition-all" style={{ width: `${Math.round(((importedCount + errorCount) / csvData.rows.length) * 100)}%` }} />
               </div>
             </div>

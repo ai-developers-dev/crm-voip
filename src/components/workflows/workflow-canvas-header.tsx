@@ -80,13 +80,13 @@ export function WorkflowCanvasHeader({ workflowId, basePath = "/workflows" }: Wo
       <div className="flex items-center gap-3 px-6 py-3">
         <Link
           href={basePath}
-          className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-container-high transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="flex-1" />
         <div className="flex items-center gap-2">
-          <Label htmlFor="active-toggle" className="text-xs text-muted-foreground">
+          <Label htmlFor="active-toggle" className="text-xs text-on-surface-variant">
             {isActive ? "Active" : "Inactive"}
           </Label>
           <Switch

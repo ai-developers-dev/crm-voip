@@ -66,7 +66,7 @@ export default function StatsPage() {
   if (!orgLoaded || convexOrg === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Loading statistics...</span>
         </div>
@@ -100,8 +100,8 @@ export default function StatsPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-lg font-semibold tracking-tight">Call Statistics</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-lg font-extrabold tracking-tight">Call Statistics</h1>
+        <p className="text-on-surface-variant">
           Today&apos;s call activity for {convexOrg.name}
         </p>
       </div>
@@ -110,51 +110,51 @@ export default function StatsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Calls</CardTitle>
-            <Phone className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-bold">Total Calls</CardTitle>
+            <Phone className="h-4 w-4 text-on-surface-variant" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalCalls}</div>
-            <p className="text-xs text-muted-foreground">calls today</p>
+            <p className="text-xs text-on-surface-variant">calls today</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inbound Answered</CardTitle>
+            <CardTitle className="text-sm font-bold">Inbound Answered</CardTitle>
             <PhoneIncoming className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
               {stats.inboundAnswered}
             </div>
-            <p className="text-xs text-muted-foreground">answered today</p>
+            <p className="text-xs text-on-surface-variant">answered today</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Missed Calls</CardTitle>
+            <CardTitle className="text-sm font-bold">Missed Calls</CardTitle>
             <PhoneMissed className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
               {stats.inboundMissed}
             </div>
-            <p className="text-xs text-muted-foreground">missed today</p>
+            <p className="text-xs text-on-surface-variant">missed today</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Outbound</CardTitle>
+            <CardTitle className="text-sm font-bold">Outbound</CardTitle>
             <PhoneOutgoing className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
               {stats.outbound}
             </div>
-            <p className="text-xs text-muted-foreground">outbound today</p>
+            <p className="text-xs text-on-surface-variant">outbound today</p>
           </CardContent>
         </Card>
       </div>
@@ -163,14 +163,14 @@ export default function StatsPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Talk Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-bold">Total Talk Time</CardTitle>
+            <Clock className="h-4 w-4 text-on-surface-variant" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {formatTalkTime(stats.totalTalkTime)}
             </div>
-            <p className="text-xs text-muted-foreground">total duration today</p>
+            <p className="text-xs text-on-surface-variant">total duration today</p>
           </CardContent>
         </Card>
       </div>
@@ -190,10 +190,10 @@ export default function StatsPage() {
           {usersWithStats === undefined ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              <span className="text-muted-foreground">Loading agents...</span>
+              <span className="text-on-surface-variant">Loading agents...</span>
             </div>
           ) : usersWithStats.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-on-surface-variant">
               No agents found in this organization.
             </div>
           ) : (
@@ -246,7 +246,7 @@ export default function StatsPage() {
                         </Avatar>
                         <div>
                           <div className="font-medium">{user.name}</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-on-surface-variant">
                             {user.role}
                           </div>
                         </div>

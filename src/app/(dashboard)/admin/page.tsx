@@ -104,7 +104,7 @@ export default function AdminDashboardPage() {
   if (!userLoaded || isSuperAdmin === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -150,8 +150,8 @@ export default function AdminDashboardPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Tenants</p>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-on-surface-variant font-medium">Tenants</p>
+              <Building2 className="h-4 w-4 text-on-surface-variant" />
             </div>
             <p className="text-2xl font-bold mt-1">{tenants?.length ?? 0}</p>
             <div className="flex gap-2 mt-1">
@@ -164,8 +164,8 @@ export default function AdminDashboardPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Subscription MRR</p>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-on-surface-variant font-medium">Subscription MRR</p>
+              <DollarSign className="h-4 w-4 text-on-surface-variant" />
             </div>
             <p className="text-2xl font-bold mt-1">{revenue ? formatCents(revenue.totalMrrCents) : "—"}</p>
           </CardContent>
@@ -173,11 +173,11 @@ export default function AdminDashboardPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Usage Revenue</p>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-on-surface-variant font-medium">Usage Revenue</p>
+              <TrendingUp className="h-4 w-4 text-on-surface-variant" />
             </div>
             <p className="text-2xl font-bold mt-1">{revenue ? formatCents(revenue.totalUsageChargedCents) : "—"}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-[10px] text-on-surface-variant mt-1">
               Profit: {revenue ? formatCents(revenue.totalProfitCents) : "—"}
             </p>
           </CardContent>
@@ -185,7 +185,7 @@ export default function AdminDashboardPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Total Revenue</p>
+              <p className="text-xs text-on-surface-variant font-medium">Total Revenue</p>
               <BarChart3 className="h-4 w-4 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-green-600 mt-1">{revenue ? formatCents(revenue.totalRevenueCents) : "—"}</p>
@@ -195,13 +195,13 @@ export default function AdminDashboardPage() {
 
       {/* Tenant Cards */}
       <div>
-        <h2 className="text-sm font-semibold mb-3">All Tenants</h2>
+        <h2 className="text-sm font-extrabold mb-3">All Tenants</h2>
         {!tenants ? (
-          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" /></div>
         ) : tenants.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <Building2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+              <Building2 className="h-10 w-10 text-on-surface-variant mx-auto mb-3" />
               <p className="text-sm font-medium">No tenants yet</p>
               <Button size="sm" className="mt-3" onClick={() => setIsAddOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />Create First Tenant
@@ -221,14 +221,14 @@ export default function AdminDashboardPage() {
               return (
                 <Card
                   key={tenant._id}
-                  className="cursor-pointer hover:shadow-md transition-all duration-200"
+                  className="cursor-pointer transition-all duration-200"
                   onClick={() => setSelectedTenantId(tenant._id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       {/* Avatar with status dot */}
                       <div className="relative shrink-0">
-                        <Avatar className="h-14 w-14 ring-2 ring-primary/20 shadow-md">
+                        <Avatar className="h-14 w-14 ring-2 ring-primary/20">
                           <AvatarFallback className="text-sm bg-primary/10 text-primary font-semibold">
                             {initials}
                           </AvatarFallback>
@@ -244,11 +244,11 @@ export default function AdminDashboardPage() {
 
                       {/* Metrics */}
                       <div className="flex items-center gap-4 shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xs text-on-surface-variant">
                           <DollarSign className="h-3.5 w-3.5" />
                           <span>{basePlan}/mo</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1 text-xs text-on-surface-variant">
                           <Users className="h-3.5 w-3.5" />
                           <span>${perUser}/user</span>
                         </div>
@@ -320,8 +320,8 @@ export default function AdminDashboardPage() {
               <Label className="text-xs">Phone</Label>
               <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="555-555-5555" className="h-9 text-sm" />
             </div>
-            <div className="border-t pt-3">
-              <h4 className="text-xs font-semibold mb-2">Billing</h4>
+            <div className="pt-3">
+              <h4 className="text-xs font-bold mb-2">Billing</h4>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
                   <Label className="text-xs">Base Price/mo</Label>
@@ -431,7 +431,7 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
       <div className="space-y-4">
         {/* Business Info */}
         <div>
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Business Info</h4>
+          <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Business Info</h4>
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Business Name</Label>
@@ -473,8 +473,8 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
         </div>
 
         {/* Plan & Billing */}
-        <div className="border-t pt-3">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Plan & Billing</h4>
+        <div className="pt-3">
+          <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">Plan & Billing</h4>
           <div className="grid grid-cols-4 gap-3">
             <div>
               <Label className="text-xs">Base Price ($/mo)</Label>
@@ -498,7 +498,7 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
           {allAddons && allAddons.length > 0 && (
             <div className="mt-3">
               <Label className="text-xs font-semibold">Features & Add-Ons</Label>
-              <p className="text-[10px] text-muted-foreground mb-2">Toggle features on/off for this tenant.</p>
+              <p className="text-[10px] text-on-surface-variant mb-2">Toggle features on/off for this tenant.</p>
               <div className="space-y-1">
                 {allAddons.map((addon: any) => {
                   const isEnabled = addon.isIncludedInBase || form.enabledAddons.includes(addon.featureKey);
@@ -507,7 +507,7 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
                   return (
                     <label
                       key={addon._id}
-                      className={`flex items-center gap-3 rounded-md border px-3 py-2 cursor-pointer transition-colors ${
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2 cursor-pointer transition-colors ${
                         isEnabled ? "bg-primary/5 border-primary/30" : "opacity-60"
                       }`}
                     >
@@ -530,7 +530,7 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
                       ) : addon.priceMonthly > 0 ? (
                         <span className="text-xs font-semibold text-primary">${addon.priceMonthly}/mo</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">Free</span>
+                        <span className="text-xs text-on-surface-variant">Free</span>
                       )}
                     </label>
                   );
@@ -546,28 +546,28 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
               .reduce((sum: number, a: any) => sum + (a.priceMonthly || 0), 0);
 
             return (
-              <div className="mt-3 p-3 rounded-lg bg-muted/50 space-y-1 text-sm">
+              <div className="mt-3 p-3 rounded-2xl bg-surface-container/50 space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span>Base plan ({form.includedUsers} user{form.includedUsers !== 1 ? "s" : ""} included)</span>
                   <span className="font-medium">${form.basePlanPrice}/mo</span>
                 </div>
                 {additionalUsers > 0 && (
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-on-surface-variant">
                     <span>{additionalUsers} extra user{additionalUsers !== 1 ? "s" : ""} x ${form.perUserPrice}</span>
                     <span>${additionalUsers * form.perUserPrice}/mo</span>
                   </div>
                 )}
                 {addonTotal > 0 && (
-                  <div className="flex justify-between text-muted-foreground">
+                  <div className="flex justify-between text-on-surface-variant">
                     <span>Add-ons ({form.enabledAddons.length} features)</span>
                     <span>${addonTotal}/mo</span>
                   </div>
                 )}
-                <div className="flex justify-between font-semibold border-t pt-1">
+                <div className="flex justify-between font-semibold pt-1">
                   <span>Subscription total</span>
                   <span>${subscriptionTotal + addonTotal}/mo</span>
                 </div>
-                <div className="text-xs text-muted-foreground">{userCount} user{userCount !== 1 ? "s" : ""} · Usage billed separately</div>
+                <div className="text-xs text-on-surface-variant">{userCount} user{userCount !== 1 ? "s" : ""} · Usage billed separately</div>
               </div>
             );
           })()}
@@ -575,14 +575,14 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
 
         {/* Usage Invoice */}
         {latestInvoice && (
-          <div className="border-t pt-3">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+          <div className="pt-3">
+            <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">
               Latest Usage — {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][latestInvoice.month]} {latestInvoice.year}
             </h4>
-            <div className="rounded-lg border overflow-hidden text-sm">
+            <div className="rounded-2xl overflow-hidden text-sm">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-muted/50 text-xs">
+                  <tr className="bg-surface-container/50 text-xs">
                     <th className="text-left font-medium px-3 py-1.5">Provider</th>
                     <th className="text-right font-medium px-3 py-1.5">Usage</th>
                     <th className="text-right font-medium px-3 py-1.5">Cost</th>
@@ -594,29 +594,29 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
                 <tbody>
                   <tr className="border-t">
                     <td className="px-3 py-1.5 font-medium">Twilio</td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground text-xs">{latestInvoice.twilioCallMinutes}m / {latestInvoice.twilioSmsSent} SMS</td>
+                    <td className="px-3 py-1.5 text-right text-on-surface-variant text-xs">{latestInvoice.twilioCallMinutes}m / {latestInvoice.twilioSmsSent} SMS</td>
                     <td className="px-3 py-1.5 text-right">{formatCents(latestInvoice.twilioCostCents)}</td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground">{latestInvoice.twilioMarkupPercent}%</td>
+                    <td className="px-3 py-1.5 text-right text-on-surface-variant">{latestInvoice.twilioMarkupPercent}%</td>
                     <td className="px-3 py-1.5 text-right font-medium">{formatCents(latestInvoice.twilioChargedCents)}</td>
                     <td className="px-3 py-1.5 text-right text-green-600">{formatCents(latestInvoice.twilioChargedCents - latestInvoice.twilioCostCents)}</td>
                   </tr>
                   <tr className="border-t">
                     <td className="px-3 py-1.5 font-medium">AI Voice</td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground text-xs">{latestInvoice.retellCallCount} calls</td>
+                    <td className="px-3 py-1.5 text-right text-on-surface-variant text-xs">{latestInvoice.retellCallCount} calls</td>
                     <td className="px-3 py-1.5 text-right">{formatCents(latestInvoice.retellCostCents)}</td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground">{latestInvoice.retellMarkupPercent}%</td>
+                    <td className="px-3 py-1.5 text-right text-on-surface-variant">{latestInvoice.retellMarkupPercent}%</td>
                     <td className="px-3 py-1.5 text-right font-medium">{formatCents(latestInvoice.retellChargedCents)}</td>
                     <td className="px-3 py-1.5 text-right text-green-600">{formatCents(latestInvoice.retellChargedCents - latestInvoice.retellCostCents)}</td>
                   </tr>
                   <tr className="border-t">
                     <td className="px-3 py-1.5 font-medium">AI SMS</td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground text-xs">{latestInvoice.openaiConversations} convos</td>
+                    <td className="px-3 py-1.5 text-right text-on-surface-variant text-xs">{latestInvoice.openaiConversations} convos</td>
                     <td className="px-3 py-1.5 text-right">{formatCents(latestInvoice.openaiCostCents)}</td>
-                    <td className="px-3 py-1.5 text-right text-muted-foreground">{latestInvoice.openaiMarkupPercent}%</td>
+                    <td className="px-3 py-1.5 text-right text-on-surface-variant">{latestInvoice.openaiMarkupPercent}%</td>
                     <td className="px-3 py-1.5 text-right font-medium">{formatCents(latestInvoice.openaiChargedCents)}</td>
                     <td className="px-3 py-1.5 text-right text-green-600">{formatCents(latestInvoice.openaiChargedCents - latestInvoice.openaiCostCents)}</td>
                   </tr>
-                  <tr className="border-t bg-muted/30 font-semibold">
+                  <tr className="border-t bg-surface-container/30 font-semibold">
                     <td className="px-3 py-2" colSpan={2}>Total</td>
                     <td className="px-3 py-2 text-right">{formatCents(latestInvoice.totalCostCents)}</td>
                     <td className="px-3 py-2"></td>
@@ -630,12 +630,12 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
         )}
 
         {/* Monthly Summary */}
-        <div className="border-t pt-3">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Revenue Summary</h4>
+        <div className="pt-3">
+          <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-wide mb-2">Revenue Summary</h4>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between"><span>Subscription</span><span className="font-medium">${subscriptionTotal}/mo</span></div>
             <div className="flex justify-between"><span>Usage charges</span><span className="font-medium">{latestInvoice ? formatCents(latestInvoice.totalChargedCents) : "$0.00"}</span></div>
-            <div className="flex justify-between font-bold border-t pt-1 text-primary">
+            <div className="flex justify-between font-bold pt-1 text-primary">
               <span>Total monthly</span>
               <span>${(subscriptionTotal + (latestInvoice ? latestInvoice.totalChargedCents / 100 : 0)).toFixed(2)}/mo</span>
             </div>
@@ -643,7 +643,7 @@ function TenantDetailContent({ tenant, onClose }: { tenant: any; onClose: () => 
         </div>
 
         {/* Save + Actions */}
-        <div className="border-t pt-3 flex items-center justify-between">
+        <div className="pt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}

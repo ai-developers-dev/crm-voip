@@ -1,27 +1,28 @@
 /**
- * Centralized style constants for UI consistency across the app.
+ * Centralized style constants — Stitch "Tactile Curated Interface"
+ *
+ * Design Philosophy: Neumorphic surfaces, editorial typography, no borders.
+ * All boundaries defined via surface color shifts + dual-shadow extrusion.
  *
  * PREFERRED: Use CSS utility classes defined in globals.css directly in markup:
  *   <h1 className="page-title">Title</h1>
  *   <div className="page-scroll">...</div>
  *   <div className="stats-grid">...</div>
+ *   <div className="neu-outset rounded-3xl">...</div>
  *
- * Or use layout components for common patterns:
- *   import { PageHeader } from "@/components/layout/page-header";
- *   import { PageContainer } from "@/components/layout/page-container";
- *   import { StatCard } from "@/components/layout/stat-card";
+ * Neumorphic CSS Classes (globals.css):
+ *   Shadows:     neu-outset, neu-outset-sm, neu-inset, neu-inset-sm, neu-ambient
+ *   Interactive:  neu-outset-hover, neu-press
+ *   Effects:      glass, ghost-border, ghost-border-focus, gradient-primary
+ *   Progress:     neu-track
  *
- * CSS Classes Available (globals.css):
- *   Typography:  page-title, page-description, section-title, card-title,
- *                label-text, body-text, caption-text, stat-value, stat-value-sm,
- *                section-heading
- *   Containers:  page-scroll, page-full, page-settings, page-header,
- *                page-header-bordered, content-narrow, content-wide
- *   Spacing:     section-gap, inner-gap, field-gap
- *   Grids:       stats-grid (2→4 cols), summary-grid (1→3), content-grid (1→2)
- *
- * Semantic Colors (CSS vars): --success, --warning, --info + foregrounds
- * Badge Variants: default, secondary, destructive, outline, success, warning, info
+ * Typography:  page-title, page-description, section-title, card-title,
+ *              label-text, body-text, caption-text, stat-value, stat-value-sm,
+ *              section-heading
+ * Containers:  page-scroll, page-full, page-settings, page-header,
+ *              page-header-bordered, content-narrow, content-wide
+ * Spacing:     section-gap, inner-gap, field-gap
+ * Grids:       stats-grid (2→4 cols), summary-grid (1→3), content-grid (1→2)
  *
  * ALTERNATIVE: Import these JS constants for programmatic use with cn():
  *   import { typography, layout, colors } from "@/lib/style-constants";
@@ -29,35 +30,41 @@
  */
 
 // ---------------------------------------------------------------------------
-// Typography Scale
+// Typography Scale — Stitch Editorial (heavy weights, tight tracking)
 // ---------------------------------------------------------------------------
 export const typography = {
-  /** Page h1 titles — 18px semibold */
-  pageTitle: "text-lg font-semibold tracking-tight",
+  /** Page h1 titles — 18px extrabold, tight tracking */
+  pageTitle: "text-lg font-extrabold tracking-tight",
   /** Subtitle under page title */
-  pageDescription: "text-sm text-muted-foreground",
-  /** Section headings within a page — 16px semibold */
-  sectionTitle: "text-base font-semibold",
+  pageDescription: "text-sm text-on-surface-variant",
+  /** Section headings — 16px extrabold */
+  sectionTitle: "text-base font-extrabold tracking-tight",
   /** Section subtitles */
-  sectionDescription: "text-sm text-muted-foreground",
-  /** Card titles — 14px semibold (shadcn default) */
-  cardTitle: "text-sm font-semibold",
+  sectionDescription: "text-sm text-on-surface-variant",
+  /** Card titles — 14px bold */
+  cardTitle: "text-sm font-bold",
   /** Card descriptions */
-  cardDescription: "text-sm text-muted-foreground",
-  /** Dialog/modal titles — 16px semibold */
-  dialogTitle: "text-base font-semibold",
-  /** Form labels — 14px medium */
-  label: "text-sm font-medium",
-  /** Default body text — 14px */
-  body: "text-sm",
-  /** Timestamps, secondary info — 12px muted */
-  caption: "text-xs text-muted-foreground",
-  /** Dashboard metric numbers — 30px bold (large, prominent) */
-  stat: "text-3xl font-bold tracking-tight",
-  /** Smaller stat value — 18px bold */
-  statSm: "text-lg font-bold",
-  /** Change indicator below stat value (e.g. "+20.1% from last month") */
-  statChange: "text-sm font-medium",
+  cardDescription: "text-sm text-on-surface-variant",
+  /** Dialog/modal titles — 16px extrabold */
+  dialogTitle: "text-base font-extrabold tracking-tight",
+  /** Form labels — 12px bold uppercase (Stitch label style) */
+  label: "text-xs font-bold uppercase tracking-widest text-on-surface-variant",
+  /** Default body text — 16px with breathing room */
+  body: "text-sm leading-relaxed",
+  /** Timestamps, secondary info — 10px bold uppercase */
+  caption: "text-[10px] font-bold uppercase tracking-widest text-on-surface-variant",
+  /** Dashboard metric numbers — 30px black (heaviest weight) */
+  stat: "text-3xl font-black tracking-tight",
+  /** Smaller stat value — 18px black */
+  statSm: "text-lg font-black",
+  /** Change indicator below stat value */
+  statChange: "text-sm font-bold text-primary",
+  /** Display heading — hero moments (Stitch display-lg) */
+  displayLg: "text-[3.5rem] font-black tracking-[-0.04em] leading-none",
+  /** Display heading — medium */
+  displayMd: "text-[2.5rem] font-black tracking-[-0.03em] leading-none",
+  /** Headline — section anchors (Stitch headline-lg) */
+  headlineLg: "text-[2rem] font-extrabold tracking-tight",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -66,10 +73,10 @@ export const typography = {
 export const layout = {
   /** Full-height interactive pages (dashboard, contacts, calendar) */
   fullPage: "flex flex-col h-[calc(100vh-var(--header-height))]",
-  /** Scrollable content pages (stats, admin dashboard, reports) */
-  scrollPage: "p-6 space-y-6",
+  /** Scrollable content pages — extra spacing for neumorphic breathing room */
+  scrollPage: "p-6 space-y-8",
   /** Settings/form pages with max-width constraint */
-  settingsPage: "p-6 max-w-4xl mx-auto space-y-6",
+  settingsPage: "p-6 max-w-4xl mx-auto space-y-8",
   /** Centered loading/error states */
   centerState: "flex min-h-[calc(100vh-var(--header-height))] items-center justify-center",
   /** Same but with padding */
@@ -77,23 +84,45 @@ export const layout = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Spacing
+// Spacing — increased for neumorphic breathing room
 // ---------------------------------------------------------------------------
 export const spacing = {
-  /** Header section in full-height pages */
-  pageHeaderBordered: "border-b px-6 py-4",
+  /** Header section in full-height pages (no border — neumorphic) */
+  pageHeaderBordered: "px-6 py-4",
   /** Between major sections */
-  sectionGap: "space-y-6",
+  sectionGap: "space-y-8",
   /** Within sections */
-  innerGap: "space-y-4",
+  innerGap: "space-y-6",
   /** Form field spacing */
-  fieldGap: "space-y-2",
-  /** Grid gap — standard breathing room between cards */
+  fieldGap: "space-y-3",
+  /** Grid gap */
   gridGap: "gap-6",
   /** Tight gap for small elements */
   tightGap: "gap-2",
   /** Standard page padding */
   pagePadding: "p-6",
+} as const;
+
+// ---------------------------------------------------------------------------
+// Neumorphic Shadow Classes
+// ---------------------------------------------------------------------------
+export const neuShadow = {
+  /** Elevated card/container — outset dual shadow */
+  outset: "neu-outset",
+  /** Small outset for compact elements */
+  outsetSm: "neu-outset-sm",
+  /** Recessed/sunken — inset dual shadow (inputs, pressed states) */
+  inset: "neu-inset",
+  /** Small inset */
+  insetSm: "neu-inset-sm",
+  /** Floating elements — ambient centered shadow */
+  ambient: "neu-ambient",
+  /** Interactive hover — intensifies on hover */
+  outsetHover: "neu-outset-hover",
+  /** Active press — flips outset to inset */
+  press: "neu-press",
+  /** Glass effect for modals/floating nav */
+  glass: "glass",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -125,19 +154,25 @@ export const grid = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Card Patterns (class compositions for common card layouts)
+// Card Patterns — Neumorphic
 // ---------------------------------------------------------------------------
 export const cardPatterns = {
   /** Stat card CardHeader: horizontal row with icon top-right */
   statHeader: "flex flex-row items-center justify-between space-y-0 pb-2",
-  /** Stat card CardTitle: small muted label above big number */
-  statLabel: "text-sm font-medium",
-  /** Stat card icon: top-right corner, muted */
-  statIcon: "h-4 w-4 text-muted-foreground",
-  /** Settings card icon container (add color bg via cn()) */
-  settingsIconWrap: "flex h-10 w-10 items-center justify-center rounded-lg",
-  /** Interactive card hover (opt-in since base Card has no hover) */
-  hoverCard: "hover:shadow-md transition-shadow",
+  /** Stat card CardTitle: small uppercase label (Stitch caption style) */
+  statLabel: "text-[10px] font-bold uppercase tracking-widest text-on-surface-variant",
+  /** Stat card icon: top-right corner, primary color */
+  statIcon: "h-4 w-4 text-primary",
+  /** Shared dashboard card shell used by workflows, calls, reports, pipelines, and AI agents */
+  pageCard:
+    "rounded-2xl border border-outline-variant/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,255,0.92)_100%)] shadow-sm dark:bg-[linear-gradient(180deg,rgba(20,20,42,0.98)_0%,rgba(24,28,52,0.94)_100%)]",
+  /** Interactive version of the shared dashboard card shell */
+  pageCardInteractive:
+    "rounded-2xl border border-outline-variant/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,255,0.92)_100%)] shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-primary/40 hover:shadow-md dark:bg-[linear-gradient(180deg,rgba(20,20,42,0.98)_0%,rgba(24,28,52,0.94)_100%)]",
+  /** Settings card icon container — neumorphic outset */
+  settingsIconWrap: "flex h-12 w-12 items-center justify-center rounded-2xl bg-surface",
+  /** Interactive card hover — shadow intensifies */
+  hoverCard: "hover:border-primary/30 transition-colors",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -148,7 +183,7 @@ export const badgeColors = {
   warning: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
   error: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   info: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  neutral: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300",
+  neutral: "bg-surface-container-high text-on-surface-variant dark:bg-surface-container-high dark:text-on-surface-variant",
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -159,9 +194,9 @@ export const badgeColors = {
 export const statusColors = {
   available: {
     label: "Available",
-    color: "text-purple-600",
-    bgColor: "bg-purple-100 dark:bg-purple-900/30",
-    dotColor: "bg-purple-500",
+    color: "text-primary",
+    bgColor: "bg-primary/10 dark:bg-primary/20",
+    dotColor: "bg-primary",
   },
   busy: {
     label: "Busy",
@@ -177,15 +212,15 @@ export const statusColors = {
   },
   on_break: {
     label: "On Break",
-    color: "text-orange-600",
+    color: "text-tertiary",
     bgColor: "bg-orange-100 dark:bg-orange-900/30",
-    dotColor: "bg-orange-500",
+    dotColor: "bg-tertiary",
   },
   offline: {
     label: "Offline",
-    color: "text-gray-500",
-    bgColor: "bg-gray-100 dark:bg-gray-900/30",
-    dotColor: "bg-gray-400",
+    color: "text-on-surface-variant",
+    bgColor: "bg-surface-container-high dark:bg-surface-container-high",
+    dotColor: "bg-on-surface-variant",
   },
 } as const;
 
@@ -204,11 +239,11 @@ export const commTypeColors = {
   "call-outbound": { bg: "bg-blue-100", icon: "text-blue-600" },
   "email-inbound": { bg: "bg-amber-100", icon: "text-amber-600" },
   "email-outbound": { bg: "bg-teal-100", icon: "text-teal-600" },
-  "sms-inbound": { bg: "bg-purple-100", icon: "text-purple-600" },
+  "sms-inbound": { bg: "bg-primary/10", icon: "text-primary" },
   "sms-outbound": { bg: "bg-indigo-100", icon: "text-indigo-600" },
 } as const;
 
-/** Call action button colors (accept/decline/hold) */
+/** Call action button colors (accept/decline/hold) — keep semantic */
 export const actionColors = {
   accept: "bg-green-600 hover:bg-green-700 text-white",
   decline: "bg-red-600 hover:bg-red-700 text-white",
@@ -218,7 +253,7 @@ export const actionColors = {
 /** Hold state styling for call cards */
 export const holdColors = {
   bg: "bg-yellow-50 dark:bg-yellow-950/30",
-  border: "border-yellow-200 dark:border-yellow-800",
+  border: "outline-yellow-200/20 dark:outline-yellow-800/20",
   icon: "text-yellow-600",
 } as const;
 
@@ -232,7 +267,7 @@ export const appointmentStatusColors: Record<string, string> = {
 
 /** Document status badge colors */
 export const documentStatusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700",
+  draft: "bg-surface-container-high text-on-surface-variant",
   final: "bg-green-100 text-green-700",
   archived: "bg-yellow-100 text-yellow-700",
 };
@@ -258,13 +293,13 @@ export const tagColors: Record<string, { bg: string; text: string; dot: string }
 export const TAG_COLOR_OPTIONS = Object.keys(tagColors);
 
 // ---------------------------------------------------------------------------
-// UI Recipes — Copy these patterns for new pages
+// UI Recipes — Neumorphic Patterns
 // ---------------------------------------------------------------------------
 //
-// STAT CARD:
-//   <Card>
+// STAT CARD (Neumorphic):
+//   <Card>  {/* Card now has neu-outset + rounded-3xl built in */}
 //     <CardHeader className={cardPatterns.statHeader}>
-//       <CardTitle className={cardPatterns.statLabel}>Label</CardTitle>
+//       <CardTitle className={cardPatterns.statLabel}>LABEL</CardTitle>
 //       <Icon className={cardPatterns.statIcon} />
 //     </CardHeader>
 //     <CardContent>
@@ -273,42 +308,27 @@ export const TAG_COLOR_OPTIONS = Object.keys(tagColors);
 //     </CardContent>
 //   </Card>
 //
-// SETTINGS CARD (with hover):
+// SETTINGS CARD (Neumorphic with hover):
 //   <Card className={cardPatterns.hoverCard}>
 //     <CardHeader>
 //       <div className="flex items-center justify-between">
-//         <div className="flex items-center gap-3">
-//           <div className={cn(cardPatterns.settingsIconWrap, "bg-blue-100 dark:bg-blue-900/30")}>
-//             <Icon className="h-5 w-5 text-blue-600" />
+//         <div className="flex items-center gap-4">
+//           <div className={cardPatterns.settingsIconWrap}>
+//             <Icon className="h-5 w-5 text-primary" />
 //           </div>
 //           <div>
-//             <CardTitle className={typography.label}>Title</CardTitle>
+//             <CardTitle className={typography.cardTitle}>Title</CardTitle>
 //             <CardDescription>Subtitle</CardDescription>
 //           </div>
 //         </div>
-//         <Badge>Status</Badge>
 //       </div>
 //     </CardHeader>
 //   </Card>
 //
-// TABLE CARD:
-//   <Card>
-//     <CardHeader>
-//       <CardTitle>Table Title</CardTitle>
-//       <CardDescription>Description</CardDescription>
-//     </CardHeader>
-//     <CardContent>
-//       <Table>...</Table>
-//     </CardContent>
-//   </Card>
+// INPUT FIELD (Neumorphic inset):
+//   <Input />  {/* Built-in neu-inset-sm + rounded-2xl */}
 //
-// PAGE LAYOUTS:
-//   Scrollable page:  className={layout.scrollPage}     → "p-6 space-y-6"
-//   Full-height page: className={layout.fullPage}        → flex col, calc(100vh - header)
-//   Settings page:    className={layout.settingsPage}    → "p-6 max-w-4xl mx-auto space-y-6"
-//
-// GRID LAYOUTS:
-//   Stat cards:    className={grid.stats}     → 4 cols on lg, 2 on md
-//   Summary cards: className={grid.summary}   → 3 cols on md
-//   Content:       className={grid.content}   → 2 cols on md
-//   Settings:      className={grid.settings}  → 2 cols on md
+// PROGRESS BAR:
+//   <div className="h-3 w-full neu-track">
+//     <div className="h-full gradient-primary rounded-full" style={{ width: "75%" }} />
+//   </div>

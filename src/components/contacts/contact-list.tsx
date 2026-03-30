@@ -79,7 +79,7 @@ export function ContactList({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             <Input
               placeholder="Search contacts..."
               className="pl-10"
@@ -94,7 +94,7 @@ export function ContactList({
 
         {/* Loading skeleton */}
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-2 text-on-surface-variant">
             <Loader2 className="h-5 w-5 animate-spin" />
             Loading contacts...
           </div>
@@ -108,7 +108,7 @@ export function ContactList({
       {/* Header with search and add button */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
           <Input
             placeholder="Search contacts..."
             value={searchQuery}
@@ -126,13 +126,13 @@ export function ContactList({
       <div className="flex-1 overflow-y-auto p-4">
         {filteredContacts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <Users className="h-8 w-8 text-muted-foreground" />
+            <div className="rounded-full bg-surface-container p-4 mb-4">
+              <Users className="h-8 w-8 text-on-surface-variant" />
             </div>
             {contacts.length === 0 ? (
               <>
                 <h3 className="text-sm font-medium">No contacts yet</h3>
-                <p className="text-muted-foreground mt-1 mb-4">
+                <p className="text-on-surface-variant mt-1 mb-4">
                   Add your first contact to get started.
                 </p>
                 <Button onClick={onNewContact}>
@@ -143,7 +143,7 @@ export function ContactList({
             ) : (
               <>
                 <h3 className="text-sm font-medium">No matches found</h3>
-                <p className="text-muted-foreground mt-1">
+                <p className="text-on-surface-variant mt-1">
                   Try a different search term.
                 </p>
               </>
@@ -154,7 +154,7 @@ export function ContactList({
             {filteredContacts.map((contact) => (
               <Card
                 key={contact._id}
-                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                className="hover:bg-surface-container/50 transition-colors cursor-pointer"
                 onClick={() => onSelectContact(contact)}
               >
                 <CardContent className="p-4">
@@ -178,7 +178,7 @@ export function ContactList({
                             </Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-4 mt-1 text-sm text-on-surface-variant">
                           <span className="flex items-center gap-1">
                             <Phone className="h-3 w-3" />
                             {getPrimaryPhone(contact)}
@@ -211,7 +211,7 @@ export function ContactList({
 
       {/* Footer with count */}
       {contacts.length > 0 && (
-        <div className="px-4 py-2 border-t text-sm text-muted-foreground">
+        <div className="px-4 py-2 border-t text-sm text-on-surface-variant">
           {filteredContacts.length === contacts.length
             ? `${contacts.length} contact${contacts.length === 1 ? "" : "s"}`
             : `${filteredContacts.length} of ${contacts.length} contacts`}

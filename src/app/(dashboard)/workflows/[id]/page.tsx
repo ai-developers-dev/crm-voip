@@ -29,7 +29,7 @@ export default function EditWorkflowPage({
   if (!orgLoaded || convexOrg === undefined || workflow === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Loading workflow...</span>
         </div>

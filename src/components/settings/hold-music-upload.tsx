@@ -111,7 +111,7 @@ export function HoldMusicUpload({ organizationId }: HoldMusicUploadProps) {
 
         {holdMusicUrl ? (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 rounded-md bg-muted p-3">
+            <div className="flex items-center gap-2 rounded-md bg-surface-container p-3">
               <Music className="h-4 w-4 text-green-600" />
               <span className="text-sm">Custom hold music uploaded</span>
             </div>
@@ -136,8 +136,8 @@ export function HoldMusicUpload({ organizationId }: HoldMusicUploadProps) {
           </div>
         ) : (
           <div className="rounded-lg border-2 border-dashed p-6 text-center">
-            <Music className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-            <p className="mb-3 text-sm text-muted-foreground">
+            <Music className="mx-auto mb-2 h-8 w-8 text-on-surface-variant" />
+            <p className="mb-3 text-sm text-on-surface-variant">
               No custom hold music. Using default Twilio music.
             </p>
             <Button

@@ -79,7 +79,7 @@ export function PlatformFieldMapper() {
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[11px] text-on-surface-variant">
         Opens a carrier portal in a visible browser. Click on form fields to capture their CSS selectors for quote automation.
         Portal fields are the same for all organizations using a carrier — credentials are auto-detected.
       </p>
@@ -182,7 +182,7 @@ function SavedMappingsList({
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-muted-foreground">Saved Field Mappings</Label>
+      <Label className="text-xs font-semibold text-on-surface-variant">Saved Field Mappings</Label>
       <div className="space-y-1">
         {allMappings.map(({ mapping, carrierName }) => {
           const totalFields = mapping.screens.reduce((sum: number, s: any) => sum + s.fields.length, 0);
@@ -200,10 +200,10 @@ function SavedMappingsList({
                 </Badge>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-on-surface-variant">
                   {mapping.screens.length} screens · {totalFields} fields
                 </span>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                <ChevronRight className="h-3.5 w-3.5 text-on-surface-variant" />
               </div>
             </button>
           );
@@ -309,7 +309,7 @@ function MappingDetailDialog({
             {carrierName} — {mapping.quoteType}
           </DialogTitle>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 text-xs text-on-surface-variant">
               <span>{editScreens.length} screens</span>
               <span>{totalFields} fields</span>
               <span>Updated {new Date(mapping.updatedAt).toLocaleDateString()}</span>
@@ -378,7 +378,7 @@ function ScreenSection({
           Screen {si + 1}
         </Badge>
         <span className="text-xs font-semibold">{screen.name}</span>
-        <span className="text-[10px] text-muted-foreground">({screen.fields.length})</span>
+        <span className="text-[10px] text-on-surface-variant">({screen.fields.length})</span>
         {sourceHtml && (
           <button
             onClick={() => setShowSource(!showSource)}
@@ -389,7 +389,7 @@ function ScreenSection({
           </button>
         )}
         {!sourceHtml && (
-          <span className="text-[9px] text-muted-foreground italic">no source</span>
+          <span className="text-[9px] text-on-surface-variant italic">no source</span>
         )}
       </div>
 
@@ -524,7 +524,7 @@ function EditableFieldRow({
         </div>
         <button
           onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive transition-colors p-0.5 rounded"
+          className="text-on-surface-variant hover:text-destructive transition-colors p-0.5 rounded"
           title="Remove field"
         >
           <X className="h-3.5 w-3.5" />
@@ -609,7 +609,7 @@ function EditableFieldRow({
           </div>
 
           {/* Show current mapping summary */}
-          <div className="text-[9px] text-muted-foreground">
+          <div className="text-[9px] text-on-surface-variant">
             {isSelect && field.selectedValue ? (
               <span className="text-orange-600">
                 Will select: {field.options?.find((o: any) => o.value === field.selectedValue)?.text || field.selectedValue}

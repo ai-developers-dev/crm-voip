@@ -89,7 +89,7 @@ export function SupportWidget({ organizationId, userId, userName, orgName }: Sup
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button className="fixed bottom-6 right-20 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors">
+        <button className="fixed bottom-6 right-20 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground neu-ambient hover:bg-primary/90 transition-colors">
           <MessageCircle className="h-5 w-5" />
           {(unreadCount ?? 0) > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
@@ -100,9 +100,9 @@ export function SupportWidget({ organizationId, userId, userName, orgName }: Sup
       </SheetTrigger>
       <SheetContent side="right" className="w-[380px] sm:w-[420px] flex flex-col p-0">
         {/* Header */}
-        <div className="px-4 py-3 border-b shrink-0">
+        <div className="px-4 py-3 shrink-0">
           <SheetTitle className="text-sm font-semibold">Support</SheetTitle>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-on-surface-variant">
             {openTicket
               ? openTicket.status === "resolved"
                 ? "Your ticket has been resolved"
@@ -125,9 +125,9 @@ export function SupportWidget({ organizationId, userId, userName, orgName }: Sup
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
           {!openTicket && !messages && (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
-              <MessageCircle className="h-10 w-10 text-muted-foreground/30 mb-3" />
+              <MessageCircle className="h-10 w-10 text-on-surface-variant/30 mb-3" />
               <p className="text-sm font-medium">Need help?</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-on-surface-variant mt-1">
                 Send us a message and we'll get back to you shortly.
               </p>
             </div>
@@ -146,7 +146,7 @@ export function SupportWidget({ organizationId, userId, userName, orgName }: Sup
                   "max-w-[80%] rounded-2xl px-3.5 py-2",
                   msg.senderType === "tenant"
                     ? "bg-primary text-primary-foreground rounded-br-md"
-                    : "bg-muted rounded-bl-md"
+                    : "bg-surface-container rounded-bl-md"
                 )}
               >
                 {msg.senderType === "admin" && (
@@ -155,7 +155,7 @@ export function SupportWidget({ organizationId, userId, userName, orgName }: Sup
                 <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
                 <p className={cn(
                   "text-[10px] mt-1",
-                  msg.senderType === "tenant" ? "text-primary-foreground/60" : "text-muted-foreground"
+                  msg.senderType === "tenant" ? "text-primary-foreground/60" : "text-on-surface-variant"
                 )}>
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                 </p>

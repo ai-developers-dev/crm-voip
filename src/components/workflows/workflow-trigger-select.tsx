@@ -99,8 +99,8 @@ export function WorkflowTriggerSelect({
             className={cn(
               "flex flex-col items-center gap-1.5 rounded-lg border px-2 py-2.5 text-center transition-all cursor-pointer",
               triggerType === value
-                ? "border-primary bg-primary/5 ring-1 ring-primary/30 shadow-sm"
-                : "border-transparent bg-muted/40 hover:bg-muted/70 hover:border-border"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                : "border-transparent bg-surface-container/40 hover:bg-surface-container-high/70 hover:border-border"
             )}
           >
             <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", bgColor)}>
@@ -108,7 +108,7 @@ export function WorkflowTriggerSelect({
             </div>
             <span className={cn(
               "text-[10px] leading-tight font-medium",
-              triggerType === value ? "text-foreground" : "text-muted-foreground"
+              triggerType === value ? "text-foreground" : "text-on-surface-variant"
             )}>
               {shortLabel}
             </span>
@@ -119,7 +119,7 @@ export function WorkflowTriggerSelect({
       {/* Trigger-specific config */}
       {triggerType === "tag_added" && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Which tag?</Label>
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">Which tag?</Label>
           <Select
             value={triggerConfig?.tagId ?? ""}
             onValueChange={(v) => onTriggerConfigChange({ ...triggerConfig, tagId: v as Id<"contactTags"> })}
@@ -140,7 +140,7 @@ export function WorkflowTriggerSelect({
 
       {triggerType === "appointment_reminder" && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Remind before</Label>
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">Remind before</Label>
           <Select
             value={String(triggerConfig?.reminderMinutes ?? 30)}
             onValueChange={(v) => onTriggerConfigChange({ ...triggerConfig, reminderMinutes: Number(v) })}
@@ -161,7 +161,7 @@ export function WorkflowTriggerSelect({
 
       {triggerType === "task_overdue" && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Minutes past due</Label>
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">Minutes past due</Label>
           <Select
             value={String(triggerConfig?.overdueMinutes ?? 0)}
             onValueChange={(v) => onTriggerConfigChange({ ...triggerConfig, overdueMinutes: Number(v) })}
@@ -182,7 +182,7 @@ export function WorkflowTriggerSelect({
       {triggerType === "pipeline_stage_entered" && (
         <>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Pipeline</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Pipeline</Label>
             <Select
               value={triggerConfig?.pipelineId ?? ""}
               onValueChange={(v) => onTriggerConfigChange({ ...triggerConfig, pipelineId: v, stageId: undefined })}
@@ -201,7 +201,7 @@ export function WorkflowTriggerSelect({
           </div>
           {triggerConfig?.pipelineId && (
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Stage (optional - any if blank)</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Stage (optional - any if blank)</Label>
               <Select
                 value={triggerConfig?.stageId ?? ""}
                 onValueChange={(v) => onTriggerConfigChange({ ...triggerConfig, stageId: v })}

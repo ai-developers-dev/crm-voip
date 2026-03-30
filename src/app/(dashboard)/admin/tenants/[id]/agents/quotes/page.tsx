@@ -38,7 +38,7 @@ function formatDob(dob?: string): string {
 
 function LeadStatusBadge({ status }: { status: string }) {
   if (status === "quoted") return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 gap-1"><CheckCircle className="h-3 w-3" /> Quoted</Badge>;
-  if (status === "quoting") return <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 gap-1"><Clock className="h-3 w-3" /> Quoting...</Badge>;
+  if (status === "quoting") return <Badge className="bg-blue-500/15 text-blue-600lue-500/30 gap-1"><Clock className="h-3 w-3" /> Quoting...</Badge>;
   if (status === "error") return <Badge className="bg-destructive/15 text-destructive border-destructive/30 gap-1"><XCircle className="h-3 w-3" /> Error</Badge>;
   return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> New</Badge>;
 }
@@ -54,23 +54,23 @@ function LeadRow({ lead, onDelete, onEdit, onRerun }: { lead: any; onDelete: (id
   const [rerunning, setRerunning] = useState(false);
   return (
     <>
-      <tr className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setExpanded((v) => !v)}>
-        <td className="px-4 py-3 text-sm font-medium"><div className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />{lead.firstName} {lead.lastName}</div></td>
-        <td className="px-4 py-3 text-sm text-muted-foreground">{lead.city}, {lead.state}</td>
-        <td className="px-4 py-3 text-sm text-muted-foreground">{formatDob(lead.dob)}</td>
+      <tr className="hover:bg-surface-container-high/30 transition-colors cursor-pointer" onClick={() => setExpanded((v) => !v)}>
+        <td className="px-4 py-3 text-sm font-medium"><div className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-on-surface-variant shrink-0" />{lead.firstName} {lead.lastName}</div></td>
+        <td className="px-4 py-3 text-sm text-on-surface-variant">{lead.city}, {lead.state}</td>
+        <td className="px-4 py-3 text-sm text-on-surface-variant">{formatDob(lead.dob)}</td>
         <td className="px-4 py-3"><div className="flex gap-1">{lead.quoteTypes?.includes("auto") && <Badge variant="outline" className="gap-1 text-xs"><Car className="h-2.5 w-2.5" /> Auto</Badge>}{lead.quoteTypes?.includes("home") && <Badge variant="outline" className="gap-1 text-xs"><Home className="h-2.5 w-2.5" /> Home</Badge>}</div></td>
         <td className="px-4 py-3"><LeadStatusBadge status={lead.status} /></td>
-        <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(lead.createdAt).toLocaleDateString()}</td>
+        <td className="px-4 py-3 text-xs text-on-surface-variant">{new Date(lead.createdAt).toLocaleDateString()}</td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            {(lead.status === "error" || lead.status === "quoted") && <button onClick={async (e) => { e.stopPropagation(); setRerunning(true); await onRerun(lead._id); setRerunning(false); }} disabled={rerunning} className="text-muted-foreground hover:text-blue-500 transition-colors disabled:opacity-40"><RotateCcw className={`h-3.5 w-3.5 ${rerunning ? "animate-spin" : ""}`} /></button>}
-            <button onClick={(e) => { e.stopPropagation(); onEdit(lead); }} className="text-muted-foreground hover:text-foreground transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
-            <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete lead for ${lead.firstName} ${lead.lastName}?`)) onDelete(lead._id); }} className="text-muted-foreground hover:text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
-            <span onClick={() => setExpanded((v) => !v)}>{expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}</span>
+            {(lead.status === "error" || lead.status === "quoted") && <button onClick={async (e) => { e.stopPropagation(); setRerunning(true); await onRerun(lead._id); setRerunning(false); }} disabled={rerunning} className="text-on-surface-variant hover:text-blue-500 transition-colors disabled:opacity-40"><RotateCcw className={`h-3.5 w-3.5 ${rerunning ? "animate-spin" : ""}`} /></button>}
+            <button onClick={(e) => { e.stopPropagation(); onEdit(lead); }} className="text-on-surface-variant hover:text-on-surface transition-colors"><Pencil className="h-3.5 w-3.5" /></button>
+            <button onClick={(e) => { e.stopPropagation(); if (confirm(`Delete lead for ${lead.firstName} ${lead.lastName}?`)) onDelete(lead._id); }} className="text-on-surface-variant hover:text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+            <span onClick={() => setExpanded((v) => !v)}>{expanded ? <ChevronUp className="h-4 w-4 text-on-surface-variant" /> : <ChevronDown className="h-4 w-4 text-on-surface-variant" />}</span>
           </div>
         </td>
       </tr>
-      {expanded && <tr className="bg-muted/10 border-b border-border"><td colSpan={7} className="px-6 py-3 text-xs text-muted-foreground space-y-1"><p>{lead.street}, {lead.city}, {lead.state} {lead.zip}</p>{lead.email && <p>Email: {lead.email}</p>}{lead.phone && <p>Phone: {lead.phone}</p>}{lead.gender && <p>Gender: {lead.gender}</p>}{lead.maritalStatus && <p>Marital: {lead.maritalStatus}</p>}{lead.notes && <p>Notes: {lead.notes}</p>}</td></tr>}
+      {expanded && <tr className="bg-surface-container/10order"><td colSpan={7} className="px-6 py-3 text-xs text-on-surface-variant space-y-1"><p>{lead.street}, {lead.city}, {lead.state} {lead.zip}</p>{lead.email && <p>Email: {lead.email}</p>}{lead.phone && <p>Phone: {lead.phone}</p>}{lead.gender && <p>Gender: {lead.gender}</p>}{lead.maritalStatus && <p>Marital: {lead.maritalStatus}</p>}{lead.notes && <p>Notes: {lead.notes}</p>}</td></tr>}
     </>
   );
 }
@@ -79,17 +79,17 @@ function QuoteRow({ quote }: { quote: any }) {
   const [expanded, setExpanded] = useState(false);
   return (
     <>
-      <tr className="border-b border-border hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => setExpanded((v) => !v)}>
+      <tr className="hover:bg-surface-container-high/30 transition-colors cursor-pointer" onClick={() => setExpanded((v) => !v)}>
         <td className="px-4 py-3 text-sm font-medium">{quote.leadName}</td>
         <td className="px-4 py-3 text-sm capitalize">{quote.type}</td>
-        <td className="px-4 py-3 text-sm text-muted-foreground capitalize">{quote.portal}</td>
-        <td className="px-4 py-3 text-sm text-muted-foreground">{quote.carrier ?? "--"}</td>
+        <td className="px-4 py-3 text-sm text-on-surface-variant capitalize">{quote.portal}</td>
+        <td className="px-4 py-3 text-sm text-on-surface-variant">{quote.carrier ?? "--"}</td>
         <td className="px-4 py-3 text-sm font-semibold text-emerald-600">{quote.status === "success" ? formatPremium(quote.monthlyPremium, quote.annualPremium) : "--"}</td>
         <td className="px-4 py-3"><QuoteStatusBadge status={quote.status} /></td>
-        <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(quote.quotedAt).toLocaleDateString()}</td>
-        <td className="px-4 py-3 text-muted-foreground">{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</td>
+        <td className="px-4 py-3 text-xs text-on-surface-variant">{new Date(quote.quotedAt).toLocaleDateString()}</td>
+        <td className="px-4 py-3 text-on-surface-variant">{expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</td>
       </tr>
-      {expanded && <tr className="bg-muted/10 border-b border-border"><td colSpan={8} className="px-6 py-3">{quote.status === "error" && <p className="text-sm text-destructive">Error: {quote.errorMessage ?? "Unknown error"}</p>}{quote.quoteId && <p className="text-sm text-muted-foreground">Quote #: {quote.quoteId}</p>}{quote.coverageDetails && <pre className="text-xs text-muted-foreground mt-1 overflow-x-auto">{JSON.stringify(quote.coverageDetails, null, 2)}</pre>}</td></tr>}
+      {expanded && <tr className="bg-surface-container/10order"><td colSpan={8} className="px-6 py-3">{quote.status === "error" && <p className="text-sm text-destructive">Error: {quote.errorMessage ?? "Unknown error"}</p>}{quote.quoteId && <p className="text-sm text-on-surface-variant">Quote #: {quote.quoteId}</p>}{quote.coverageDetails && <pre className="text-xs text-on-surface-variant mt-1 overflow-x-auto">{JSON.stringify(quote.coverageDetails, null, 2)}</pre>}</td></tr>}
     </>
   );
 }
@@ -176,7 +176,7 @@ export default function TenantQuotesPage() {
   if (!tenant) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span></div>
+        <div className="flex items-center gap-2 text-on-surface-variant"><Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span></div>
       </div>
     );
   }
@@ -184,7 +184,7 @@ export default function TenantQuotesPage() {
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - var(--header-height, 3.5rem))" }}>
       {/* Tenant header with inline nav */}
-      <div className="shrink-0 border-b bg-background px-6 py-3">
+      <div className="shrink-0 bg-surface px-6 py-3">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}><Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button></Link>
@@ -206,7 +206,7 @@ export default function TenantQuotesPage() {
         {/* Back link + header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href={`/admin/tenants/${tenant._id}/agents`} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors">
+            <Link href={`/admin/tenants/${tenant._id}/agents`} className="flex h-8 w-8 items-center justify-center rounded-2xl hover:bg-surface-container-high transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <div>
@@ -232,14 +232,14 @@ export default function TenantQuotesPage() {
 
         {/* Agent progress */}
         {isAgentRunning && agentRun && (
-          <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3">
+          <div className="rounded-2xl borderlue-500/30 bg-blue-500/10 px-4 py-3">
             <div className="flex items-center gap-3">
               <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
               <div className="flex-1">
                 <p className="text-sm font-medium">Quoting in progress...</p>
-                <p className="text-xs text-muted-foreground">{agentRun.currentLeadName && `Currently: ${agentRun.currentLeadName} | `}{agentRun.succeeded + agentRun.failed}/{agentRun.total} completed</p>
+                <p className="text-xs text-on-surface-variant">{agentRun.currentLeadName && `Currently: ${agentRun.currentLeadName} | `}{agentRun.succeeded + agentRun.failed}/{agentRun.total} completed</p>
               </div>
-              <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
+              <div className="w-32 h-2 rounded-full bg-surface-container overflow-hidden">
                 <div className="h-full bg-blue-500 transition-all" style={{ width: `${Math.round(((agentRun.succeeded + agentRun.failed) / agentRun.total) * 100)}%` }} />
               </div>
             </div>
@@ -248,12 +248,12 @@ export default function TenantQuotesPage() {
 
         {/* Credentials setup */}
         {!hasPortalCreds ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 space-y-3">
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
               <p className="text-sm font-medium">NatGen Portal Credentials Required</p>
             </div>
-            <p className="text-xs text-muted-foreground">Enter your National General agency portal login to enable automated quoting.</p>
+            <p className="text-xs text-on-surface-variant">Enter your National General agency portal login to enable automated quoting.</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Portal Username</Label>
@@ -306,7 +306,7 @@ export default function TenantQuotesPage() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50/50 px-4 py-2.5">
+          <div className="flex items-center justify-between rounded-2xl border border-green-200 bg-green-50/50 px-4 py-2.5">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <span className="text-sm text-green-700 font-medium">NatGen portal credentials configured</span>
@@ -328,23 +328,23 @@ export default function TenantQuotesPage() {
         {/* Stats */}
         {statsData && (
           <div className="stats-grid">
-            <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><User className="h-4 w-4" /><span className="section-heading">Total Leads</span></div><p className="stat-value-sm">{leads?.length ?? 0}</p><p className="caption-text">{unquotedCount} unquoted</p></div>
-            <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><CheckCircle className="h-4 w-4" /><span className="section-heading">Success Rate</span></div><p className="stat-value-sm text-emerald-600">{statsData.successRate}%</p><p className="caption-text">{statsData.successful} successful</p></div>
-            <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><DollarSign className="h-4 w-4" /><span className="section-heading">Avg Premium</span></div><p className="stat-value-sm">{statsData.avgMonthlyPremium ? `$${statsData.avgMonthlyPremium}/mo` : "--"}</p></div>
-            <div className="rounded-xl border bg-card p-4"><div className="flex items-center gap-2 text-muted-foreground mb-1"><TrendingUp className="h-4 w-4" /><span className="section-heading">By Type</span></div><div className="flex gap-2 mt-1">{Object.entries(statsData.byType).map(([type, count]) => <div key={type} className="text-center"><p className="text-sm font-bold">{count as number}</p><p className="caption-text capitalize">{type}</p></div>)}{Object.keys(statsData.byType).length === 0 && <p className="text-sm text-muted-foreground">No data</p>}</div></div>
+            <div className="rounded-xl border bg-surface-container-lowest p-4"><div className="flex items-center gap-2 text-on-surface-variant mb-1"><User className="h-4 w-4" /><span className="section-heading">Total Leads</span></div><p className="stat-value-sm">{leads?.length ?? 0}</p><p className="caption-text">{unquotedCount} unquoted</p></div>
+            <div className="rounded-xl border bg-surface-container-lowest p-4"><div className="flex items-center gap-2 text-on-surface-variant mb-1"><CheckCircle className="h-4 w-4" /><span className="section-heading">Success Rate</span></div><p className="stat-value-sm text-emerald-600">{statsData.successRate}%</p><p className="caption-text">{statsData.successful} successful</p></div>
+            <div className="rounded-xl border bg-surface-container-lowest p-4"><div className="flex items-center gap-2 text-on-surface-variant mb-1"><DollarSign className="h-4 w-4" /><span className="section-heading">Avg Premium</span></div><p className="stat-value-sm">{statsData.avgMonthlyPremium ? `$${statsData.avgMonthlyPremium}/mo` : "--"}</p></div>
+            <div className="rounded-xl border bg-surface-container-lowest p-4"><div className="flex items-center gap-2 text-on-surface-variant mb-1"><TrendingUp className="h-4 w-4" /><span className="section-heading">By Type</span></div><div className="flex gap-2 mt-1">{Object.entries(statsData.byType).map(([type, count]) => <div key={type} className="text-center"><p className="text-sm font-bold">{count as number}</p><p className="caption-text capitalize">{type}</p></div>)}{Object.keys(statsData.byType).length === 0 && <p className="text-sm text-on-surface-variant">No data</p>}</div></div>
           </div>
         )}
 
         {/* Quote Results */}
             <div className="flex items-center gap-3">
-              <div className="flex gap-1 rounded-lg border p-1 bg-muted/30">{(["all", "auto", "home"] as const).map((t) => <button key={t} onClick={() => setTypeFilter(t)} className={`px-3 py-1 text-xs rounded-md transition-colors capitalize ${typeFilter === t ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>{t === "all" ? "All Types" : t}</button>)}</div>
-              <div className="flex gap-1 rounded-lg border p-1 bg-muted/30">{(["all", "success", "error"] as const).map((s) => <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1 text-xs rounded-md transition-colors capitalize ${statusFilter === s ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>{s === "all" ? "All Status" : s}</button>)}</div>
-              <span className="text-xs text-muted-foreground ml-auto">{filteredQuotes.length} records</span>
+              <div className="flex gap-1 rounded-2xl border p-1 bg-surface-container/30">{(["all", "auto", "home"] as const).map((t) => <button key={t} onClick={() => setTypeFilter(t)} className={`px-3 py-1 text-xs rounded-xl transition-colors capitalize ${typeFilter === t ? "bg-primary text-primary-foreground font-medium" : "text-on-surface-variant hover:text-on-surface"}`}>{t === "all" ? "All Types" : t}</button>)}</div>
+              <div className="flex gap-1 rounded-2xl border p-1 bg-surface-container/30">{(["all", "success", "error"] as const).map((s) => <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1 text-xs rounded-xl transition-colors capitalize ${statusFilter === s ? "bg-primary text-primary-foreground font-medium" : "text-on-surface-variant hover:text-on-surface"}`}>{s === "all" ? "All Status" : s}</button>)}</div>
+              <span className="text-xs text-on-surface-variant ml-auto">{filteredQuotes.length} records</span>
             </div>
-            <div className="rounded-xl border bg-card overflow-hidden">
-              {quotes === undefined ? <div className="p-8 text-center text-muted-foreground text-sm">Loading quotes...</div>
-              : filteredQuotes.length === 0 ? <div className="p-8 text-center space-y-2"><FileText className="h-8 w-8 text-muted-foreground/30 mx-auto" /><p className="text-sm text-muted-foreground">{quotes.length === 0 ? "No quote results yet." : "No quotes match filters."}</p></div>
-              : <table className="w-full"><thead><tr className="border-b border-border bg-muted/20"><th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Lead</th><th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Type</th><th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Portal</th><th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Carrier</th><th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Premium</th><th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th><th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th><th className="px-4 py-3 w-8" /></tr></thead><tbody>{filteredQuotes.map((q: any) => <QuoteRow key={q._id} quote={q} />)}</tbody></table>}
+            <div className="rounded-xl border bg-surface-container-lowest overflow-hidden">
+              {quotes === undefined ? <div className="p-8 text-center text-on-surface-variant text-sm">Loading quotes...</div>
+              : filteredQuotes.length === 0 ? <div className="p-8 text-center space-y-2"><FileText className="h-8 w-8 text-on-surface-variant/30 mx-auto" /><p className="text-sm text-on-surface-variant">{quotes.length === 0 ? "No quote results yet." : "No quotes match filters."}</p></div>
+              : <table className="w-full"><thead><tr className="bg-surface-container/20"><th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Lead</th><th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Type</th><th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Portal</th><th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Carrier</th><th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Premium</th><th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Status</th><th className="px-4 py-3 text-left text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Date</th><th className="px-4 py-3 w-8" /></tr></thead><tbody>{filteredQuotes.map((q: any) => <QuoteRow key={q._id} quote={q} />)}</tbody></table>}
             </div>
 
         {tenant?.clerkOrgId && (

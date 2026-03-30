@@ -134,7 +134,7 @@ export function TwilioSettingsDialog({
               onChange={(e) => setFormData(prev => ({ ...prev, accountSid: e.target.value }))}
               required
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-on-surface-variant">
               Your Account SID from your provider dashboard
             </p>
           </div>
@@ -161,7 +161,7 @@ export function TwilioSettingsDialog({
               </Button>
             </div>
             {isConfigured && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Leave blank to keep existing token: {existingCreds?.authToken}
               </p>
             )}
@@ -175,7 +175,7 @@ export function TwilioSettingsDialog({
               value={formData.apiKey}
               onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-on-surface-variant">
               For enhanced security, use API Keys instead of Auth Token
             </p>
           </div>
@@ -210,7 +210,7 @@ export function TwilioSettingsDialog({
               value={formData.twimlAppSid}
               onChange={(e) => setFormData(prev => ({ ...prev, twimlAppSid: e.target.value }))}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-on-surface-variant">
               Required for browser-based calling
             </p>
           </div>

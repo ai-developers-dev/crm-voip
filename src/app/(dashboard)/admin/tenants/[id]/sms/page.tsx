@@ -159,7 +159,7 @@ export default function TenantSMSPage() {
   if (!userLoaded || isPlatformUser === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -188,7 +188,7 @@ export default function TenantSMSPage() {
   if (tenant === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -219,7 +219,7 @@ export default function TenantSMSPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Navigation Menu */}
-      <div className="border-b bg-muted/30 px-4 py-2">
+      <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}>

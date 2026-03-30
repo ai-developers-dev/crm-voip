@@ -77,5 +77,5 @@ export const useParkingStore = create<ParkingState>()(
  * Helper to generate temp parking ID
  */
 export function generateTempParkingId(): string {
-  return `temp-park-${Date.now()}`;
+  return `temp-park-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }

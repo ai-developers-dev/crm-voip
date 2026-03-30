@@ -87,7 +87,7 @@ export default function TenantContactsPage() {
   if (!userLoaded || isPlatformUser === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -116,7 +116,7 @@ export default function TenantContactsPage() {
   if (tenant === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -147,7 +147,7 @@ export default function TenantContactsPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Navigation Menu */}
-      <div className="border-b bg-muted/30 px-4 py-2">
+      <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}>
@@ -187,7 +187,7 @@ export default function TenantContactsPage() {
       {/* 3-Column Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Column 1: Contact List */}
-        <div className="w-80 border-r flex-shrink-0">
+        <div className="w-80 flex-shrink-0">
           <ContactListCompact
             contacts={contacts || []}
             selectedContactId={selectedContact?._id || null}
@@ -201,7 +201,7 @@ export default function TenantContactsPage() {
         </div>
 
         {/* Column 2: Communications Pane */}
-        <div className="flex-1 min-w-0 border-r">
+        <div className="flex-1 min-w-0">
           <CommunicationsPane
             contact={selectedContact}
             organizationId={tenant._id}
@@ -211,7 +211,7 @@ export default function TenantContactsPage() {
         {/* Column 3: Panel + Icon Menu */}
         <div className="flex flex-shrink-0 h-full overflow-hidden">
           {activePanel && (activePanel === "sort" || selectedContact) && (
-            <div className="w-80 border-r h-full flex flex-col">
+            <div className="w-80 h-full flex flex-col">
               <ContactPanelDrawer
                 type={activePanel}
                 contact={selectedContact}
@@ -223,7 +223,7 @@ export default function TenantContactsPage() {
               />
             </div>
           )}
-          <div className="w-14 border-l flex-shrink-0 bg-muted/30">
+          <div className="w-14 flex-shrink-0 bg-surface-container/30">
             <ContactSideMenu
               activePanel={activePanel}
               onPanelChange={(panel) => {

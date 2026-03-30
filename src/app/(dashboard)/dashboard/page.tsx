@@ -53,7 +53,7 @@ export default function DashboardPage() {
   if (isPlatformUser === undefined || platformOrg === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -63,8 +63,8 @@ export default function DashboardPage() {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Redirecting to Admin Dashboard...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant mx-auto mb-4" />
+          <p className="text-on-surface-variant">Redirecting to Admin Dashboard...</p>
         </div>
       </div>
     );
@@ -78,7 +78,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-center">Welcome to VoIP CRM</CardTitle>
           </CardHeader>
-          <CardContent className="text-center text-muted-foreground">
+          <CardContent className="text-center text-on-surface-variant">
             <p>Please select or create an organization to get started.</p>
             <p className="mt-2 text-sm">
               Use the organization switcher in the header to create or join an
@@ -93,7 +93,7 @@ export default function DashboardPage() {
   if (!orgLoaded || !userLoaded) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">
+        <div className="animate-pulse text-on-surface-variant">
           Loading...
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-on-surface-variant">
               Complete the initial setup to configure yourself as the Super Admin
               and set up your platform organization.
             </p>

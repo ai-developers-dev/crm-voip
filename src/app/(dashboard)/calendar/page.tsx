@@ -167,7 +167,7 @@ export default function CalendarPage() {
   if (!convexOrg) {
     return (
       <div className="flex h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -181,8 +181,8 @@ export default function CalendarPage() {
     <div className="h-[calc(100vh-var(--header-height))] flex flex-col">
       {/* Toolbar — user filter for admins */}
       {isAdmin && orgUsers && orgUsers.length > 0 && (
-        <div className="flex items-center justify-between px-12 py-2 border-b bg-muted/30">
-          <h1 className="text-sm font-medium text-muted-foreground">Calendar</h1>
+        <div className="flex items-center justify-between px-12 py-2 bg-surface-container/30">
+          <h1 className="text-sm font-bold text-on-surface-variant">Calendar</h1>
           <Select value={selectedUserId} onValueChange={setSelectedUserId}>
             <SelectTrigger className="w-52 h-8 text-sm">
               <SelectValue placeholder="All Users" />

@@ -111,7 +111,7 @@ export function ActiveCallBar() {
       : focusedCall.to;
 
   return (
-    <div className="fixed top-14 left-0 right-0 z-50 bg-green-600 text-white shadow-lg">
+    <div className="fixed top-14 left-0 right-0 z-50 bg-green-600 text-white neu-ambient">
       <div className="flex items-center justify-between px-4 py-2">
         {/* Call info */}
         <div className="flex items-center gap-3">
@@ -119,7 +119,7 @@ export function ActiveCallBar() {
             <Phone className="h-4 w-4 animate-pulse" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-medium">{callerDisplay}</span>
+            <span className="font-bold">{callerDisplay}</span>
             <span className="text-green-200 text-sm">
               {formatDuration(callDuration)}
             </span>

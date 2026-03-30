@@ -88,7 +88,7 @@ export default function GetStartedPage() {
   if (!isLoaded) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-on-surface-variant">Loading...</div>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function GetStartedPage() {
           <Building2 className="h-7 w-7 text-primary" />
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Set Up Your Business</h1>
-        <p className="mt-2 text-muted-foreground">
+        <p className="mt-2 text-on-surface-variant">
           Tell us about your agency to get started with VoIP CRM.
         </p>
       </div>
@@ -282,14 +282,14 @@ export default function GetStartedPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Selecting an agency type will auto-fill default pricing
               </p>
             </div>
 
             {/* Pricing */}
             <div className="space-y-2 border-t pt-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Plan & Pricing</h3>
+              <h3 className="text-sm font-medium text-on-surface-variant">Plan & Pricing</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="basePlanPrice">Base Plan ($/mo)</Label>

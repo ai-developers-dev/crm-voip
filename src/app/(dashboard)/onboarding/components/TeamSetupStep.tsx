@@ -119,7 +119,7 @@ export function TeamSetupStep({ onNext, onBack, onSkip }: TeamSetupStepProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-2">Add Your Team</h2>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Invite agents and supervisors to handle calls. You can always add more later.
         </p>
       </div>
@@ -139,7 +139,7 @@ export function TeamSetupStep({ onNext, onBack, onSkip }: TeamSetupStepProps) {
             {members.map((member) => (
               <div
                 key={member.email}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/30"
+                className="flex items-center justify-between p-3 rounded-2xl border bg-surface-container/30"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
@@ -147,7 +147,7 @@ export function TeamSetupStep({ onNext, onBack, onSkip }: TeamSetupStepProps) {
                   </div>
                   <div>
                     <p className="font-medium">{member.name}</p>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                    <p className="text-sm text-on-surface-variant">{member.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export function TeamSetupStep({ onNext, onBack, onSkip }: TeamSetupStepProps) {
 
       {/* Add member form */}
       {showForm ? (
-        <div className="space-y-4 p-4 rounded-lg border border-border/60 bg-muted/30">
+        <div className="space-y-4 p-4 rounded-2xl border bg-surface-container/30">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
@@ -196,7 +196,7 @@ export function TeamSetupStep({ onNext, onBack, onSkip }: TeamSetupStepProps) {
             <Label htmlFor="role">Role</Label>
             <select
               id="role"
-              className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+              className="flex h-9 w-full rounded-xl border border-input bg-surface-container-lowest px-3 py-1 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
               value={formData.role}
               onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value as any }))}
             >

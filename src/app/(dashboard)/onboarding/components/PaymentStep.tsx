@@ -32,15 +32,15 @@ export function PaymentStep({ onNext, onBack, onSkip }: PaymentStepProps) {
       <div className="space-y-6">
         <div>
           <h2 className="text-base font-semibold mb-1">Payment</h2>
-          <p className="text-sm text-muted-foreground">Your billing is set up.</p>
+          <p className="text-sm text-on-surface-variant">Your billing is set up.</p>
         </div>
-        <div className="flex items-center gap-3 p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+        <div className="flex items-center gap-3 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
           <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0" />
           <div>
             <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
               {subscriptionStatus === "trialing" ? "14-Day Free Trial Active" : "Subscription Active"}
             </p>
-            <p className="text-xs text-muted-foreground">Your card will be charged after the trial period.</p>
+            <p className="text-xs text-on-surface-variant">Your card will be charged after the trial period.</p>
           </div>
         </div>
         <div className="flex justify-between pt-4">
@@ -78,13 +78,13 @@ export function PaymentStep({ onNext, onBack, onSkip }: PaymentStepProps) {
     <div className="space-y-6">
       <div>
         <h2 className="text-base font-semibold mb-1">Start Your Free Trial</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-on-surface-variant">
           Try the full platform free for 14 days. Your card won&apos;t be charged until the trial ends.
         </p>
       </div>
 
       {/* Plan summary */}
-      <div className="rounded-lg border p-4 space-y-3">
+      <div className="rounded-2xl border p-4 space-y-3">
         <h3 className="text-sm font-semibold">Your Plan</h3>
         <div className="flex items-center justify-between text-sm">
           <span>Base plan</span>
@@ -94,11 +94,11 @@ export function PaymentStep({ onNext, onBack, onSkip }: PaymentStepProps) {
           <span>Per additional user</span>
           <span className="font-semibold">${convexOrg?.billing?.perUserPrice || 47}/mo</span>
         </div>
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-on-surface-variant">
           <span>Included users</span>
           <span>{convexOrg?.billing?.includedUsers || 1}</span>
         </div>
-        <div className="border-t pt-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="border-t pt-2 flex items-center gap-2 text-xs text-on-surface-variant">
           <Shield className="h-3.5 w-3.5" />
           <span>14-day free trial -- cancel anytime</span>
         </div>

@@ -103,7 +103,7 @@ export function DocumentFormDialog({ open, onOpenChange, document, contactId, or
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
               <select id="type" value={type} onChange={(e) => setType(e.target.value as DocumentType)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                 <option value="contract">Contract</option>
                 <option value="id">ID</option>
                 <option value="application">Application</option>
@@ -115,7 +115,7 @@ export function DocumentFormDialog({ open, onOpenChange, document, contactId, or
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <select id="status" value={status} onChange={(e) => setStatus(e.target.value as DocumentStatus)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                 <option value="draft">Draft</option>
                 <option value="final">Final</option>
                 <option value="archived">Archived</option>

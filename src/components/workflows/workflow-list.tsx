@@ -49,7 +49,7 @@ export function WorkflowList({ workflows, organizationId }: WorkflowListProps) {
             return (
               <div
                 key={wf._id}
-                className="flex items-center gap-3 group rounded-lg border bg-card p-3 hover:shadow-sm transition-shadow cursor-pointer"
+                className="flex items-center gap-3 group rounded-lg border bg-card p-3 transition-shadow cursor-pointer"
                 onClick={() => handleEdit(wf)}
               >
                 <div className="flex-1 min-w-0">
@@ -58,10 +58,10 @@ export function WorkflowList({ workflows, organizationId }: WorkflowListProps) {
                     <Badge variant="secondary" className="text-xs px-2 py-0.5">
                       {getTriggerLabel(wf.triggerType)}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-on-surface-variant">
                       {wf.steps.length} step{wf.steps.length !== 1 ? "s" : ""}
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1 text-xs text-on-surface-variant">
                       <Users className="h-3.5 w-3.5" />
                       {wfStats?.total ?? 0} contact{(wfStats?.total ?? 0) !== 1 ? "s" : ""}
                     </span>
@@ -83,14 +83,14 @@ export function WorkflowList({ workflows, organizationId }: WorkflowListProps) {
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <button
                     onClick={(e) => { e.stopPropagation(); handleEdit(wf); }}
-                    className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    className="p-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                     title="Edit"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); removeWorkflow({ id: wf._id }); }}
-                    className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    className="p-1.5 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors"
                     title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />

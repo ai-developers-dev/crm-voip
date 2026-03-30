@@ -69,7 +69,7 @@ export function DocumentsPanel({ contact, organizationId, userId, onClose }: Doc
 
       <div className="px-4 py-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-on-surface-variant" />
           <Input
             placeholder="Search documents..."
             value={search}
@@ -82,7 +82,7 @@ export function DocumentsPanel({ contact, organizationId, userId, onClose }: Doc
       <ScrollArea className="flex-1">
         <div className="space-y-2 px-4 pb-4">
           {filtered?.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No documents found</p>
+            <p className="text-sm text-on-surface-variant text-center py-8">No documents found</p>
           )}
           {filtered?.map((doc) => (
             <div key={doc._id} className="rounded-lg border p-3 space-y-2">
@@ -90,7 +90,7 @@ export function DocumentsPanel({ contact, organizationId, userId, onClose }: Doc
                 <div>
                   <p className="text-sm font-medium leading-tight">{doc.title}</p>
                   {doc.fileName && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{doc.fileName}</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{doc.fileName}</p>
                   )}
                 </div>
                 <DropdownMenu>
@@ -117,13 +117,13 @@ export function DocumentsPanel({ contact, organizationId, userId, onClose }: Doc
                   {typeLabels[doc.type] || doc.type}
                 </Badge>
                 {doc.fileSize != null && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-on-surface-variant">
                     {formatFileSize(doc.fileSize)}
                   </span>
                 )}
               </div>
               {doc.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{doc.description}</p>
+                <p className="text-xs text-on-surface-variant line-clamp-2">{doc.description}</p>
               )}
             </div>
           ))}

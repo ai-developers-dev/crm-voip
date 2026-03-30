@@ -351,7 +351,7 @@ export default function TenantSettingsPage() {
   if (!userLoaded || isPlatformUser === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -380,7 +380,7 @@ export default function TenantSettingsPage() {
   if (tenant === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -418,7 +418,7 @@ export default function TenantSettingsPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Tenant Settings</h1>
-            <p className="text-muted-foreground">
+            <p className="text-on-surface-variant">
               Manage settings for {tenant.name}
             </p>
           </div>
@@ -454,7 +454,7 @@ export default function TenantSettingsPage() {
               </>
             ) : twilioConfigured ? (
               <>
-                <p className="text-sm text-muted-foreground mb-3">Phone system is configured.</p>
+                <p className="text-sm text-on-surface-variant mb-3">Phone system is configured.</p>
                 <Button variant="outline" size="sm" className="w-full mb-3" onClick={() => setIsTwilioDialogOpen(true)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit Credentials
@@ -463,7 +463,7 @@ export default function TenantSettingsPage() {
               </>
             ) : (
               <>
-                <p className="text-sm text-muted-foreground mb-3">Phone system not set up for this tenant.</p>
+                <p className="text-sm text-on-surface-variant mb-3">Phone system not set up for this tenant.</p>
                 <Button variant="outline" size="sm" className="w-full" onClick={() => setIsTwilioDialogOpen(true)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Set Up Manually
@@ -494,10 +494,10 @@ export default function TenantSettingsPage() {
           >
             {!users ? (
               <div className="flex justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" />
               </div>
             ) : users.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">
+              <div className="text-center py-4 text-on-surface-variant">
                 <UserPlus className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No users yet.</p>
                 <Button variant="outline" size="sm" className="mt-2" onClick={() => { resetUserForm(); setIsAddUserOpen(true); }}>
@@ -510,7 +510,7 @@ export default function TenantSettingsPage() {
                 {users.map((u) => {
                   const userEmail = emailAccounts?.find((a) => a.userId === u._id && a.status === "active");
                   return (
-                    <div key={u._id} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                    <div key={u._id} className="flex items-center gap-3 rounded-xl border px-3 py-2">
                       <Avatar className="h-8 w-8 shrink-0">
                         <AvatarImage src={u.avatarUrl || undefined} />
                         <AvatarFallback className="text-xs">{u.name?.charAt(0) || "?"}</AvatarFallback>
@@ -522,14 +522,14 @@ export default function TenantSettingsPage() {
                             {u.role === "tenant_admin" ? "Admin" : u.role}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="text-xs text-on-surface-variant truncate">
                           {userEmail ? (
                             <span className="flex items-center gap-1">
                               <Mail className="h-3 w-3 text-green-600" />
                               {userEmail.email}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground/60">No email connected</span>
+                            <span className="text-on-surface-variant/60">No email connected</span>
                           )}
                         </p>
                       </div>
@@ -602,14 +602,14 @@ export default function TenantSettingsPage() {
                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => updateTag({ id: tag._id, isActive: !tag.isActive })}
-                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                             title={tag.isActive ? "Deactivate" : "Activate"}
                           >
                             {tag.isActive ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
                           </button>
                           <button
                             onClick={() => removeTag({ id: tag._id })}
-                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors"
                             title="Delete"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -621,7 +621,7 @@ export default function TenantSettingsPage() {
                 )}
 
                 {/* Add new tag */}
-                <div className="flex items-center gap-2 pt-1 border-t border-border/40">
+                <div className="flex items-center gap-2 pt-1">
                   <Input
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
@@ -686,7 +686,7 @@ export default function TenantSettingsPage() {
             isExpanded={expandedRow === "carriers"}
             onToggle={() => toggleRow("carriers")}
           >
-            <p className="text-sm text-muted-foreground mb-3">
+            <p className="text-sm text-on-surface-variant mb-3">
               Configure carriers, lines of business, and commission rates for this tenant.
             </p>
             <Button variant="outline" size="sm" className="w-full" onClick={() => setIsCarriersDialogOpen(true)}>
@@ -741,29 +741,29 @@ export default function TenantSettingsPage() {
           >
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-muted-foreground">Name</dt>
+                <dt className="text-on-surface-variant">Name</dt>
                 <dd className="font-medium">{tenant.name}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Max Concurrent Calls</dt>
+                <dt className="text-on-surface-variant">Max Concurrent Calls</dt>
                 <dd className="font-medium">{tenant.settings?.maxConcurrentCalls ?? 5}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Recording</dt>
+                <dt className="text-on-surface-variant">Recording</dt>
                 <dd className="font-medium">{tenant.settings?.recordingEnabled ? "Enabled" : "Disabled"}</dd>
               </div>
               {tenant.businessInfo && (
                 <>
                   <div>
-                    <dt className="text-muted-foreground">Owner</dt>
+                    <dt className="text-on-surface-variant">Owner</dt>
                     <dd className="font-medium">{tenant.businessInfo.ownerName}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground">Owner Email</dt>
+                    <dt className="text-on-surface-variant">Owner Email</dt>
                     <dd className="font-medium">{tenant.businessInfo.ownerEmail}</dd>
                   </div>
                   <div className="col-span-2">
-                    <dt className="text-muted-foreground">Address</dt>
+                    <dt className="text-on-surface-variant">Address</dt>
                     <dd className="font-medium">
                       {tenant.businessInfo.streetAddress}, {tenant.businessInfo.city}, {tenant.businessInfo.state} {tenant.businessInfo.zip}
                     </dd>
@@ -773,11 +773,11 @@ export default function TenantSettingsPage() {
               {tenant.billing && (
                 <>
                   <div>
-                    <dt className="text-muted-foreground">Base Plan Price</dt>
+                    <dt className="text-on-surface-variant">Base Plan Price</dt>
                     <dd className="font-medium">${tenant.billing.basePlanPrice}/mo</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground">Per User Price</dt>
+                    <dt className="text-on-surface-variant">Per User Price</dt>
                     <dd className="font-medium">${tenant.billing.perUserPrice}/mo</dd>
                   </div>
                 </>
@@ -845,13 +845,13 @@ export default function TenantSettingsPage() {
             {updateSuccess && (
               <Alert className="mb-4 bg-primary/10 border-primary/20">
                 <CheckCircle className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-foreground">{updateSuccess}</AlertDescription>
+                <AlertDescription className="text-on-surface">{updateSuccess}</AlertDescription>
               </Alert>
             )}
             <div className="space-y-4 py-4">
               {/* Business Information */}
               <div className="space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground">Business Information</h3>
+                <h3 className="font-medium text-sm text-on-surface-variant">Business Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="businessName">Business Name *</Label>
                   <Input
@@ -925,8 +925,8 @@ export default function TenantSettingsPage() {
               </div>
 
               {/* Owner Information */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Owner Information</h3>
+              <div className="space-y-4 pt-4">
+                <h3 className="font-medium text-sm text-on-surface-variant">Owner Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="ownerName">Owner Name *</Label>
                   <Input
@@ -953,13 +953,13 @@ export default function TenantSettingsPage() {
               </div>
 
               {/* Billing Information */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Billing (Platform Admin Only)</h3>
+              <div className="space-y-4 pt-4">
+                <h3 className="font-medium text-sm text-on-surface-variant">Billing (Platform Admin Only)</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="basePlanPrice">Base Plan Price</Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">$</span>
                       <Input
                         id="basePlanPrice"
                         type="number"
@@ -972,12 +972,12 @@ export default function TenantSettingsPage() {
                         disabled={isUpdating || !!updateSuccess}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">per month</p>
+                    <p className="text-xs text-on-surface-variant">per month</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="perUserPrice">Per User Price</Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">$</span>
                       <Input
                         id="perUserPrice"
                         type="number"
@@ -990,7 +990,7 @@ export default function TenantSettingsPage() {
                         disabled={isUpdating || !!updateSuccess}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">per month</p>
+                    <p className="text-xs text-on-surface-variant">per month</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="includedUsers">Included Users</Label>
@@ -1003,7 +1003,7 @@ export default function TenantSettingsPage() {
                       onChange={(e) => setFormData(prev => ({ ...prev, includedUsers: parseInt(e.target.value) || 1 }))}
                       disabled={isUpdating || !!updateSuccess}
                     />
-                    <p className="text-xs text-muted-foreground">users included</p>
+                    <p className="text-xs text-on-surface-variant">users included</p>
                   </div>
                 </div>
               </div>
@@ -1064,7 +1064,7 @@ export default function TenantSettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="add-role">Role</Label>
-                <select id="add-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
+                <select id="add-role" className="flex h-9 w-full rounded-xl border border-input bg-surface-container-lowest px-3 py-1 text-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
                   <option value="agent">Agent</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="tenant_admin">Admin</option>
@@ -1124,7 +1124,7 @@ export default function TenantSettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Role</Label>
-                <select id="edit-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
+                <select id="edit-role" className="flex h-9 w-full rounded-xl border border-input bg-surface-container-lowest px-3 py-1 text-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
                   <option value="agent">Agent</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="tenant_admin">Admin</option>
@@ -1143,16 +1143,16 @@ export default function TenantSettingsPage() {
                 <Input id="edit-renewal" type="number" min="0" max="100" step="0.5" placeholder="e.g. 50" value={userFormData.agentRenewalSplit} onChange={(e) => setUserFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))} />
               </div>
               {/* Email connection in edit dialog */}
-              <div className="space-y-2 pt-2 border-t">
+              <div className="space-y-2 pt-2">
                 <Label>Email / Calendar</Label>
                 {(() => {
                   const userEmailAccount = emailAccounts?.find((a) => a.userId === editingUser?._id && a.status === "active");
                   const isConnecting = connectingForUserId === editingUser?._id;
                   return userEmailAccount ? (
-                    <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <div className="flex items-center justify-between rounded-xl border px-3 py-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{userEmailAccount.email}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{userEmailAccount.provider}</p>
+                        <p className="text-xs text-on-surface-variant capitalize">{userEmailAccount.provider}</p>
                       </div>
                       <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => disconnectEmail({ emailAccountId: userEmailAccount._id })}>
                         <Unplug className="h-4 w-4" />

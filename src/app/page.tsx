@@ -30,7 +30,7 @@ export default function Home() {
       {/* Hero */}
       <section className="border-b border-border/40 bg-card">
         <div className="container mx-auto px-4 py-20 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-sm text-muted-foreground mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface-container/50 px-3 py-1 text-sm text-on-surface-variant mb-6">
             <span className="flex h-2 w-2 rounded-full bg-primary"></span>
             Now with real-time call analytics
           </div>
@@ -38,7 +38,7 @@ export default function Home() {
             Modern VoIP CRM for
             <span className="text-primary"> Growing Teams</span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-on-surface-variant">
             Real-time calling dashboard with drag-and-drop call management,
             parking, transfers, and comprehensive call logging.
           </p>
@@ -55,7 +55,7 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-          <div className="mt-8 flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <div className="mt-8 flex items-center justify-center gap-6 text-sm text-on-surface-variant">
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-primary" />
               Free 14-day trial
@@ -78,13 +78,13 @@ export default function Home() {
           <h2 className="text-3xl font-bold">
             Everything you need to manage calls
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+          <p className="mx-auto mt-4 max-w-2xl text-on-surface-variant">
             Built for modern call centers with real-time collaboration features
           </p>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="hover:shadow-md transition-shadow">
+          <Card>
             <CardHeader>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 mb-3">
                 <Phone className="h-5 w-5 text-primary" />
@@ -99,7 +99,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
+          <Card>
             <CardHeader>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 mb-3">
                 <Users className="h-5 w-5 text-primary" />
@@ -114,7 +114,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
+          <Card>
             <CardHeader>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 mb-3">
                 <Headphones className="h-5 w-5 text-primary" />
@@ -129,7 +129,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
+          <Card>
             <CardHeader>
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 mb-3">
                 <BarChart3 className="h-5 w-5 text-primary" />
@@ -167,7 +167,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-border/60 bg-card py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 text-center text-sm text-on-surface-variant">
           <p>&copy; 2026 VoIP CRM. All rights reserved.</p>
         </div>
       </footer>

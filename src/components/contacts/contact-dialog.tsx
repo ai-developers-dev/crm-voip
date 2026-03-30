@@ -436,7 +436,7 @@ export function ContactDialog({
                         size="icon"
                         onClick={() => removePhoneNumber(index)}
                         disabled={isSaving}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="text-on-surface-variant hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -542,7 +542,7 @@ export function ContactDialog({
 
             {/* Prior Insurance */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prior Insurance</Label>
+              <Label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Prior Insurance</Label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="grid gap-1">
                   <Label htmlFor="priorCarrier" className="text-xs">Prior Carrier</Label>
@@ -591,13 +591,13 @@ export function ContactDialog({
             {/* Drivers (read-only, populated from quoting) */}
             {(contact as any)?.drivers?.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Household Drivers</Label>
+                <Label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Household Drivers</Label>
                 <div className="space-y-1">
                   {((contact as any).drivers as any[]).map((d: any, i: number) => (
-                    <div key={i} className="flex items-center gap-2 text-xs bg-muted/50 rounded px-2 py-1.5">
+                    <div key={i} className="flex items-center gap-2 text-xs bg-surface-container/50 rounded px-2 py-1.5">
                       <span className="font-medium">{d.firstName} {d.lastName}</span>
-                      {d.dateOfBirth && <span className="text-muted-foreground">DOB: {d.dateOfBirth}</span>}
-                      {d.relationship && <span className="text-muted-foreground">({d.relationship})</span>}
+                      {d.dateOfBirth && <span className="text-on-surface-variant">DOB: {d.dateOfBirth}</span>}
+                      {d.relationship && <span className="text-on-surface-variant">({d.relationship})</span>}
                     </div>
                   ))}
                 </div>
@@ -607,12 +607,12 @@ export function ContactDialog({
             {/* Vehicles (read-only, populated from quoting) */}
             {(contact as any)?.vehicles?.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vehicles</Label>
+                <Label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Vehicles</Label>
                 <div className="space-y-1">
                   {((contact as any).vehicles as any[]).map((v: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between text-xs bg-muted/50 rounded px-2 py-1.5">
+                    <div key={i} className="flex items-center justify-between text-xs bg-surface-container/50 rounded px-2 py-1.5">
                       <span className="font-medium">{v.year} {v.make} {v.model}</span>
-                      {v.vin && <span className="text-muted-foreground font-mono text-[10px]">{v.vin}</span>}
+                      {v.vin && <span className="text-on-surface-variant font-mono text-[10px]">{v.vin}</span>}
                     </div>
                   ))}
                 </div>
@@ -772,18 +772,27 @@ function LastQuoteCard({ contact, organizationId }: { contact: any; organization
   return (
     <div className="rounded-lg border border-green-200 bg-green-50/30 p-3 space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Last Quote</span>
-        <span className="text-xs text-muted-foreground">{new Date(latestQuote.quotedAt).toLocaleDateString()}</span>
+        <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide">Last Quote</span>
+        <span className="text-xs text-on-surface-variant">{new Date(latestQuote.quotedAt).toLocaleDateString()}</span>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">{latestQuote.carrier || latestQuote.portal}</span>
         <span className="text-sm font-bold text-green-700">
-          {latestQuote.annualPremium ? `$${latestQuote.annualPremium}/yr` : latestQuote.monthlyPremium ? `$${latestQuote.monthlyPremium}/mo` : "Quoted"}
+          {latestQuote.annualPremium ? `$${Number(latestQuote.annualPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/yr` : latestQuote.monthlyPremium ? `$${Number(latestQuote.monthlyPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo` : "Quoted"}
         </span>
       </div>
-      {latestQuote.quoteId && (
-        <p className="text-[10px] text-muted-foreground">Quote #: {latestQuote.quoteId}</p>
-      )}
+      <div className="flex items-center justify-between">
+        {latestQuote.quoteId && (
+          <span className="text-[10px] text-on-surface-variant">Quote #: {latestQuote.quoteId}</span>
+        )}
+        <span className="text-[10px] text-on-surface-variant">
+          {latestQuote.annualPremium && !latestQuote.monthlyPremium
+            ? `$${(Number(latestQuote.annualPremium) / 12).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo`
+            : latestQuote.monthlyPremium
+            ? `$${Number(latestQuote.monthlyPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo`
+            : ""}
+        </span>
+      </div>
     </div>
   );
 }

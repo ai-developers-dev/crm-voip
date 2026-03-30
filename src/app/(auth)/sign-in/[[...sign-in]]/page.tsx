@@ -24,9 +24,9 @@ export default function SignInPage() {
           appearance={{
             elements: {
               rootBox: "mx-auto",
-              card: "shadow-md border border-border/60",
+              card: "border border-border/60",
               headerTitle: "text-foreground",
-              headerSubtitle: "text-muted-foreground",
+              headerSubtitle: "text-on-surface-variant",
               formButtonPrimary: "bg-primary hover:bg-primary/90",
             }
           }}

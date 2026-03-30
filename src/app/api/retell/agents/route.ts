@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
 import { getPlatformRetellApiKey } from "@/lib/retell/platform-key";
@@ -12,7 +12,6 @@ import {
   deleteAgent,
 } from "@/lib/retell/client";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function GET(req: Request) {
   try {

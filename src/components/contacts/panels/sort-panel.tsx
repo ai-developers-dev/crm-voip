@@ -65,32 +65,32 @@ function ContactRow({ contact, onSelect }: { contact: Contact; onSelect: () => v
       onClick={onSelect}
       className="flex gap-3 w-full px-3 py-3 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-left border-b border-border/40 last:border-0"
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container text-xs font-semibold">
         {contact.firstName[0]}{contact.lastName?.[0] || ""}
       </div>
       <div className="flex-1 min-w-0 space-y-0.5">
         <div className="font-semibold">
           {contact.firstName} {contact.lastName || ""}
           {contact.company && (
-            <span className="font-normal text-muted-foreground ml-1.5 text-xs">
+            <span className="font-normal text-on-surface-variant ml-1.5 text-xs">
               <Building2 className="h-3 w-3 inline mr-0.5" />{contact.company}
             </span>
           )}
         </div>
         {primaryPhone && (
-          <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <div className="text-xs text-on-surface-variant flex items-center gap-1">
             <Phone className="h-3 w-3" />
             {formatPhoneDisplay(primaryPhone.number)}
           </div>
         )}
         {contact.email && (
-          <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <div className="text-xs text-on-surface-variant flex items-center gap-1">
             <Mail className="h-3 w-3" />
             {contact.email}
           </div>
         )}
         {address && (
-          <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <div className="text-xs text-on-surface-variant flex items-center gap-1">
             <MapPin className="h-3 w-3" />
             {address}
           </div>
@@ -212,7 +212,7 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
   if (contacts.length === 0 && !activeTags) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -228,19 +228,19 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
           {showTagPicker && (
             <button
               onClick={() => { setShowTagPicker(false); setTagSearch(""); }}
-              className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-muted transition-colors"
+              className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-surface-container-high transition-colors"
             >
               <X className="h-3 w-3" />
             </button>
           )}
-          <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+          <ArrowUpDown className="h-4 w-4 text-on-surface-variant" />
           <h3 className="font-semibold text-sm">
             {showTagPicker ? "Select Tag" : "Sort By"}
           </h3>
         </div>
         <button
           onClick={onClose}
-          className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-muted transition-colors"
+          className="flex items-center justify-center h-6 w-6 rounded-md hover:bg-surface-container-high transition-colors"
         >
           <X className="h-4 w-4" />
         </button>
@@ -264,7 +264,7 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
                 className="flex items-center justify-between w-full px-3 py-2.5 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
               >
                 <span>{label}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-on-surface-variant">
                   {fieldCounts[field] ?? 0} contacts
                 </span>
               </button>
@@ -276,7 +276,7 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
         <>
           <div className="p-2 border-b">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
               <Input
                 placeholder="Search tags..."
                 value={tagSearch}
@@ -288,7 +288,7 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
           <ScrollArea className="flex-1">
             <div className="p-2">
               {filteredTagCounts.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No tags found</p>
+                <p className="text-sm text-on-surface-variant text-center py-4">No tags found</p>
               ) : (
                 filteredTagCounts.map(({ tag, count }) => {
                   const isSelected = selectedTagIds.includes(tag._id);
@@ -314,7 +314,7 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
                       )}
                     />
                       <span className="flex-1 text-left">{tag.name}</span>
-                      <span className="text-xs text-muted-foreground">{count}</span>
+                      <span className="text-xs text-on-surface-variant">{count}</span>
                     </button>
                   );
                 })
@@ -351,7 +351,7 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
             <DialogTitle className="text-base">{dialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             <Input
               placeholder="Search contacts..."
               value={dialogSearch}
@@ -362,10 +362,10 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
           <ScrollArea className="max-h-[55vh]">
             <div className="space-y-0">
               {dialogContacts.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No contacts found</p>
+                <p className="text-sm text-on-surface-variant text-center py-4">No contacts found</p>
               ) : (
                 <>
-                  <p className="text-xs text-muted-foreground px-3 pb-2">{dialogContacts.length} contact{dialogContacts.length !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-on-surface-variant px-3 pb-2">{dialogContacts.length} contact{dialogContacts.length !== 1 ? "s" : ""}</p>
                   {dialogContacts.map((contact) => (
                     <ContactRow
                       key={contact._id}

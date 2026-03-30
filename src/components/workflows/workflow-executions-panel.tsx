@@ -87,7 +87,7 @@ export function WorkflowExecutionsPanel({
             {workflow?.name ?? "Workflow"} — Contacts
           </DialogTitle>
           {executions && (
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+            <div className="flex items-center gap-3 text-xs text-on-surface-variant mt-1">
               <span className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
                 {executions.length} total
@@ -116,12 +116,12 @@ export function WorkflowExecutionsPanel({
 
         <div className="flex-1 overflow-y-auto min-h-0 -mx-6 px-6">
           {!executions ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+            <div className="flex items-center justify-center py-8 text-on-surface-variant text-sm">
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
               Loading...
             </div>
           ) : executions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-sm">
+            <div className="flex flex-col items-center justify-center py-8 text-on-surface-variant text-sm">
               <Users className="h-8 w-8 mb-2 opacity-40" />
               <p>No contacts have entered this workflow yet.</p>
             </div>
@@ -135,7 +135,7 @@ export function WorkflowExecutionsPanel({
                 return (
                   <div
                     key={ex._id}
-                    className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-surface-container-high/50 transition-colors"
                   >
                     <StatusIcon
                       className={`h-4 w-4 shrink-0 ${config?.color ?? "text-gray-500"} ${
@@ -148,16 +148,16 @@ export function WorkflowExecutionsPanel({
                           {ex.contactName}
                         </span>
                         {ex.contactPhone && (
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-[10px] text-on-surface-variant">
                             {ex.contactPhone}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-[11px] text-on-surface-variant">
                           {stepLabel}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[10px] text-on-surface-variant">
                           · {formatTimeAgo(ex.startedAt)}
                         </span>
                       </div>
@@ -193,7 +193,7 @@ export function WorkflowExecutionsPanel({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-destructive"
+                          className="h-6 px-1.5 text-[10px] text-on-surface-variant hover:text-destructive"
                           onClick={() => cancelExecution({ executionId: ex._id })}
                         >
                           Cancel

@@ -109,7 +109,7 @@ export function TaskFormDialog({ open, onOpenChange, task, contactId, organizati
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
               <select id="type" value={type} onChange={(e) => setType(e.target.value as typeof type)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                 <option value="call_back">Call Back</option>
                 <option value="send_email">Send Email</option>
                 <option value="follow_up">Follow Up</option>
@@ -120,7 +120,7 @@ export function TaskFormDialog({ open, onOpenChange, task, contactId, organizati
             <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <select id="priority" value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>

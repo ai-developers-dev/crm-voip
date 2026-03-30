@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { cardPatterns } from "@/lib/style-constants";
 import { Phone, ParkingSquare, Loader2, GripVertical } from "lucide-react";
 import { useMemo } from "react";
 import { useParkingStore } from "@/lib/stores/parking-store";
@@ -74,15 +75,15 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        "p-4 transition-all min-h-full",
+        "min-h-full border-l border-border bg-surface-container-lowest p-4 transition-all",
         isOver && "ring-2 ring-primary ring-offset-2 bg-primary/5"
       )}
     >
       <div className="flex items-center gap-2 mb-4">
         <ParkingSquare className="h-5 w-5 text-primary" />
-        <h2 className="text-sm font-semibold">Parking Lot</h2>
+        <h2 className="text-sm font-extrabold">Parking Lot</h2>
         {parkedCalls.length > 0 && (
-          <span className="text-xs text-muted-foreground ml-auto">{parkedCalls.length} parked</span>
+          <span className="text-xs text-on-surface-variant ml-auto">{parkedCalls.length} parked</span>
         )}
         {parkingInProgress && (
           <Loader2 className="h-4 w-4 animate-spin text-primary ml-1" />
@@ -91,12 +92,12 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
 
       {dbSlots === undefined ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
         </div>
       ) : parkedCalls.length === 0 ? (
         <div className={cn(
-          "flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed transition-all",
-          isOver ? "border-primary bg-primary/5 text-primary" : "border-border/40 text-muted-foreground/40"
+          "flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-8 transition-all",
+          isOver ? "border-primary bg-primary/5 text-primary" : "border-border/70 text-on-surface-variant/40"
         )}>
           <ParkingSquare className="h-8 w-8 mb-2" />
           <p className="text-xs font-medium">
@@ -116,7 +117,7 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
 
           {/* Drop zone when calls are already parked */}
           {isOver && (
-            <div className="p-3 rounded-md border-2 border-dashed border-primary bg-primary/10 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-primary bg-primary/10 p-3 text-center">
               <p className="text-xs font-medium text-primary">Drop to park call</p>
             </div>
           )}
@@ -162,22 +163,23 @@ function ParkedCallCard({ slotNumber, call, isOptimistic }: ParkedCallCardProps)
       ref={!isOptimistic ? setNodeRef : undefined}
       style={!isOptimistic ? style : undefined}
       className={cn(
-        "flex items-center gap-3 rounded-lg border p-3 transition-all",
-        "bg-primary/5 dark:bg-primary/10 border-primary/30",
+        cardPatterns.pageCard,
+        "flex items-center gap-3 border-primary/20 p-3 transition-all",
+        "bg-primary/5 dark:bg-primary/10",
         !isOptimistic && "cursor-grab active:cursor-grabbing",
         isOptimistic && "opacity-70 animate-pulse",
-        isDragging && "ring-2 ring-primary shadow-lg"
+        isDragging && "ring-2 ring-primary neu-ambient"
       )}
       {...(!isOptimistic ? { ...listeners, ...attributes } : {})}
     >
       {!isOptimistic && (
-        <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+        <GripVertical className="h-4 w-4 text-on-surface-variant shrink-0" />
       )}
       {isOptimistic && (
         <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
       )}
 
-      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-white text-xs font-bold shrink-0">
+      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary text-white text-xs font-bold shrink-0">
         {slotNumber}
       </div>
 
@@ -188,7 +190,7 @@ function ParkedCallCard({ slotNumber, call, isOptimistic }: ParkedCallCardProps)
             {call.fromName || call.from || "Unknown"}
           </span>
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[11px] text-on-surface-variant">
           {isOptimistic ? "Parking..." : "On hold — drag to agent"}
         </p>
       </div>

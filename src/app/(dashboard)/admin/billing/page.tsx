@@ -80,7 +80,7 @@ export default function AdminBillingPage() {
   if (!isSuperAdmin) {
     return (
       <PageContainer>
-        <div className="flex justify-center py-12 text-muted-foreground">Access denied</div>
+        <div className="flex justify-center py-12 text-on-surface-variant">Access denied</div>
       </PageContainer>
     );
   }
@@ -135,8 +135,8 @@ export default function AdminBillingPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Subscription MRR</p>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-on-surface-variant font-medium">Subscription MRR</p>
+              <DollarSign className="h-4 w-4 text-on-surface-variant" />
             </div>
             <p className="text-2xl font-bold mt-1">{revenue ? formatCents(revenue.totalMrrCents) : "—"}</p>
           </CardContent>
@@ -144,11 +144,11 @@ export default function AdminBillingPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Usage Revenue</p>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-on-surface-variant font-medium">Usage Revenue</p>
+              <TrendingUp className="h-4 w-4 text-on-surface-variant" />
             </div>
             <p className="text-2xl font-bold mt-1">{revenue ? formatCents(revenue.totalUsageChargedCents) : "—"}</p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-on-surface-variant">
               Cost: {revenue ? formatCents(revenue.totalUsageCostCents) : "—"} | Profit: {revenue ? formatCents(revenue.totalProfitCents) : "—"}
             </p>
           </CardContent>
@@ -156,7 +156,7 @@ export default function AdminBillingPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Total Revenue</p>
+              <p className="text-xs text-on-surface-variant font-medium">Total Revenue</p>
               <DollarSign className="h-4 w-4 text-green-600" />
             </div>
             <p className="text-2xl font-bold text-green-600 mt-1">{revenue ? formatCents(revenue.totalRevenueCents) : "—"}</p>
@@ -165,8 +165,8 @@ export default function AdminBillingPage() {
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-medium">Tenants</p>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-on-surface-variant font-medium">Tenants</p>
+              <Users className="h-4 w-4 text-on-surface-variant" />
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="default" className="text-xs">{revenue?.activeTenantsCount ?? 0} Active</Badge>
@@ -184,16 +184,16 @@ export default function AdminBillingPage() {
         <CardHeader className="py-3 px-4">
           <CardTitle className="text-sm font-semibold">
             Usage Invoices — {MONTHS[selectedMonth]} {selectedYear}
-            {invoices && <span className="text-muted-foreground font-normal ml-2">({invoices.length} invoices)</span>}
+            {invoices && <span className="text-on-surface-variant font-normal ml-2">({invoices.length} invoices)</span>}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 pt-0">
           {!invoices ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" />
             </div>
           ) : invoices.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
+            <p className="text-sm text-on-surface-variant text-center py-8">
               No usage invoices for this month. Click "Generate Invoices" to create them.
             </p>
           ) : (
@@ -214,17 +214,17 @@ export default function AdminBillingPage() {
                 {invoices.map((inv: any) => (
                   <TableRow key={inv._id}>
                     <TableCell className="text-sm font-medium">{inv.orgName}</TableCell>
-                    <TableCell className="text-xs text-right text-muted-foreground">
+                    <TableCell className="text-xs text-right text-on-surface-variant">
                       {formatCents(inv.twilioCostCents)}
                       <br />
                       <span className="text-[10px]">{inv.twilioCallMinutes}m / {inv.twilioSmsSent} SMS</span>
                     </TableCell>
-                    <TableCell className="text-xs text-right text-muted-foreground">
+                    <TableCell className="text-xs text-right text-on-surface-variant">
                       {formatCents(inv.retellCostCents)}
                       <br />
                       <span className="text-[10px]">{inv.retellCallCount} calls</span>
                     </TableCell>
-                    <TableCell className="text-xs text-right text-muted-foreground">
+                    <TableCell className="text-xs text-right text-on-surface-variant">
                       {formatCents(inv.openaiCostCents)}
                       <br />
                       <span className="text-[10px]">{inv.openaiConversations} convos</span>

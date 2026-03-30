@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import twilio from "twilio";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
+import { getOrgTwilioClient } from "@/lib/twilio/client";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * Resume a call from hold by redirecting it to dial a specific agent
@@ -39,35 +38,16 @@ export async function POST(request: NextRequest) {
     console.log(`📞 UNPARKING call ${twilioCallSid} to ${targetIdentity} (conference: ${conferenceName})`);
 
     // Get Twilio credentials
-    const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
-
-    if (!org) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 404 }
-      );
-    }
-
-    const twilioCredentials = org.settings?.twilioCredentials;
-    let accountSid: string;
-    let authToken: string;
-
-    if (twilioCredentials?.isConfigured && twilioCredentials.accountSid && twilioCredentials.authToken) {
-      accountSid = twilioCredentials.accountSid;
-      authToken = twilioCredentials.authToken;
-    } else {
-      accountSid = process.env.TWILIO_ACCOUNT_SID || "";
-      authToken = process.env.TWILIO_AUTH_TOKEN || "";
-    }
-
-    if (!accountSid || !authToken) {
+    let client;
+    let org;
+    try {
+      ({ client, org } = await getOrgTwilioClient(orgId));
+    } catch {
       return NextResponse.json(
         { error: "Twilio credentials not configured" },
         { status: 400 }
       );
     }
-
-    const client = twilio(accountSid, authToken);
 
     // CRITICAL: Use conference-based unpark to prevent call drops
     // The PSTN caller is already in a conference - we need to dial the target agent into that conference

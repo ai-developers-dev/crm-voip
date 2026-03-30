@@ -10,16 +10,18 @@ import dynamic from "next/dynamic";
 
 const SalesReportDashboard = dynamic(
   () => import("@/components/reports/sales-report-dashboard").then(m => ({ default: m.SalesReportDashboard })),
-  { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> }
+  { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" /></div> }
 );
 const CallReportDashboard = dynamic(
   () => import("@/components/reports/call-report-dashboard").then(m => ({ default: m.CallReportDashboard })),
-  { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> }
+  { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" /></div> }
 );
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
+import { cardPatterns } from "@/lib/style-constants";
+import { cn } from "@/lib/utils";
 
 export default function ReportsPage() {
   const { organization, isLoaded: orgLoaded } = useOrganization();
@@ -55,7 +57,7 @@ export default function ReportsPage() {
   if (!orgLoaded || convexOrg === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Loading reports...</span>
         </div>
@@ -66,7 +68,7 @@ export default function ReportsPage() {
   if (!convexOrg) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Organization not found.</p>
+        <p className="text-on-surface-variant">Organization not found.</p>
       </div>
     );
   }
@@ -111,11 +113,11 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="downloads" className="mt-4">
-          <Card>
+          <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
             <CardContent className="py-12 text-center">
-              <Download className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm font-medium">Agency Downloads</p>
-              <p className="text-xs text-muted-foreground mt-1">Export reports and documents. Coming soon.</p>
+              <Download className="h-10 w-10 text-on-surface-variant mx-auto mb-3" />
+              <p className="text-sm font-bold">Agency Downloads</p>
+              <p className="text-xs text-on-surface-variant mt-1">Export reports and documents. Coming soon.</p>
             </CardContent>
           </Card>
         </TabsContent>

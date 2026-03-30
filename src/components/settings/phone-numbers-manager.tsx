@@ -147,13 +147,13 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
 
       {/* Current phone numbers list */}
       {!phoneNumbers ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+        <div className="flex items-center gap-2 text-sm text-on-surface-variant py-4">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading numbers...
         </div>
       ) : phoneNumbers.length === 0 ? (
-        <div className="text-center py-6 text-sm text-muted-foreground border border-dashed rounded-md">
-          <Phone className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+        <div className="text-center py-6 text-sm text-on-surface-variant border border-dashed rounded-md">
+          <Phone className="h-8 w-8 mx-auto mb-2 text-on-surface-variant/50" />
           <p>No phone numbers yet.</p>
           <p className="caption-text">Buy a number to start making calls.</p>
         </div>
@@ -166,10 +166,10 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
                 key={num._id}
                 className="flex items-center gap-3 border rounded-md px-3 py-2.5 text-sm"
               >
-                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Phone className="h-4 w-4 text-on-surface-variant shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="font-mono font-medium">{num.phoneNumber}</div>
-                  <div className="text-xs text-muted-foreground truncate">
+                  <div className="text-xs text-on-surface-variant truncate">
                     {num.friendlyName} · <span className="capitalize">{num.type}</span> · {routingLabel}
                   </div>
                 </div>
@@ -300,7 +300,7 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
             )}
 
             {!searching && searchResults.length === 0 && !searchError && (
-              <p className="text-sm text-muted-foreground text-center py-4">
+              <p className="text-sm text-on-surface-variant text-center py-4">
                 Enter an area code and click Search to find available numbers.
               </p>
             )}

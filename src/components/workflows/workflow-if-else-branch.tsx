@@ -46,7 +46,7 @@ function BranchStepCard({
 
   return (
     <div
-      className="group w-full rounded-lg border bg-card p-3 hover:shadow-sm transition-shadow cursor-pointer relative"
+      className="group w-full rounded-lg border bg-card p-3 transition-shadow cursor-pointer relative"
       onClick={() => selectStep(step.id)}
     >
       <div className="flex items-start gap-3">
@@ -62,8 +62,8 @@ function BranchStepCard({
             className={cn(
               "p-0.5 rounded transition-colors",
               isFirst
-                ? "text-muted-foreground/20 cursor-not-allowed"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "text-on-surface-variant/20 cursor-not-allowed"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
             )}
           >
             <ChevronUp className="h-3.5 w-3.5" />
@@ -78,8 +78,8 @@ function BranchStepCard({
             className={cn(
               "p-0.5 rounded transition-colors",
               isLast
-                ? "text-muted-foreground/20 cursor-not-allowed"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "text-on-surface-variant/20 cursor-not-allowed"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
             )}
           >
             <ChevronDown className="h-3.5 w-3.5" />
@@ -91,7 +91,7 @@ function BranchStepCard({
         </div>
         <div className="flex-1 min-w-0 pt-0.5">
           <span className="text-sm font-medium">{info.label}</span>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{summary}</p>
+          <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">{summary}</p>
         </div>
         <button
           type="button"
@@ -99,7 +99,7 @@ function BranchStepCard({
             e.stopPropagation();
             removeBranchStep(parentStepId, branchId, step.id);
           }}
-          className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
+          className="p-1 rounded opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -132,7 +132,7 @@ function NestedIfElse({
     <div className="w-full">
       {/* Nested if/else card */}
       <div
-        className="group w-full rounded-lg border border-yellow-300/50 bg-yellow-50/30 dark:bg-yellow-900/10 p-2.5 hover:shadow-sm cursor-pointer relative"
+        className="group w-full rounded-lg border border-yellow-300/50 bg-yellow-50/30 dark:bg-yellow-900/10 p-2.5 cursor-pointer relative"
         onClick={() => selectStep(step.id)}
       >
         <div className="flex items-center gap-2">
@@ -146,7 +146,7 @@ function NestedIfElse({
               e.stopPropagation();
               removeBranchStep(parentStepId, branchId, step.id);
             }}
-            className="p-0.5 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
+            className="p-0.5 rounded opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-destructive transition-all shrink-0"
           >
             <Trash2 className="h-3 w-3" />
           </button>
@@ -161,7 +161,7 @@ function NestedIfElse({
           </span>
         ))}
         {defaultBranch && (
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-[10px] text-on-surface-variant">
             None: {defaultBranch.steps.length} step{defaultBranch.steps.length !== 1 ? "s" : ""}
           </span>
         )}
@@ -190,7 +190,7 @@ function AddStepToBranch({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-border/60 text-muted-foreground/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-border/60 text-on-surface-variant/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
@@ -207,7 +207,7 @@ function AddStepToBranch({
                   insertBranchStep(parentStepId, branchId, type);
                   setOpen(false);
                 }}
-                className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs hover:bg-muted transition-colors text-left"
+                className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-xs hover:bg-surface-container-high transition-colors text-left"
               >
                 <div className={cn("flex h-5 w-5 items-center justify-center rounded shrink-0", info.bgColor)}>
                   <Icon className={cn("h-3 w-3", info.color)} />
@@ -251,7 +251,7 @@ function BranchColumn({
         className={cn(
           "text-[10px] font-bold px-2.5 py-1 rounded-full mb-1 border text-center max-w-full",
           isDefault
-            ? "text-muted-foreground bg-muted/50 border-border/60"
+            ? "text-on-surface-variant bg-surface-container/50 border-border/60"
             : "text-primary bg-primary/5 border-primary/20"
         )}
       >
@@ -260,7 +260,7 @@ function BranchColumn({
       </div>
 
       {/* Condition summary */}
-      <p className="text-[9px] text-muted-foreground mb-2 text-center px-1 line-clamp-2">
+      <p className="text-[9px] text-on-surface-variant mb-2 text-center px-1 line-clamp-2">
         {condSummary}
       </p>
 
@@ -278,7 +278,7 @@ function BranchColumn({
             <div className="flex justify-center py-1">
               <div className="flex flex-col items-center">
                 <div className="w-px h-2 bg-border" />
-                <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/40" />
+                <ArrowDown className="h-3.5 w-3.5 text-on-surface-variant/40" />
               </div>
             </div>
           </div>
@@ -323,9 +323,9 @@ export function IfElseBranchView({
       <div className="max-w-xs mx-auto">
         <div
           className={cn(
-            "rounded-lg border bg-card p-3 hover:shadow-sm transition-all cursor-pointer",
+            "rounded-lg border bg-card p-3 transition-all cursor-pointer",
             isSelected
-              ? "border-primary ring-1 ring-primary/30 shadow-sm"
+              ? "border-primary ring-1 ring-primary/30"
               : "hover:border-border"
           )}
           onClick={() => selectStep(step.id)}
@@ -336,9 +336,9 @@ export function IfElseBranchView({
             </div>
             <div className="flex-1 min-w-0 pt-0.5">
               <span className="text-sm font-medium">Condition</span>
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{summary}</p>
+              <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">{summary}</p>
             </div>
-            <Trash2 className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all" />
+            <Trash2 className="h-3.5 w-3.5 text-on-surface-variant/40 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all" />
           </div>
         </div>
       </div>
@@ -347,7 +347,7 @@ export function IfElseBranchView({
       <div className="flex justify-center py-1">
         <div className="flex flex-col items-center">
           <div className="w-px h-2 bg-border" />
-          <ArrowDown className="h-3.5 w-3.5 text-muted-foreground/40" />
+          <ArrowDown className="h-3.5 w-3.5 text-on-surface-variant/40" />
         </div>
       </div>
 

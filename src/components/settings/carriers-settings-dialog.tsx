@@ -412,7 +412,7 @@ export function CarriersSettingsDialog({
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Agency Type</Label>
             {agencyTypes && agencyTypes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No agency types configured yet.</p>
+              <p className="text-sm text-on-surface-variant">No agency types configured yet.</p>
             ) : (
               <Select value={selectedAgencyTypeId} onValueChange={handleAgencyTypeChange}>
                 <SelectTrigger>
@@ -434,7 +434,7 @@ export function CarriersSettingsDialog({
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Carriers & Lines of Business</Label>
               {activeCarriers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-on-surface-variant">
                   No carriers configured for this agency type.
                 </p>
               ) : (
@@ -447,13 +447,13 @@ export function CarriersSettingsDialog({
 
                     return (
                       <div key={carrier._id} className="rounded-lg border bg-card">
-                        <div className="flex items-center gap-2 py-2.5 px-3 rounded-t-lg hover:bg-muted/30">
+                        <div className="flex items-center gap-2 py-2.5 px-3 rounded-t-lg hover:bg-surface-container-high/30">
                           <button
                             type="button"
                             onClick={() => toggleExpandCarrier(carrier._id)}
-                            className="shrink-0 p-0.5 rounded hover:bg-muted"
+                            className="shrink-0 p-0.5 rounded hover:bg-surface-container-high"
                           >
-                            <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
+                            <ChevronRight className={`h-3.5 w-3.5 text-on-surface-variant transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
                           </button>
                           <Checkbox
                             checked={isChecked}
@@ -461,13 +461,13 @@ export function CarriersSettingsDialog({
                           />
                           <span className="text-sm font-medium">{carrier.name}</span>
                           {isChecked && carrierProducts.length > 0 && (
-                            <span className="text-xs text-muted-foreground">{selectedCount}/{carrierProducts.length}</span>
+                            <span className="text-xs text-on-surface-variant">{selectedCount}/{carrierProducts.length}</span>
                           )}
                         </div>
                         <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"}`}>
                           <div className="pl-10 pr-3 space-y-0.5 pb-2 border-t border-border/40 pt-2 mx-3">
                             {carrierProducts.length === 0 ? (
-                              <p className="text-xs text-muted-foreground py-1">No LOBs configured.</p>
+                              <p className="text-xs text-on-surface-variant py-1">No LOBs configured.</p>
                             ) : (
                               carrierProducts.map((product) => {
                                 const isProductChecked = selectedProductIds.has(product._id);
@@ -477,18 +477,18 @@ export function CarriersSettingsDialog({
                                 return (
                                   <div
                                     key={product._id}
-                                    className="flex items-center gap-2 py-1 px-1.5 rounded-md hover:bg-muted/30"
+                                    className="flex items-center gap-2 py-1 px-1.5 rounded-md hover:bg-surface-container-high/30"
                                   >
                                     <Checkbox
                                       checked={isProductChecked}
                                       onCheckedChange={() => toggleProduct(product._id)}
                                       disabled={!isChecked}
                                     />
-                                    <span className={`text-sm min-w-0 flex-1 truncate ${!isChecked ? "text-muted-foreground" : ""}`}>{product.name}</span>
+                                    <span className={`text-sm min-w-0 flex-1 truncate ${!isChecked ? "text-on-surface-variant" : ""}`}>{product.name}</span>
                                     {rate && (
                                       <div className="flex items-center gap-1.5 shrink-0">
                                         <div className="flex items-center gap-1">
-                                          <span className="text-[10px] text-muted-foreground">New</span>
+                                          <span className="text-[10px] text-on-surface-variant">New</span>
                                           <Input
                                             type="number"
                                             min="0"
@@ -503,7 +503,7 @@ export function CarriersSettingsDialog({
                                           />
                                         </div>
                                         <div className="flex items-center gap-1">
-                                          <span className="text-[10px] text-muted-foreground">Rnw</span>
+                                          <span className="text-[10px] text-on-surface-variant">Rnw</span>
                                           <Input
                                             type="number"
                                             min="0"
@@ -530,11 +530,11 @@ export function CarriersSettingsDialog({
                                 <button
                                   type="button"
                                   onClick={() => toggleExpandCreds(carrier._id)}
-                                  className="flex items-center gap-1.5 w-full text-left hover:bg-muted/30 rounded px-1 py-0.5 -mx-1"
+                                  className="flex items-center gap-1.5 w-full text-left hover:bg-surface-container-high/30 rounded px-1 py-0.5 -mx-1"
                                 >
-                                  <ChevronRight className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${expandedCredsFor.has(carrier._id) ? "rotate-90" : ""}`} />
-                                  <KeyRound className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Portal Login</span>
+                                  <ChevronRight className={`h-3 w-3 text-on-surface-variant transition-transform duration-200 ${expandedCredsFor.has(carrier._id) ? "rotate-90" : ""}`} />
+                                  <KeyRound className="h-3 w-3 text-on-surface-variant" />
+                                  <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide">Portal Login</span>
                                   {(carrierCredentials.get(carrier._id)?.configured) && (
                                     <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[9px] px-1 py-0">Connected</Badge>
                                   )}
@@ -569,7 +569,7 @@ export function CarriersSettingsDialog({
                                           if (next.has(carrier._id)) next.delete(carrier._id); else next.add(carrier._id);
                                           return next;
                                         })}
-                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
                                       >
                                         {showPasswordFor.has(carrier._id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                                       </button>
@@ -616,7 +616,7 @@ export function CarriersSettingsDialog({
               {saleTypes && saleTypes.length > 0 && (
                 <div className="space-y-0.5">
                   {saleTypes.map((st) => (
-                    <div key={st._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50 group">
+                    <div key={st._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-surface-container-high/50 group">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-medium truncate">{st.name}</span>
                         <Badge variant={st.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
@@ -675,7 +675,7 @@ export function CarriersSettingsDialog({
               Carrier Portal Helper — Chrome Extension
             </Label>
             <div className="rounded-md border p-3 space-y-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-on-surface-variant">
                 Auto-fills policy number when you open a carrier portal from the Policies panel.
               </p>
               <a href="/crm-carrier-helper.zip" download>
@@ -684,9 +684,9 @@ export function CarriersSettingsDialog({
                   Download Extension (.zip)
                 </Button>
               </a>
-              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <ol className="text-xs text-on-surface-variant space-y-1 list-decimal list-inside">
                 <li>Download and unzip the file above</li>
-                <li>Open Chrome &rarr; <code className="rounded bg-muted px-1 py-0.5 text-[10px] font-mono">chrome://extensions</code></li>
+                <li>Open Chrome &rarr; <code className="rounded bg-surface-container px-1 py-0.5 text-[10px] font-mono">chrome://extensions</code></li>
                 <li>Enable <strong>Developer mode</strong> (top-right toggle)</li>
                 <li>Click <strong>Load unpacked</strong> &rarr; select the unzipped folder</li>
               </ol>

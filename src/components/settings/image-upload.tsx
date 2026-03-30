@@ -122,10 +122,10 @@ export function ImageUpload({
         </div>
       ) : (
         <div className="rounded-lg border-2 border-dashed p-6 text-center">
-          <ImageIcon className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+          <ImageIcon className="mx-auto mb-2 h-8 w-8 text-on-surface-variant" />
           <p className="mb-1 text-sm font-medium">{label}</p>
           {description && (
-            <p className="mb-3 text-xs text-muted-foreground">{description}</p>
+            <p className="mb-3 text-xs text-on-surface-variant">{description}</p>
           )}
           <Button
             type="button"

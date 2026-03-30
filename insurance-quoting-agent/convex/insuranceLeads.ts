@@ -109,6 +109,51 @@ export const create = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Dedup: check email, then phone, then name+dob+zip
+    if (args.email) {
+      const byEmail = await ctx.db
+        .query("insuranceLeads")
+        .withIndex("by_organizationId", (q) =>
+          q.eq("organizationId", args.organizationId)
+        )
+        .collect();
+      const emailLower = args.email.toLowerCase();
+      const match = byEmail.find((l) => l.email?.toLowerCase() === emailLower);
+      if (match) return match._id;
+    }
+
+    if (args.phone) {
+      const phoneNorm = args.phone.replace(/\D/g, "");
+      const orgLeads = await ctx.db
+        .query("insuranceLeads")
+        .withIndex("by_organizationId", (q) =>
+          q.eq("organizationId", args.organizationId)
+        )
+        .collect();
+      const match = orgLeads.find(
+        (l) => l.phone && l.phone.replace(/\D/g, "") === phoneNorm
+      );
+      if (match) return match._id;
+    }
+
+    // Fallback: same person by name + DOB + zip
+    const firstLower = args.firstName.toLowerCase().trim();
+    const lastLower = args.lastName.toLowerCase().trim();
+    const orgLeads = await ctx.db
+      .query("insuranceLeads")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+    const nameMatch = orgLeads.find(
+      (l) =>
+        l.firstName.toLowerCase().trim() === firstLower &&
+        l.lastName.toLowerCase().trim() === lastLower &&
+        l.dob === args.dob &&
+        l.zip === args.zip
+    );
+    if (nameMatch) return nameMatch._id;
+
     const now = Date.now();
     return await ctx.db.insert("insuranceLeads", {
       ...args,

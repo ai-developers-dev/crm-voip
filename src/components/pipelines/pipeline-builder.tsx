@@ -106,7 +106,7 @@ export function PipelineBuilder({ organizationId, pipeline, onClose, onSaved }: 
       <div className="flex-1 bg-black/40" onClick={onClose} />
 
       {/* Slide-over panel */}
-      <div className="w-full max-w-md bg-background border-l shadow-xl flex flex-col animate-in slide-in-from-right">
+      <div className="w-full max-w-md bg-background border-l neu-ambient flex flex-col animate-in slide-in-from-right">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-base font-semibold">
@@ -164,13 +164,13 @@ export function PipelineBuilder({ organizationId, pipeline, onClose, onSaved }: 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Stages</Label>
-                <span className="text-xs text-muted-foreground">{stages.length}/10 stages</span>
+                <span className="text-xs text-on-surface-variant">{stages.length}/10 stages</span>
               </div>
 
               <div className="space-y-2">
                 {stages.map((stage, idx) => (
                   <div key={stage.id} className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-4 text-right shrink-0">{idx + 1}</span>
+                    <span className="text-xs text-on-surface-variant w-4 text-right shrink-0">{idx + 1}</span>
                     <div className="flex items-center gap-1.5">
                       {PRESET_COLORS.slice(0, 4).map((c) => (
                         <button
@@ -192,7 +192,7 @@ export function PipelineBuilder({ organizationId, pipeline, onClose, onSaved }: 
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      className="h-8 w-8 shrink-0 text-on-surface-variant hover:text-destructive"
                       onClick={() => removeStage(stage.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />

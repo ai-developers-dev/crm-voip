@@ -63,8 +63,12 @@ export async function validateTwilioWebhook(
   const authToken = await getAuthTokenForAccount(convex, accountSid);
 
   if (!authToken) {
-    console.warn("No auth token available - skipping validation");
-    return true; // Allow in development without auth token
+    if (process.env.NODE_ENV === "production") {
+      console.error("No auth token available - rejecting webhook in production");
+      return false;
+    }
+    console.warn("No auth token available - skipping validation (dev mode)");
+    return true;
   }
 
   const signature = request.headers.get("X-Twilio-Signature") || "";

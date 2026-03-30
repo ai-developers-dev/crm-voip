@@ -6,6 +6,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
+import { cardPatterns } from "@/lib/style-constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -178,13 +179,14 @@ export function ActiveCallCard({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "flex items-center gap-3 p-3 rounded-lg border shadow-sm touch-none select-none max-w-sm transition-all",
-          isDragging && "opacity-50 shadow-lg ring-2 ring-primary",
+          cardPatterns.pageCard,
+          "flex max-w-sm touch-none select-none items-center gap-3 p-3 transition-all",
+          isDragging && "opacity-50 neu-ambient ring-2 ring-primary",
           isHeld
-            ? "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800"
+            ? "border-yellow-300 bg-yellow-50 dark:border-yellow-900/60 dark:bg-yellow-950/30"
             : isFocused
-            ? "bg-white dark:bg-slate-900 border-primary"
-            : "bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-gray-700"
+            ? "border-primary/40"
+            : "border-border opacity-85"
         )}
       >
         {/* Drag handle area */}
@@ -193,7 +195,7 @@ export function ActiveCallCard({
           {...attributes}
           className="flex items-center gap-2 flex-1 min-w-0 cursor-grab active:cursor-grabbing"
         >
-          <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <GripVertical className="h-4 w-4 text-on-surface-variant flex-shrink-0" />
           <Phone
             className={cn(
               "h-4 w-4 flex-shrink-0",
@@ -201,18 +203,18 @@ export function ActiveCallCard({
                 ? "text-yellow-600"
                 : isFocused
                 ? "text-primary"
-                : "text-muted-foreground"
+                : "text-on-surface-variant"
             )}
           />
           <div className="flex flex-col min-w-0">
-            <span className="text-sm font-medium truncate">
+            <span className="text-sm font-bold truncate">
               {call.fromName || call.from}
             </span>
             {(isHeld || !isFocused) && (
               <span
                 className={cn(
                   "text-xs",
-                  isHeld ? "text-yellow-600" : "text-muted-foreground"
+                  isHeld ? "text-yellow-600" : "text-on-surface-variant"
                 )}
               >
                 {getStatusDisplay()}
@@ -222,7 +224,7 @@ export function ActiveCallCard({
         </div>
 
         {/* Duration */}
-        <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+        <span className="text-xs text-on-surface-variant tabular-nums flex-shrink-0">
           {formatDuration(duration)}
         </span>
 
@@ -280,8 +282,8 @@ export function ActiveCallCard({
       style={style}
       className={cn(
         "cursor-grab active:cursor-grabbing transition-all",
-        isDragging && "ring-2 ring-primary shadow-lg",
-        isHeld && "border-yellow-400 bg-yellow-50/50 dark:bg-yellow-950/20",
+        isDragging && "ring-2 ring-primary neu-ambient",
+        isHeld && "bg-yellow-50/50 dark:bg-yellow-950/20",
         !isFocused && !isHeld && "opacity-75"
       )}
       {...listeners}
@@ -306,14 +308,14 @@ export function ActiveCallCard({
               />
             </div>
             <div>
-              <p className="text-sm font-medium">{call.fromName || call.from}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm font-bold">{call.fromName || call.from}</p>
+              <p className="text-xs text-on-surface-variant">
                 {getStatusDisplay()} {"\u2022"} {formatDuration(duration)}
               </p>
             </div>
           </div>
 
-          <GripVertical className="h-5 w-5 text-muted-foreground" />
+          <GripVertical className="h-5 w-5 text-on-surface-variant" />
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-2">

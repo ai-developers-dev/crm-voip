@@ -74,7 +74,7 @@ function AutoReplySettingsToggle() {
       </Button>
 
       {open && (
-        <div className="absolute right-6 top-20 z-50 w-96 rounded-lg border bg-card p-4 shadow-lg space-y-3">
+        <div className="absolute right-6 top-20 z-50 w-96 rounded-2xl border bg-surface-container-lowest p-4 neu-ambient space-y-3">
           <h3 className="text-sm font-semibold">Auto-Reply Settings</h3>
 
           <div>
@@ -85,7 +85,7 @@ function AutoReplySettingsToggle() {
               placeholder="Thanks for reaching out! A support agent will be with you shortly."
               className="text-sm mt-1 min-h-[60px]"
             />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Sent immediately when a tenant opens a new ticket.</p>
+            <p className="text-[10px] text-on-surface-variant mt-0.5">Sent immediately when a tenant opens a new ticket.</p>
           </div>
 
           <div>
@@ -96,7 +96,7 @@ function AutoReplySettingsToggle() {
               placeholder="No agent is available right now, but we've created a ticket and will follow up ASAP."
               className="text-sm mt-1 min-h-[60px]"
             />
-            <p className="text-[10px] text-muted-foreground mt-0.5">Sent if no one responds within the delay. Ticket moves to "In Progress".</p>
+            <p className="text-[10px] text-on-surface-variant mt-0.5">Sent if no one responds within the delay. Ticket moves to "In Progress".</p>
           </div>
 
           <div>
@@ -110,7 +110,7 @@ function AutoReplySettingsToggle() {
                 onChange={(e) => setDelaySec(Number(e.target.value))}
                 className="h-9 text-sm w-24"
               />
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-on-surface-variant">
                 = {delaySec >= 60 ? `${Math.floor(delaySec / 60)}m ${delaySec % 60}s` : `${delaySec}s`}
               </span>
             </div>
@@ -196,8 +196,8 @@ export default function AdminSupportPage() {
 
       <div className="flex gap-4" style={{ height: "calc(100vh - var(--header-height) - 120px)" }}>
         {/* Left: Ticket List */}
-        <div className="w-80 shrink-0 flex flex-col border rounded-lg">
-          <div className="p-2 border-b shrink-0">
+        <div className="w-80 shrink-0 flex flex-col border rounded-2xl">
+          <div className="p-2 shrink-0">
             <Tabs value={filter} onValueChange={setFilter}>
               <TabsList className="w-full">
                 <TabsTrigger value="open" className="flex-1 text-xs">Open</TabsTrigger>
@@ -210,11 +210,11 @@ export default function AdminSupportPage() {
 
           <div className="flex-1 overflow-y-auto">
             {!tickets ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+              <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" /></div>
             ) : tickets.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                <MessageCircle className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No tickets</p>
+                <MessageCircle className="h-8 w-8 text-on-surface-variant/30 mb-2" />
+                <p className="text-sm text-on-surface-variant">No tickets</p>
               </div>
             ) : (
               tickets.map((ticket) => (
@@ -222,22 +222,22 @@ export default function AdminSupportPage() {
                   key={ticket._id}
                   onClick={() => setSelectedTicketId(ticket._id)}
                   className={cn(
-                    "w-full text-left px-3 py-2.5 border-b transition-colors",
-                    selectedTicketId === ticket._id ? "bg-primary/5" : "hover:bg-muted/50"
+                    "w-full text-left px-3 py-2.5 transition-colors",
+                    selectedTicketId === ticket._id ? "bg-primary/5" : "hover:bg-surface-container-high/50"
                   )}
                 >
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <Building2 className="h-3 w-3 text-on-surface-variant shrink-0" />
                       <span className="text-xs font-semibold truncate">{ticket.orgName}</span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(ticket.lastMessageAt)}</span>
+                    <span className="text-[10px] text-on-surface-variant shrink-0">{timeAgo(ticket.lastMessageAt)}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate">{ticket.userName}</p>
+                  <p className="text-[11px] text-on-surface-variant truncate">{ticket.userName}</p>
                   <p className="text-xs truncate mt-0.5">{ticket.lastMessagePreview}</p>
                   <div className="flex items-center gap-1.5 mt-1">
                     {ticket.status === "open" && <Badge variant="secondary" className="text-[9px] px-1 py-0">Open</Badge>}
-                    {ticket.status === "in_progress" && <Badge className="text-[9px] px-1 py-0 bg-blue-500/15 text-blue-600 border-blue-500/30">In Progress</Badge>}
+                    {ticket.status === "in_progress" && <Badge className="text-[9px] px-1 py-0 bg-blue-500/15 text-blue-600lue-500/30">In Progress</Badge>}
                     {ticket.status === "resolved" && <Badge variant="default" className="text-[9px] px-1 py-0">Resolved</Badge>}
                     {ticket.unreadByAdmin > 0 && (
                       <span className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
@@ -252,21 +252,21 @@ export default function AdminSupportPage() {
         </div>
 
         {/* Right: Thread */}
-        <div className="flex-1 flex flex-col border rounded-lg">
+        <div className="flex-1 flex flex-col border rounded-2xl">
           {!selectedTicket ? (
             <div className="flex-1 flex items-center justify-center text-center">
               <div>
-                <MessageCircle className="h-10 w-10 text-muted-foreground/20 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Select a ticket to view</p>
+                <MessageCircle className="h-10 w-10 text-on-surface-variant/20 mx-auto mb-2" />
+                <p className="text-sm text-on-surface-variant">Select a ticket to view</p>
               </div>
             </div>
           ) : (
             <>
               {/* Ticket header */}
-              <div className="px-4 py-3 border-b shrink-0 flex items-center justify-between">
+              <div className="px-4 py-3 shrink-0 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold">{selectedTicket.orgName}</p>
-                  <p className="text-xs text-muted-foreground">{selectedTicket.userName} · {new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-on-surface-variant">{selectedTicket.userName} · {new Date(selectedTicket.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {selectedTicket.status !== "in_progress" && selectedTicket.status !== "resolved" && (
@@ -297,14 +297,14 @@ export default function AdminSupportPage() {
                         "max-w-[75%] rounded-2xl px-3.5 py-2",
                         msg.senderType === "admin"
                           ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "bg-muted rounded-bl-md"
+                          : "bg-surface-container rounded-bl-md"
                       )}
                     >
                       <p className="text-[10px] font-semibold mb-0.5 opacity-70">{msg.senderName}</p>
                       <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
                       <p className={cn(
                         "text-[10px] mt-1",
-                        msg.senderType === "admin" ? "text-primary-foreground/60" : "text-muted-foreground"
+                        msg.senderType === "admin" ? "text-primary-foreground/60" : "text-on-surface-variant"
                       )}>
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                       </p>

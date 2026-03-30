@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import twilio from "twilio";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
@@ -9,8 +9,6 @@ import { registerPhoneCall } from "@/lib/retell/client";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
-// Convex HTTP client for database operations
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(request: NextRequest) {
   let callSid = "unknown";

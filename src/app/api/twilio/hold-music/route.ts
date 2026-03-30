@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
+import { convex } from "@/lib/convex/client";
 import { api } from "../../../../../convex/_generated/api";
 
 // Default hold music from Twilio's free collection
@@ -27,20 +27,16 @@ export async function GET(request: NextRequest) {
     let audioUrl = DEFAULT_HOLD_MUSIC;
 
     if (clerkOrgId) {
-      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-      if (convexUrl) {
-        try {
-          const convex = new ConvexHttpClient(convexUrl);
-          const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
-            clerkOrgId,
-          });
-          if (customUrl) {
-            audioUrl = customUrl;
-            console.log(`🎵 Using custom audio`);
-          }
-        } catch (err) {
-          console.error("🎵 Error fetching custom hold music:", err);
+      try {
+        const customUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, {
+          clerkOrgId,
+        });
+        if (customUrl) {
+          audioUrl = customUrl;
+          console.log(`🎵 Using custom audio`);
         }
+      } catch (err) {
+        console.error("🎵 Error fetching custom hold music:", err);
       }
     }
 

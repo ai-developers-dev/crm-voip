@@ -27,15 +27,15 @@ function DraggableActionTile({ type, info }: { type: StepType; info: typeof step
       className={cn(
         "flex items-center gap-2.5 rounded-lg border bg-card p-2.5 cursor-grab active:cursor-grabbing transition-all",
         isDragging
-          ? "opacity-40 shadow-lg ring-2 ring-primary/30"
-          : "hover:shadow-sm hover:border-primary/30"
+          ? "opacity-40 neu-ambient ring-2 ring-primary/30"
+          : "hover:border-primary/30"
       )}
     >
       <div className={cn("flex h-7 w-7 items-center justify-center rounded-md shrink-0", info.bgColor)}>
         <Icon className={cn("h-3.5 w-3.5", info.color)} />
       </div>
       <span className="text-xs font-medium flex-1">{info.label}</span>
-      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+      <GripVertical className="h-3.5 w-3.5 text-on-surface-variant/40 shrink-0" />
     </div>
   );
 }
@@ -45,7 +45,7 @@ export function WorkflowActionsPalette() {
     <div className="p-4 space-y-3">
       <div>
         <h3 className="text-xs font-semibold text-foreground mb-1">Actions</h3>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[11px] text-on-surface-variant">
           Drag an action onto the canvas to add a step
         </p>
       </div>

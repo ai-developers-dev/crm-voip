@@ -181,9 +181,9 @@ export function NewAppointmentDialog({
 
           {/* Optional contact link */}
           <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs">Link to contact (optional)</Label>
+            <Label className="text-on-surface-variant text-xs">Link to contact (optional)</Label>
             {selectedContactId ? (
-              <div className="flex items-center justify-between rounded-md border px-3 py-1.5">
+              <div className="flex items-center justify-between rounded-xl border px-3 py-1.5">
                 <span className="text-sm">{selectedContactName}</span>
                 <Button
                   type="button"
@@ -201,7 +201,7 @@ export function NewAppointmentDialog({
               </div>
             ) : (
               <div className="relative">
-                <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-on-surface-variant" />
                 <Input
                   placeholder="Search contacts..."
                   value={contactSearch}
@@ -214,12 +214,12 @@ export function NewAppointmentDialog({
                   className="pl-8 h-8 text-sm"
                 />
                 {showContactList && filteredContacts && filteredContacts.length > 0 && (
-                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-40 overflow-auto">
+                  <div className="absolute z-50 mt-1 w-full rounded-xl border bg-popover max-h-40 overflow-auto">
                     {filteredContacts.map((c) => (
                       <button
                         key={c._id}
                         type="button"
-                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-surface-container-high transition-colors"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                           setSelectedContactId(c._id);

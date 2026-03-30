@@ -179,7 +179,7 @@ export function WorkflowStepCard({ step, index, isLast, onEdit, onDelete, onInse
     <div>
       {/* Step card */}
       <div
-        className="group rounded-lg border bg-card p-3 hover:shadow-sm transition-shadow cursor-pointer"
+        className="group rounded-lg border bg-card p-3 transition-shadow cursor-pointer"
         onClick={onEdit}
       >
         <div className="flex items-start gap-3">
@@ -199,7 +199,7 @@ export function WorkflowStepCard({ step, index, isLast, onEdit, onDelete, onInse
           {/* Content */}
           <div className="flex-1 min-w-0 pt-0.5">
             <span className="text-sm font-medium">{info.label}</span>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{summary}</p>
+            <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-2">{summary}</p>
           </div>
 
           {/* Actions */}
@@ -207,14 +207,14 @@ export function WorkflowStepCard({ step, index, isLast, onEdit, onDelete, onInse
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -230,7 +230,7 @@ export function WorkflowStepCard({ step, index, isLast, onEdit, onDelete, onInse
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onInsertAfter?.(); }}
-              className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-border/60 text-muted-foreground/40 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer group-hover/connector:border-border group-hover/connector:text-muted-foreground"
+              className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-border/60 text-on-surface-variant/40 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer group-hover/connector:border-border group-hover/connector:text-on-surface-variant"
               title="Insert step"
             >
               <Plus className="h-3 w-3" />

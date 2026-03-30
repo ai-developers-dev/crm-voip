@@ -101,7 +101,7 @@ export default function ContactsPage() {
   if (!orgLoaded) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -112,15 +112,15 @@ export default function ContactsPage() {
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Users className="h-6 w-6 text-muted-foreground" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-container">
+              <Users className="h-6 w-6 text-on-surface-variant" />
             </div>
             <CardTitle>No Organization Selected</CardTitle>
             <CardDescription>
               Please select an organization to view contacts.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-muted-foreground">
+          <CardContent className="text-center text-on-surface-variant">
             <p className="text-sm">
               Use the organization switcher in the header to select or create an organization.
             </p>
@@ -134,7 +134,7 @@ export default function ContactsPage() {
   if (org === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -158,15 +158,15 @@ export default function ContactsPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Header */}
-      <div className="border-b px-6 py-4">
-        <h1 className="text-lg font-semibold tracking-tight">Contacts</h1>
-        <p className="text-muted-foreground">Manage your organization&apos;s contacts</p>
+      <div className="px-6 py-4">
+        <h1 className="text-lg font-extrabold tracking-tight">Contacts</h1>
+        <p className="text-on-surface-variant">Manage your organization&apos;s contacts</p>
       </div>
 
       {/* 3-Column Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Column 1: Contact List */}
-        <div className="w-80 border-r flex-shrink-0 overflow-hidden h-full">
+        <div className="w-80 flex-shrink-0 overflow-hidden h-full">
           <ContactListCompact
             contacts={contacts || []}
             selectedContactId={selectedContact?._id || null}
@@ -180,7 +180,7 @@ export default function ContactsPage() {
         </div>
 
         {/* Column 2: Communications Pane */}
-        <div className="flex-1 min-w-0 border-r">
+        <div className="flex-1 min-w-0">
           <CommunicationsPane
             contact={selectedContact}
             organizationId={org._id}
@@ -191,7 +191,7 @@ export default function ContactsPage() {
         <div className="flex flex-shrink-0">
           {/* Panel content (expands when active) */}
           {activePanel && (activePanel === "sort" || selectedContact) && (
-            <div className="w-80 border-r overflow-y-auto">
+            <div className="w-80 overflow-y-auto">
               <ContactPanelDrawer
                 type={activePanel}
                 contact={selectedContact}
@@ -205,7 +205,7 @@ export default function ContactsPage() {
           )}
 
           {/* Icon menu strip (always visible, right edge) */}
-          <div className="w-14 border-l flex-shrink-0 bg-muted/30">
+          <div className="w-14 flex-shrink-0 bg-surface-container/30">
             <ContactSideMenu
               activePanel={activePanel}
               onPanelChange={(panel) => {

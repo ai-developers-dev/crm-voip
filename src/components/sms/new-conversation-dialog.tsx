@@ -124,7 +124,7 @@ export function NewConversationDialog({
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="message">Message</Label>
-                <span className={`text-xs ${isOverLimit ? "text-destructive" : "text-muted-foreground"}`}>
+                <span className={`text-xs ${isOverLimit ? "text-destructive" : "text-on-surface-variant"}`}>
                   {charCount}/{maxChars}
                 </span>
               </div>

@@ -65,7 +65,7 @@ function TenantInvoiceHistory({ organizationId }: { organizationId: any }) {
             <div key={inv._id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
               <div>
                 <span className="font-medium">{monthNames[inv.month]} {inv.year}</span>
-                <span className="text-xs text-muted-foreground ml-2">
+                <span className="text-xs text-on-surface-variant ml-2">
                   {inv.twilioCallMinutes}min · {inv.twilioSmsSent} SMS
                 </span>
               </div>
@@ -74,7 +74,7 @@ function TenantInvoiceHistory({ organizationId }: { organizationId: any }) {
                 {inv.status === "paid" && <span className="text-[10px] text-green-600 font-medium">Paid</span>}
                 {inv.status === "sent" && <span className="text-[10px] text-blue-600 font-medium">Pending</span>}
                 {inv.status === "failed" && <span className="text-[10px] text-destructive font-medium">Failed</span>}
-                {inv.status === "draft" && <span className="text-[10px] text-muted-foreground">Draft</span>}
+                {inv.status === "draft" && <span className="text-[10px] text-on-surface-variant">Draft</span>}
               </div>
             </div>
           );
@@ -400,7 +400,7 @@ export default function SettingsPage() {
   if (!orgLoaded || convexOrg === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -492,11 +492,11 @@ export default function SettingsPage() {
             </>
           ) : twilioConfigured ? (
             <>
-              <p className="text-sm text-muted-foreground mb-3">Your phone system is configured and active.</p>
+              <p className="text-sm text-on-surface-variant mb-3">Your phone system is configured and active.</p>
               {convexOrg?._id && <PhoneNumbersManager organizationId={convexOrg._id} />}
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">Contact your administrator to set up your phone system.</p>
+            <p className="text-sm text-on-surface-variant">Contact your administrator to set up your phone system.</p>
           )}
         </SettingsRow>
 
@@ -528,7 +528,7 @@ export default function SettingsPage() {
                   <CheckCircle className="h-4 w-4 text-emerald-500" />
                   <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Active</span>
                   {(convexOrg?.billing as any)?.currentPeriodEnd && (
-                    <span className="text-xs text-muted-foreground">· Renews {new Date((convexOrg?.billing as any)?.currentPeriodEnd).toLocaleDateString()}</span>
+                    <span className="text-xs text-on-surface-variant">· Renews {new Date((convexOrg?.billing as any)?.currentPeriodEnd).toLocaleDateString()}</span>
                   )}
                 </div>
               )}
@@ -537,7 +537,7 @@ export default function SettingsPage() {
                   <Clock className="h-4 w-4 text-blue-500" />
                   <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Free Trial</span>
                   {(convexOrg?.billing as any)?.trialEndsAt && (
-                    <span className="text-xs text-muted-foreground">· Ends {new Date((convexOrg?.billing as any)?.trialEndsAt).toLocaleDateString()}</span>
+                    <span className="text-xs text-on-surface-variant">· Ends {new Date((convexOrg?.billing as any)?.trialEndsAt).toLocaleDateString()}</span>
                   )}
                 </div>
               )}
@@ -548,7 +548,7 @@ export default function SettingsPage() {
                 </div>
               )}
               {!subscriptionStatus && (
-                <p className="text-sm text-muted-foreground">No active subscription.</p>
+                <p className="text-sm text-on-surface-variant">No active subscription.</p>
               )}
             </div>
 
@@ -561,7 +561,7 @@ export default function SettingsPage() {
                   <span className="font-semibold">${convexOrg?.billing?.basePlanPrice || 97}/mo</span>
                 </div>
                 {(users?.length ?? 0) > (convexOrg?.billing?.includedUsers || 1) && (
-                  <div className="flex items-center justify-between text-muted-foreground">
+                  <div className="flex items-center justify-between text-on-surface-variant">
                     <span>Additional users ({(users?.length ?? 0) - (convexOrg?.billing?.includedUsers || 1)} x ${convexOrg?.billing?.perUserPrice || 47})</span>
                     <span>${((users?.length ?? 0) - (convexOrg?.billing?.includedUsers || 1)) * (convexOrg?.billing?.perUserPrice || 47)}/mo</span>
                   </div>
@@ -570,7 +570,7 @@ export default function SettingsPage() {
                   <span>Subscription total</span>
                   <span>${(convexOrg?.billing?.basePlanPrice || 97) + Math.max(0, (users?.length ?? 0) - (convexOrg?.billing?.includedUsers || 1)) * (convexOrg?.billing?.perUserPrice || 47)}/mo</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground">Usage charges (calls, SMS, AI agents) billed separately based on actual usage.</p>
+                <p className="text-[10px] text-on-surface-variant">Usage charges (calls, SMS, AI agents) billed separately based on actual usage.</p>
               </div>
             </div>
 
@@ -580,7 +580,7 @@ export default function SettingsPage() {
               {(convexOrg?.billing as any)?.stripeCustomerId ? (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2 rounded-md border px-3 py-2 flex-1">
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <CreditCard className="h-4 w-4 text-on-surface-variant" />
                     <span className="text-sm">Card on file via Stripe</span>
                   </div>
                   <Button variant="outline" size="sm" onClick={handleManageBilling}>
@@ -588,7 +588,7 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No payment method on file.</p>
+                <p className="text-sm text-on-surface-variant">No payment method on file.</p>
               )}
             </div>
 
@@ -601,7 +601,7 @@ export default function SettingsPage() {
                 <Button variant="outline" size="sm" onClick={handleManageBilling}>
                   Open Billing Portal
                 </Button>
-                <p className="text-[10px] text-muted-foreground mt-1">
+                <p className="text-[10px] text-on-surface-variant mt-1">
                   View invoices, update payment method, or cancel subscription in Stripe.
                 </p>
               </div>
@@ -627,7 +627,7 @@ export default function SettingsPage() {
           onToggle={() => toggleRow("email")}
         >
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-on-surface-variant">
               Connect Gmail or Outlook to sync your calendar and send/receive emails from the CRM.
             </p>
 
@@ -646,7 +646,7 @@ export default function SettingsPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{account.email}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs text-on-surface-variant">
                           <span className="capitalize">{account.provider}</span>
                           {ownerUser && isAdmin && <span>· {ownerUser.name}</span>}
                           {account.status === "active" && (
@@ -698,10 +698,10 @@ export default function SettingsPage() {
         >
           {!users ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" />
             </div>
           ) : users.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">
+            <div className="text-center py-4 text-on-surface-variant">
               <UserPlus className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No users yet.</p>
               {isAdmin && (
@@ -728,14 +728,14 @@ export default function SettingsPage() {
                           {u.role === "tenant_admin" ? "Admin" : u.role}
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
+                      <p className="text-xs text-on-surface-variant truncate">
                         {userEmail ? (
                           <span className="flex items-center gap-1">
                             <Mail className="h-3 w-3 text-green-600" />
                             {userEmail.email}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground/60">No email connected</span>
+                          <span className="text-on-surface-variant/60">No email connected</span>
                         )}
                       </p>
                     </div>
@@ -812,14 +812,14 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => updateTag({ id: tag._id, isActive: !tag.isActive })}
-                          className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                           title={tag.isActive ? "Deactivate" : "Activate"}
                         >
                           {tag.isActive ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
                         </button>
                         <button
                           onClick={() => removeTag({ id: tag._id })}
-                          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -898,7 +898,7 @@ export default function SettingsPage() {
           isExpanded={expandedRow === "carriers"}
           onToggle={() => toggleRow("carriers")}
         >
-          <p className="text-sm text-muted-foreground mb-3">
+          <p className="text-sm text-on-surface-variant mb-3">
             Select your carriers, lines of business, and configure commission rates.
           </p>
           <Button variant="outline" size="sm" className="w-full" onClick={() => setIsCarriersDialogOpen(true)}>
@@ -953,23 +953,23 @@ export default function SettingsPage() {
           {convexOrg?.businessInfo ? (
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-muted-foreground">Business Name</dt>
+                <dt className="text-on-surface-variant">Business Name</dt>
                 <dd className="font-medium">{convexOrg.name}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Phone</dt>
+                <dt className="text-on-surface-variant">Phone</dt>
                 <dd className="font-medium">{convexOrg.businessInfo.phone || "—"}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Owner</dt>
+                <dt className="text-on-surface-variant">Owner</dt>
                 <dd className="font-medium">{convexOrg.businessInfo.ownerName || "—"}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Owner Email</dt>
+                <dt className="text-on-surface-variant">Owner Email</dt>
                 <dd className="font-medium">{convexOrg.businessInfo.ownerEmail || "—"}</dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-muted-foreground">Address</dt>
+                <dt className="text-on-surface-variant">Address</dt>
                 <dd className="font-medium">
                   {convexOrg.businessInfo.streetAddress ? (
                     <>
@@ -982,7 +982,7 @@ export default function SettingsPage() {
               </div>
             </dl>
           ) : (
-            <div className="text-center py-4 text-muted-foreground">
+            <div className="text-center py-4 text-on-surface-variant">
               <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No business information on file.</p>
             </div>
@@ -1112,7 +1112,7 @@ export default function SettingsPage() {
 
               {/* Owner Information */}
               <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Owner Information</h3>
+                <h3 className="font-medium text-sm text-on-surface-variant">Owner Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="ownerName">Owner Name *</Label>
                   <Input
@@ -1135,7 +1135,7 @@ export default function SettingsPage() {
                     required
                     disabled={isUpdating || !!updateSuccess}
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-on-surface-variant">
                     This is your business contact email for billing and communication purposes.
                   </p>
                 </div>
@@ -1197,7 +1197,7 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="add-role">Role</Label>
-                <select id="add-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
+                <select id="add-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
                   <option value="agent">Agent</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="tenant_admin">Admin</option>
@@ -1257,7 +1257,7 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Role</Label>
-                <select id="edit-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
+                <select id="edit-role" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
                   <option value="agent">Agent</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="tenant_admin">Admin</option>
@@ -1285,7 +1285,7 @@ export default function SettingsPage() {
                     <div className="flex items-center justify-between rounded-md border px-3 py-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{userEmailAccount.email}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{userEmailAccount.provider}</p>
+                        <p className="text-xs text-on-surface-variant capitalize">{userEmailAccount.provider}</p>
                       </div>
                       <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDisconnectEmail(userEmailAccount._id)}>
                         <Unplug className="h-4 w-4" />

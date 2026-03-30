@@ -152,10 +152,10 @@ export function SalesGoalsManager({ organizationId, asCard = true }: SalesGoalsM
     <>
       {goals === undefined ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" />
         </div>
       ) : goals.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8 text-on-surface-variant">
           <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">No sales goals configured yet.</p>
           <Button variant="outline" size="sm" className="mt-3" onClick={openAddDialog}>
@@ -282,7 +282,7 @@ export function SalesGoalsManager({ organizationId, asCard = true }: SalesGoalsM
               </div>
 
               {/* Premium Goals */}
-              <h3 className="font-medium text-sm text-muted-foreground pt-2">Premium Goals</h3>
+              <h3 className="font-medium text-sm text-on-surface-variant pt-2">Premium Goals</h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <Label>Daily ($)</Label>
@@ -320,7 +320,7 @@ export function SalesGoalsManager({ organizationId, asCard = true }: SalesGoalsM
               </div>
 
               {/* Policy Count Goals */}
-              <h3 className="font-medium text-sm text-muted-foreground pt-2">Policy Count Goals</h3>
+              <h3 className="font-medium text-sm text-on-surface-variant pt-2">Policy Count Goals</h3>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <Label>Daily</Label>
@@ -402,7 +402,7 @@ export function SalesGoalsManager({ organizationId, asCard = true }: SalesGoalsM
   const goalCount = goals?.length ?? 0;
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

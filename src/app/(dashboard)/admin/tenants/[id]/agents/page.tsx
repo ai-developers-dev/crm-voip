@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { cardPatterns } from "@/lib/style-constants";
+import { cn } from "@/lib/utils";
 
 export default function TenantAgentsPage() {
   const params = useParams();
@@ -60,7 +62,7 @@ export default function TenantAgentsPage() {
   if (!userLoaded || tenant === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Loading...</span>
         </div>
@@ -71,7 +73,7 @@ export default function TenantAgentsPage() {
   if (!tenant) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Tenant not found</p>
+        <p className="text-on-surface-variant">Tenant not found</p>
       </div>
     );
   }
@@ -83,7 +85,7 @@ export default function TenantAgentsPage() {
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - var(--header-height, 3.5rem))" }}>
       {/* Tenant header with inline nav */}
-      <div className="shrink-0 border-b bg-background px-6 py-3">
+      <div className="shrink-0 bg-surface px-6 py-3">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}>
@@ -164,15 +166,15 @@ export default function TenantAgentsPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Insurance Quoting Agent */}
             <Link href={`/admin/tenants/${tenant._id}/agents/quotes`}>
-              <div className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all cursor-pointer">
+              <div className={cn(cardPatterns.pageCardInteractive, "group cursor-pointer p-4")}>
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30">
                     <FileText className="h-5 w-5 text-emerald-600" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className="h-4 w-4 text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <h3 className="text-sm font-semibold mb-1">Insurance Quoting</h3>
-                <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-xs text-on-surface-variant mb-3">
                   Automatically runs insurance quotes through National General and other carrier portals using browser automation.
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -182,7 +184,7 @@ export default function TenantAgentsPage() {
                     <Badge variant="secondary" className="text-xs">Not configured</Badge>
                   )}
                   {isAgentRunning && (
-                    <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 text-xs gap-1">
+                    <Badge className="bg-blue-500/15 text-blue-600lue-500/30 text-xs gap-1">
                       <Loader2 className="h-2.5 w-2.5 animate-spin" /> Running
                     </Badge>
                   )}
@@ -198,15 +200,15 @@ export default function TenantAgentsPage() {
 
             {/* AI Calling Agent */}
             <Link href={`/admin/tenants/${tenant._id}/agents/calling`}>
-              <div className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all cursor-pointer">
+              <div className={cn(cardPatterns.pageCardInteractive, "group cursor-pointer p-4")}>
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/30">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-100 dark:bg-cyan-900/30">
                     <Phone className="h-5 w-5 text-cyan-600" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className="h-4 w-4 text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <h3 className="text-sm font-semibold mb-1">AI Calling</h3>
-                <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-xs text-on-surface-variant mb-3">
                   AI-powered inbound and outbound calling agents. Handles receptionists, follow-ups, reminders, and lead qualification.
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -221,15 +223,15 @@ export default function TenantAgentsPage() {
 
             {/* AI SMS Agent */}
             <Link href={`/admin/tenants/${tenant._id}/agents/sms`}>
-              <div className="group rounded-xl border bg-card p-5 hover:shadow-md transition-all cursor-pointer">
+              <div className={cn(cardPatterns.pageCardInteractive, "group cursor-pointer p-4")}>
                 <div className="flex items-start justify-between mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 dark:bg-violet-900/30">
                     <BrainCircuit className="h-5 w-5 text-violet-600" />
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ChevronRight className="h-4 w-4 text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <h3 className="text-sm font-semibold mb-1">AI SMS</h3>
-                <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-xs text-on-surface-variant mb-3">
                   AI-powered SMS conversation agents. Book appointments, qualify leads, and handle customer service via text message.
                 </p>
                 <div className="flex items-center gap-2 flex-wrap">

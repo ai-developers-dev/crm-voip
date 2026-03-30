@@ -69,6 +69,7 @@ import type * as tenantCommissions from "../tenantCommissions.js";
 import type * as usageInvoices from "../usageInvoices.js";
 import type * as userMetrics from "../userMetrics.js";
 import type * as users from "../users.js";
+import type * as voicemails from "../voicemails.js";
 import type * as workflowEngine from "../workflowEngine.js";
 import type * as workflowExecutions from "../workflowExecutions.js";
 import type * as workflows from "../workflows.js";
@@ -141,6 +142,7 @@ declare const fullApi: ApiFromModules<{
   usageInvoices: typeof usageInvoices;
   userMetrics: typeof userMetrics;
   users: typeof users;
+  voicemails: typeof voicemails;
   workflowEngine: typeof workflowEngine;
   workflowExecutions: typeof workflowExecutions;
   workflows: typeof workflows;

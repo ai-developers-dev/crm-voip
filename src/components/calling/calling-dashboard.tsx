@@ -24,6 +24,8 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { useParkingStore, generateTempParkingId } from "@/lib/stores/parking-store";
 import { DailyCallLog } from "./daily-call-log";
+import { cardPatterns } from "@/lib/style-constants";
+import { cn } from "@/lib/utils";
 
 interface CallingDashboardProps {
   organizationId?: string;
@@ -102,11 +104,11 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   if (!organizationId) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
-        <Card className="max-w-md">
+        <Card className={cn(cardPatterns.pageCard, "max-w-md")}>
           <CardContent className="pt-6 text-center">
-            <Phone className="mx-auto h-12 w-12 text-muted-foreground" />
+            <Phone className="mx-auto h-12 w-12 text-on-surface-variant" />
             <h3 className="mt-4 text-sm font-medium">No Organization Selected</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-on-surface-variant">
               Select an organization to view the calling dashboard.
             </p>
           </CardContent>
@@ -377,10 +379,10 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               {/* Daily Call Log */}
               {effectiveOrgId && (
                 <div className="max-w-4xl">
-                  <h3 className="text-sm font-medium text-muted-foreground px-3 pb-2">
+                  <h3 className="text-sm font-medium text-on-surface-variant px-3 pb-2">
                     Today&apos;s Call Log
                   </h3>
-                  <Card>
+                  <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
                     <CardContent className="p-0">
                       <DailyCallLog organizationId={effectiveOrgId!} />
                     </CardContent>
@@ -391,7 +393,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           </div>
 
           {/* Parking lot sidebar */}
-          <aside className="w-64 border-l bg-muted/30 overflow-auto">
+          <aside className="w-64 overflow-auto bg-surface-container-lowest">
             {effectiveOrgId && <ParkingLot organizationId={effectiveOrgId!} />}
           </aside>
         </div>
@@ -400,8 +402,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
       {/* Drag overlay - compact card that matches parking slot size */}
       <DragOverlay>
         {dragActiveCall ? (
-          <div className="w-48 flex items-center gap-2 rounded-md border-2 border-primary p-2 shadow-xl bg-white dark:bg-slate-900 cursor-grabbing">
-            <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div className="w-48 flex items-center gap-2 rounded-xl border-2 border-primary p-2 neu-ambient bg-white dark:bg-slate-900 cursor-grabbing">
+            <GripVertical className="h-4 w-4 text-on-surface-variant flex-shrink-0" />
             <Phone className="h-4 w-4 text-primary flex-shrink-0" />
             <span className="text-sm font-medium truncate flex-1">
               {dragActiveCall.fromName || dragActiveCall.from}
@@ -587,7 +589,7 @@ function AgentGrid({
   if (convexOrgId === undefined || usersWithMetrics === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading agents...
         </div>
@@ -598,11 +600,11 @@ function AgentGrid({
   if (!usersWithMetrics || usersWithMetrics.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Card className="max-w-md">
+        <Card className={cn(cardPatterns.pageCard, "max-w-md")}>
           <CardContent className="pt-6 text-center">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+            <Users className="mx-auto h-12 w-12 text-on-surface-variant" />
             <h3 className="mt-4 text-sm font-medium">No Agents Yet</h3>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-on-surface-variant">
               Go to Settings → Users to add team members.
             </p>
           </CardContent>

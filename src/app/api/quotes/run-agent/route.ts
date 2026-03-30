@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
+import type { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 import {
@@ -13,14 +14,12 @@ import type { Id } from "../../../../../convex/_generated/dataModel";
 
 export const maxDuration = 300; // 5 min for multiple leads
 
-async function getAuthenticatedConvex() {
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+async function authenticateConvex() {
   try {
     const { getToken } = await auth();
     const token = await getToken({ template: "convex" });
     if (token) convex.setAuth(token);
   } catch {}
-  return convex;
 }
 
 // Map carrier names to portal driver keys
@@ -65,7 +64,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const convex = await getAuthenticatedConvex();
+    await authenticateConvex();
 
     const body = await req.json();
     const { organizationId, quoteType = "auto", action, sessionId, code } = body;
@@ -351,6 +350,7 @@ async function processLeadsWithSession(
         await convex.mutation(api.insuranceLeads.updateStatus, { id: lead._id, status: "quoted" });
 
         // Save captured data (drivers, vehicles, prior insurance) to the contact
+        console.log(`[auto-quote] Result has: drivers=${result.capturedDrivers?.length || 0}, vehicles=${result.capturedVehicles?.length || 0}, priorIns=${JSON.stringify(result.capturedPriorInsurance || null)}`);
         if (result.capturedDrivers?.length || result.capturedVehicles?.length || result.capturedPriorInsurance) {
           try {
             const contacts = await convex.query(api.contacts.getByOrganization, {
@@ -379,7 +379,7 @@ async function processLeadsWithSession(
                   priorInsuranceExpDate: pi.priorExpDate || undefined,
                   monthsWithRecentCarrier: pi.monthsRecent ? parseInt(pi.monthsRecent) || undefined : undefined,
                 });
-                console.log(`[auto-quote] Saved prior insurance: carrier=${pi.priorCarrier}, BI=${pi.priorBi}`);
+                console.log(`[auto-quote] Saved prior insurance: carrier=${pi.priorCarrier}, BI=${pi.priorBi}, exp=${pi.priorExpDate}, months=${pi.monthsRecent}`);
               }
             }
           } catch (e: any) {

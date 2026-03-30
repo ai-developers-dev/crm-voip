@@ -30,14 +30,14 @@ export function SettingsRow({
       <CardContent className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className="shrink-0">{icon}</div>
-          <div className="font-semibold text-sm min-w-[90px] shrink-0">{label}</div>
-          <span className="text-xs text-muted-foreground">{summary}</span>
+          <div className="font-bold text-sm min-w-[90px] shrink-0">{label}</div>
+          <span className="text-xs text-on-surface-variant">{summary}</span>
           <div className="flex-1" />
           {badge && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{badge}</div>}
           {action && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{action}</div>}
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              "h-4 w-4 text-on-surface-variant transition-transform duration-200 shrink-0",
               isExpanded && "rotate-180"
             )}
           />
@@ -51,7 +51,7 @@ export function SettingsRow({
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-t border-border/40 pt-3">
+            <div className="pt-3">
               {children}
             </div>
           </div>

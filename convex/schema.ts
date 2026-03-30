@@ -493,6 +493,10 @@ export default defineSchema({
     recordingUrl: v.optional(v.string()),
     recordingDuration: v.optional(v.number()),
 
+    // Transcription (from Twilio voicemail transcription)
+    transcriptionText: v.optional(v.string()),
+    transcriptionSid: v.optional(v.string()),
+
     // Notes
     notes: v.optional(v.string()),
     disposition: v.optional(v.string()),
@@ -507,6 +511,25 @@ export default defineSchema({
     .index("by_contact", ["contactId"])
     .index("by_twilio_sid", ["twilioCallSid"])
     .index("by_org_outcome_date", ["organizationId", "outcome", "startedAt"]),
+
+  // Voicemails (stored recordings with transcriptions)
+  voicemails: defineTable({
+    organizationId: v.id("organizations"),
+    callHistoryId: v.optional(v.id("callHistory")),
+    twilioCallSid: v.string(),
+    recordingSid: v.string(),
+    recordingUrl: v.string(),
+    duration: v.number(),
+    transcriptionText: v.optional(v.string()),
+    callerNumber: v.string(),
+    callerName: v.optional(v.string()),
+    contactId: v.optional(v.id("contacts")),
+    isRead: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_organization_read", ["organizationId", "isRead"])
+    .index("by_call_sid", ["twilioCallSid"]),
 
   // Parking Lots (Call parking slots)
   parkingLots: defineTable({
@@ -676,6 +699,15 @@ export default defineSchema({
     .index("by_assigned_user", ["assignedUserId"])
     .index("by_organization_name", ["organizationId", "firstName"])
     .index("by_organization_email", ["organizationId", "email"]),
+
+  // Phone number → contact lookup (denormalized for O(1) phone lookups)
+  contactPhoneLookup: defineTable({
+    normalizedPhone: v.string(), // Last 10 digits, digits only
+    contactId: v.id("contacts"),
+    organizationId: v.id("organizations"),
+  })
+    .index("by_org_phone", ["organizationId", "normalizedPhone"])
+    .index("by_contact", ["contactId"]),
 
   // ============================================
   // SMS/MESSAGING TABLES
@@ -1341,7 +1373,9 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_organizationId", ["organizationId"])
-    .index("by_organizationId_status", ["organizationId", "status"]),
+    .index("by_organizationId_status", ["organizationId", "status"])
+    .index("by_organizationId_email", ["organizationId", "email"])
+    .index("by_organizationId_phone", ["organizationId", "phone"]),
 
   // ── Insurance Quotes ─────────────────────────────────────────────────
   insuranceQuotes: defineTable({

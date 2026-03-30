@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import twilio from "twilio";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;
 
 // Initialize Convex client
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Create access token with per-tenant credentials
     const token = new AccessToken(accountSid, apiKey, apiSecret, {
       identity: identity || `${orgId}-${userId}`,
-      ttl: 14400, // 4 hours // 1 hour
+      ttl: 14400, // 4 hours
     });
 
     // Create Voice grant

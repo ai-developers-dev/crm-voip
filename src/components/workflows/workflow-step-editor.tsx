@@ -121,10 +121,10 @@ export function WorkflowStepEditor({
   const accentBorder = currentInfo.color.replace("text-", "border-t-");
 
   return (
-    <div className={cn("rounded-lg border border-t-2 bg-card p-4 space-y-3 shadow-sm", accentBorder)}>
+    <div className={cn("rounded-lg border border-t-2 bg-card p-4 space-y-3", accentBorder)}>
       {/* Step type grid selector */}
       <div>
-        <Label className="text-xs text-muted-foreground mb-2 block">Step Type</Label>
+        <Label className="text-xs text-on-surface-variant mb-2 block">Step Type</Label>
         <div className="grid grid-cols-4 gap-1.5">
           {stepTypeOptions.map(({ value, label, icon: Icon, color, bgColor }) => (
             <button
@@ -135,7 +135,7 @@ export function WorkflowStepEditor({
                 "flex flex-col items-center gap-1 rounded-lg border px-1.5 py-2 text-center transition-all cursor-pointer",
                 step.type === value
                   ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                  : "border-transparent bg-muted/40 hover:bg-muted/70 hover:border-border"
+                  : "border-transparent bg-surface-container/40 hover:bg-surface-container-high/70 hover:border-border"
               )}
             >
               <div className={cn("flex h-6 w-6 items-center justify-center rounded-md", bgColor)}>
@@ -143,7 +143,7 @@ export function WorkflowStepEditor({
               </div>
               <span className={cn(
                 "text-[9px] leading-tight font-medium",
-                step.type === value ? "text-foreground" : "text-muted-foreground"
+                step.type === value ? "text-foreground" : "text-on-surface-variant"
               )}>
                 {label}
               </span>
@@ -158,7 +158,7 @@ export function WorkflowStepEditor({
       {/* Dynamic config fields based on step type */}
       {step.type === "send_sms" && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">
             Message Template
           </Label>
           <Textarea
@@ -179,7 +179,7 @@ export function WorkflowStepEditor({
       {step.type === "send_email" && (
         <>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Subject</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Subject</Label>
             <Input
               value={step.config.emailSubject ?? ""}
               onChange={(e) => updateConfig({ emailSubject: e.target.value })}
@@ -188,7 +188,7 @@ export function WorkflowStepEditor({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Body</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Body</Label>
             <Textarea
               ref={emailBodyRef}
               value={step.config.emailBodyTemplate ?? ""}
@@ -208,7 +208,7 @@ export function WorkflowStepEditor({
       {step.type === "create_task" && (
         <>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Task Title</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Task Title</Label>
             <Input
               value={step.config.taskTitle ?? ""}
               onChange={(e) => updateConfig({ taskTitle: e.target.value })}
@@ -217,7 +217,7 @@ export function WorkflowStepEditor({
             />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Description</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Description</Label>
             <Textarea
               value={step.config.taskDescription ?? ""}
               onChange={(e) => updateConfig({ taskDescription: e.target.value })}
@@ -227,7 +227,7 @@ export function WorkflowStepEditor({
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Type</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Type</Label>
               <Select
                 value={step.config.taskType ?? "follow_up"}
                 onValueChange={(v) => updateConfig({ taskType: v })}
@@ -245,7 +245,7 @@ export function WorkflowStepEditor({
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Priority</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Priority</Label>
               <Select
                 value={step.config.taskPriority ?? "medium"}
                 onValueChange={(v) => updateConfig({ taskPriority: v })}
@@ -262,7 +262,7 @@ export function WorkflowStepEditor({
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Due in (days)</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Due in (days)</Label>
               <Input
                 type="number"
                 min={0}
@@ -277,7 +277,7 @@ export function WorkflowStepEditor({
 
       {(step.type === "add_tag" || step.type === "remove_tag") && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Tag</Label>
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">Tag</Label>
           <Select
             value={step.config.tagId ?? ""}
             onValueChange={(v) => updateConfig({ tagId: v })}
@@ -298,7 +298,7 @@ export function WorkflowStepEditor({
 
       {step.type === "create_note" && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Note Template</Label>
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">Note Template</Label>
           <Textarea
             ref={noteRef}
             value={step.config.noteTemplate ?? ""}
@@ -316,7 +316,7 @@ export function WorkflowStepEditor({
 
       {step.type === "assign_contact" && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Assign to</Label>
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">Assign to</Label>
           <Select
             value={step.config.assignToUserId ?? ""}
             onValueChange={(v) => updateConfig({ assignToUserId: v })}
@@ -337,7 +337,7 @@ export function WorkflowStepEditor({
 
       {step.type === "wait" && (
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Wait Duration</Label>
+          <Label className="text-xs text-on-surface-variant mb-1.5 block">Wait Duration</Label>
           <div className="flex gap-2">
             <Input
               type="number"

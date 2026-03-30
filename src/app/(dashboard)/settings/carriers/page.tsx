@@ -302,7 +302,7 @@ export default function CarriersSettingsPage() {
   if (!orgLoaded || convexOrg === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -318,7 +318,7 @@ export default function CarriersSettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-lg font-semibold tracking-tight">Carriers & Lines of Business</h1>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Select the carriers and products your agency works with
         </p>
       </div>
@@ -379,7 +379,7 @@ export default function CarriersSettingsPage() {
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               {activeCarriers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-on-surface-variant">
                   No carriers configured for this agency type.
                 </p>
               ) : (
@@ -392,13 +392,13 @@ export default function CarriersSettingsPage() {
 
                     return (
                       <div key={carrier._id} className="break-inside-avoid">
-                        <div className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50">
+                        <div className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-surface-container-high/50">
                           <button
                             type="button"
                             onClick={() => toggleExpandCarrier(carrier._id)}
-                            className="shrink-0 p-0.5 rounded hover:bg-muted"
+                            className="shrink-0 p-0.5 rounded hover:bg-surface-container-high"
                           >
-                            <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
+                            <ChevronRight className={`h-3.5 w-3.5 text-on-surface-variant transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
                           </button>
                           <Checkbox
                             checked={isChecked}
@@ -406,25 +406,25 @@ export default function CarriersSettingsPage() {
                           />
                           <span className="text-sm font-medium">{carrier.name}</span>
                           {isChecked && carrierProducts.length > 0 && (
-                            <span className="text-xs text-muted-foreground">{selectedCount}/{carrierProducts.length}</span>
+                            <span className="text-xs text-on-surface-variant">{selectedCount}/{carrierProducts.length}</span>
                           )}
                         </div>
                         <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"}`}>
                           <div className="pl-10 space-y-0.5 pb-1">
                             {carrierProducts.length === 0 ? (
-                              <p className="text-xs text-muted-foreground py-1">No LOBs configured.</p>
+                              <p className="text-xs text-on-surface-variant py-1">No LOBs configured.</p>
                             ) : (
                               carrierProducts.map((product) => (
                                 <label
                                   key={product._id}
-                                  className="flex items-center gap-2 py-1 px-1.5 rounded-md hover:bg-muted/30 cursor-pointer"
+                                  className="flex items-center gap-2 py-1 px-1.5 rounded-md hover:bg-surface-container-high/30 cursor-pointer"
                                 >
                                   <Checkbox
                                     checked={selectedProductIds.has(product._id)}
                                     onCheckedChange={() => toggleProduct(product._id)}
                                     disabled={!isChecked}
                                   />
-                                  <span className={`text-sm ${!isChecked ? "text-muted-foreground" : ""}`}>{product.name}</span>
+                                  <span className={`text-sm ${!isChecked ? "text-on-surface-variant" : ""}`}>{product.name}</span>
                                 </label>
                               ))
                             )}
@@ -457,7 +457,7 @@ export default function CarriersSettingsPage() {
                   if (carrierProducts.length === 0) return null;
                   return (
                     <div key={carrier._id}>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">{carrier.name}</h4>
+                      <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-1.5">{carrier.name}</h4>
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -522,7 +522,7 @@ export default function CarriersSettingsPage() {
             {saleTypes && saleTypes.length > 0 && (
               <div className="space-y-0.5">
                 {saleTypes.map((st) => (
-                  <div key={st._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50 group -mx-2">
+                  <div key={st._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-surface-container-high/50 group -mx-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-sm font-medium truncate">{st.name}</span>
                       <Badge variant={st.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
@@ -602,7 +602,7 @@ export default function CarriersSettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-on-surface-variant">
             This extension automatically fills in the policy number or client name when you open a carrier portal from the Policies panel. It saves time by eliminating manual copy-paste.
           </p>
 
@@ -615,13 +615,13 @@ export default function CarriersSettingsPage() {
             </a>
           </div>
 
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <div className="rounded-lg border bg-surface-container/30 p-4 space-y-3">
             <h4 className="text-sm font-semibold">Installation Instructions</h4>
-            <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+            <ol className="text-sm text-on-surface-variant space-y-2 list-decimal list-inside">
               <li>Download and unzip the file above</li>
               <li>
                 Open Chrome and go to{" "}
-                <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                <code className="rounded bg-surface-container px-1.5 py-0.5 text-xs font-mono">
                   chrome://extensions
                 </code>
               </li>
@@ -630,7 +630,7 @@ export default function CarriersSettingsPage() {
               </li>
               <li>
                 Click <strong>Load unpacked</strong> and select the unzipped{" "}
-                <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                <code className="rounded bg-surface-container px-1.5 py-0.5 text-xs font-mono">
                   chrome-extension
                 </code>{" "}
                 folder
@@ -639,14 +639,14 @@ export default function CarriersSettingsPage() {
             </ol>
           </div>
 
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+          <div className="rounded-lg border bg-surface-container/30 p-4 space-y-2">
             <h4 className="text-sm font-semibold">How It Works</h4>
-            <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+            <ol className="text-sm text-on-surface-variant space-y-1.5 list-decimal list-inside">
               <li>Click a carrier name in a contact&apos;s Policies panel</li>
               <li>The policy number is copied to your clipboard and the carrier portal opens</li>
               <li>The extension detects the portal and auto-fills the search field</li>
             </ol>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-on-surface-variant mt-2">
               Supports Progressive, Travelers, State Farm, Nationwide, and auto-detects search fields on other portals. Make sure you&apos;re logged into the carrier portal for best results.
             </p>
           </div>

@@ -65,7 +65,7 @@ export function CallSettingsStep({ onNext, onBack, onSkip }: CallSettingsStepPro
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-2">Call Settings</h2>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Configure your call recording and capacity preferences.
         </p>
       </div>
@@ -79,10 +79,10 @@ export function CallSettingsStep({ onNext, onBack, onSkip }: CallSettingsStepPro
 
       <div className="space-y-6">
         {/* Recording toggle */}
-        <div className="flex items-center justify-between p-4 rounded-lg border border-border/60 bg-muted/30">
+        <div className="flex items-center justify-between p-4 rounded-2xl border bg-surface-container/30">
           <div>
             <Label className="text-base">Call Recording</Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-on-surface-variant">
               Automatically record all incoming and outgoing calls
             </p>
           </div>
@@ -110,7 +110,7 @@ export function CallSettingsStep({ onNext, onBack, onSkip }: CallSettingsStepPro
               }))
             }
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-on-surface-variant">
             Maximum number of calls your team can handle simultaneously (1-100)
           </p>
         </div>
@@ -127,7 +127,7 @@ export function CallSettingsStep({ onNext, onBack, onSkip }: CallSettingsStepPro
               setSettings((prev) => ({ ...prev, holdMusicUrl: e.target.value }))
             }
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-on-surface-variant">
             Leave empty to use the default hold music
           </p>
         </div>

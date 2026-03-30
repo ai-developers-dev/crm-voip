@@ -27,7 +27,7 @@ export default function OnboardingPage() {
   if (!orgLoaded || onboardingStatus === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -37,7 +37,7 @@ export default function OnboardingPage() {
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">No Organization</h1>
-          <p className="text-muted-foreground">
+          <p className="text-on-surface-variant">
             Please select or create an organization to continue.
           </p>
         </div>

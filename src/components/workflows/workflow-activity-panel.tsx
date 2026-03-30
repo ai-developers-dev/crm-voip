@@ -40,7 +40,7 @@ export function WorkflowActivityPanel({ workflowId }: WorkflowActivityPanelProps
         {/* Summary bar */}
         {executions && executions.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-2 flex-wrap border-b">
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs text-on-surface-variant">
               <Users className="h-3 w-3" />
               {executions.length}
             </span>
@@ -68,14 +68,14 @@ export function WorkflowActivityPanel({ workflowId }: WorkflowActivityPanelProps
         {/* Execution list */}
         <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-4 pt-2">
           {!executions ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
+            <div className="flex items-center gap-2 text-xs text-on-surface-variant py-6 justify-center">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Loading...
             </div>
           ) : executions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Users className="h-8 w-8 text-muted-foreground/20 mb-2" />
-              <p className="text-xs text-muted-foreground">
+              <Users className="h-8 w-8 text-on-surface-variant/20 mb-2" />
+              <p className="text-xs text-on-surface-variant">
                 No contacts have entered this workflow yet.
               </p>
             </div>
@@ -113,15 +113,15 @@ export function WorkflowActivityPanel({ workflowId }: WorkflowActivityPanelProps
                 else if (mins >= 1) timeAgo = `${mins}m ago`;
 
                 return (
-                  <div key={ex._id} className="group rounded-lg p-2.5 hover:bg-muted/40 transition-colors">
+                  <div key={ex._id} className="group rounded-lg p-2.5 hover:bg-surface-container-high/40 transition-colors">
                     <div className="flex items-start gap-2.5">
                       <si.Icon className={`h-4 w-4 shrink-0 mt-0.5 ${si.color} ${si.spin ? "animate-spin" : ""}`} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium truncate">{ex.contactName}</span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo}</span>
+                          <span className="text-[10px] text-on-surface-variant shrink-0">{timeAgo}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">{stepLabel}</span>
+                        <span className="text-xs text-on-surface-variant">{stepLabel}</span>
                         <div className="flex items-center gap-0.5 mt-1.5 max-w-32">
                           {ex.snapshotSteps.map((s: any, i: number) => {
                             const result = ex.stepResults[i];
@@ -140,7 +140,7 @@ export function WorkflowActivityPanel({ workflowId }: WorkflowActivityPanelProps
                             <button
                               type="button"
                               onClick={() => cancelExecution({ executionId: ex._id })}
-                              className="p-1 rounded text-muted-foreground hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors opacity-0 group-hover:opacity-100"
+                              className="p-1 rounded text-on-surface-variant hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors opacity-0 group-hover:opacity-100"
                             >
                               <Ban className="h-3.5 w-3.5" />
                             </button>

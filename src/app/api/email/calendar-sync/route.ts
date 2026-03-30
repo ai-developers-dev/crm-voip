@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import Nylas from "nylas";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
@@ -9,7 +9,6 @@ const nylas = new Nylas({
   apiUri: process.env.NYLAS_API_URI || "https://api.us.nylas.com",
 });
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 // One-time calendar backfill when a user connects their account
 export async function POST(request: NextRequest) {

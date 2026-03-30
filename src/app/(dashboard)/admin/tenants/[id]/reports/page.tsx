@@ -15,6 +15,8 @@ import { useParams, useRouter } from "next/navigation";
 import { SalesReportDashboard, MonthPicker } from "@/components/reports/sales-report-dashboard";
 import { CallReportDashboard } from "@/components/reports/call-report-dashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cardPatterns } from "@/lib/style-constants";
+import { cn } from "@/lib/utils";
 
 export default function TenantReportsPage() {
   const params = useParams();
@@ -50,7 +52,7 @@ export default function TenantReportsPage() {
   if (!userLoaded || isPlatformUser === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -59,11 +61,11 @@ export default function TenantReportsPage() {
   if (!isPlatformUser) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
-        <Card className="max-w-md">
+        <Card className={cn(cardPatterns.pageCard, "max-w-md")}>
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              You don't have permission to view tenant dashboards.
+              You don&apos;t have permission to view tenant dashboards.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -79,7 +81,7 @@ export default function TenantReportsPage() {
   if (tenant === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -87,11 +89,11 @@ export default function TenantReportsPage() {
   if (tenant === null) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center p-4">
-        <Card className="max-w-md">
+        <Card className={cn(cardPatterns.pageCard, "max-w-md")}>
           <CardHeader className="text-center">
             <CardTitle>Tenant Not Found</CardTitle>
             <CardDescription>
-              The tenant organization you're looking for doesn't exist.
+              The tenant organization you&apos;re looking for doesn&apos;t exist.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -110,7 +112,7 @@ export default function TenantReportsPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Navigation Menu */}
-      <div className="border-b bg-muted/30 px-4 py-2">
+      <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}>
@@ -152,7 +154,7 @@ export default function TenantReportsPage() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Reports</h1>
-            <p className="text-sm text-muted-foreground">{tenant.name}</p>
+            <p className="text-sm text-on-surface-variant">{tenant.name}</p>
           </div>
           <MonthPicker
             month={selectedMonth}
@@ -187,11 +189,11 @@ export default function TenantReportsPage() {
           </TabsContent>
 
           <TabsContent value="downloads" className="mt-4">
-            <Card>
+            <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
               <CardContent className="py-12 text-center">
-                <Download className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <Download className="h-10 w-10 text-on-surface-variant mx-auto mb-3" />
                 <p className="text-sm font-medium">Agency Downloads</p>
-                <p className="text-xs text-muted-foreground mt-1">Export reports and documents. Coming soon.</p>
+                <p className="text-xs text-on-surface-variant mt-1">Export reports and documents. Coming soon.</p>
               </CardContent>
             </Card>
           </TabsContent>

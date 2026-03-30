@@ -21,7 +21,7 @@ export function CompletionStep({ twilioConfigured, emailConfigured, onComplete, 
           </div>
         </div>
         <h2 className="text-2xl font-bold mb-2">You&apos;re All Set!</h2>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Your phone system is ready to go.
         </p>
       </div>
@@ -105,13 +105,13 @@ function SummaryItem({
   configured: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg border border-border/60 bg-muted/30">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+    <div className="flex items-start gap-3 p-3 rounded-2xl border bg-surface-container/30">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
         <Icon className="h-4 w-4 text-primary" />
       </div>
       <div className="flex-1">
         <p className="font-medium">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="text-sm text-on-surface-variant">{description}</p>
       </div>
       {configured && <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />}
     </div>

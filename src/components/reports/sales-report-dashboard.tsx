@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { cardPatterns } from "@/lib/style-constants";
 import {
   Loader2,
   ChevronLeft,
@@ -69,7 +70,7 @@ function GoalDonut({ current, goal, isCurrency }: {
         <circle
           cx={center} cy={center} r={radius}
           fill="none" strokeWidth={trackWidth}
-          className="stroke-purple-200 dark:stroke-purple-800"
+          className="stroke-blue-200 dark:stroke-blue-900"
         />
         {pct > 0 && (
           <circle
@@ -78,12 +79,12 @@ function GoalDonut({ current, goal, isCurrency }: {
             strokeDasharray={circumference}
             strokeDashoffset={offset}
             strokeLinecap="round"
-            className={isComplete ? "stroke-green-500" : "stroke-purple-500"}
+            className={isComplete ? "stroke-green-500" : "stroke-primary"}
             style={{ transition: "stroke-dashoffset 0.5s ease" }}
           />
         )}
       </svg>
-      <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${isComplete ? "text-green-600" : "text-purple-600 dark:text-purple-400"}`}>
+      <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${isComplete ? "text-green-600" : "text-primary dark:text-blue-300"}`}>
         {pct.toFixed(0)}%
       </span>
     </div>
@@ -116,14 +117,14 @@ function SalesDetailTable({
   if (salesList === undefined) {
     return (
       <div className="flex items-center justify-center py-6">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <Loader2 className="h-4 w-4 animate-spin text-on-surface-variant" />
       </div>
     );
   }
 
   if (salesList.length === 0) {
     return (
-      <p className="text-center text-muted-foreground py-6 text-sm">
+      <p className="text-center text-on-surface-variant py-6 text-sm">
         No sales found for this period.
       </p>
     );
@@ -150,7 +151,7 @@ function SalesDetailTable({
             <TableCell className="font-medium">{sale.contactName}</TableCell>
             <TableCell>{sale.userName}</TableCell>
             <TableCell>{sale.carrierName}</TableCell>
-            <TableCell className="text-muted-foreground">{sale.policyNumber || "—"}</TableCell>
+            <TableCell className="text-on-surface-variant">{sale.policyNumber || "—"}</TableCell>
             <TableCell className="text-right">{formatCurrency(sale.totalPremium)}</TableCell>
           </TableRow>
         ))}
@@ -189,10 +190,10 @@ function SummaryRow({
 }) {
   if (report === undefined) {
     return (
-      <Card>
+      <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
         <CardContent className="py-4">
           <div className="flex items-center justify-center">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 className="h-4 w-4 animate-spin text-on-surface-variant" />
           </div>
         </CardContent>
       </Card>
@@ -200,7 +201,7 @@ function SummaryRow({
   }
 
   return (
-    <Card>
+    <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
       <CardContent className="py-3 px-4">
         {/* Summary row — click anywhere to expand */}
         <div className="flex items-center gap-4 cursor-pointer" onClick={onToggle}>
@@ -210,7 +211,7 @@ function SummaryRow({
           {/* Stats inline */}
           <div className="flex items-center gap-6 flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Policies</span>
+              <span className="text-xs text-on-surface-variant">Policies</span>
               <span className="text-sm font-bold">{report.summary.totalPolicies}</span>
               {policyGoal != null && policyGoal > 0 && (
                 <GoalDonut current={report.summary.totalPolicies} goal={policyGoal} />
@@ -218,7 +219,7 @@ function SummaryRow({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Premium</span>
+              <span className="text-xs text-on-surface-variant">Premium</span>
               <span className="text-sm font-bold">{formatCompact(report.summary.totalPremium)}</span>
               {premiumGoal != null && premiumGoal > 0 && (
                 <GoalDonut current={report.summary.totalPremium} goal={premiumGoal} isCurrency />
@@ -226,19 +227,19 @@ function SummaryRow({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Avg</span>
+              <span className="text-xs text-on-surface-variant">Avg</span>
               <span className="text-sm font-bold">{formatCompact(report.summary.avgPremium)}</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Sales</span>
+              <span className="text-xs text-on-surface-variant">Sales</span>
               <span className="text-sm font-bold">{report.summary.totalSales}</span>
             </div>
           </div>
 
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              "h-4 w-4 text-on-surface-variant transition-transform duration-200 shrink-0",
               isExpanded && "rotate-180"
             )}
           />
@@ -279,7 +280,7 @@ function CommissionSummaryRow({
   table: React.ReactNode;
 }) {
   return (
-    <Card>
+    <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
       <CardContent className="py-3 px-4">
         <div className="flex items-center gap-4 cursor-pointer" onClick={onToggle}>
           <div className="font-semibold text-sm min-w-[80px] shrink-0">{label}</div>
@@ -287,7 +288,7 @@ function CommissionSummaryRow({
           <div className="flex items-center gap-6 flex-1 min-w-0">
             {stats.map((s) => (
               <div key={s.label} className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{s.label}</span>
+                <span className="text-xs text-on-surface-variant">{s.label}</span>
                 <span className={cn("text-sm font-bold", s.color)}>{s.value}</span>
               </div>
             ))}
@@ -295,7 +296,7 @@ function CommissionSummaryRow({
 
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
+              "h-4 w-4 text-on-surface-variant transition-transform duration-200 shrink-0",
               isExpanded && "rotate-180"
             )}
           />
@@ -486,7 +487,7 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
       {/* Detailed Tables (Monthly data) */}
       {tableReport === undefined ? (
         <div className="flex items-center justify-center py-10">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
         </div>
       ) : (
         <Tabs defaultValue="carrier">
@@ -498,10 +499,10 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
           </TabsList>
 
           <TabsContent value="carrier">
-            <Card>
+            <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
               <CardContent className="pt-6">
                 {tableReport.byCarrier.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-on-surface-variant py-8">
                     No sales found for this period.
                   </p>
                 ) : (
@@ -537,10 +538,10 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
           </TabsContent>
 
           <TabsContent value="lob">
-            <Card>
+            <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
               <CardContent className="pt-6">
                 {tableReport.byProduct.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-on-surface-variant py-8">
                     No sales found for this period.
                   </p>
                 ) : (
@@ -577,10 +578,10 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
           </TabsContent>
 
           <TabsContent value="user">
-            <Card>
+            <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
               <CardContent className="pt-6">
                 {tableReport.byUser.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-on-surface-variant py-8">
                     No sales found for this period.
                   </p>
                 ) : (
@@ -618,7 +619,7 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
           <TabsContent value="commissions">
             {commissionReport === undefined ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
               </div>
             ) : (
               <div className="space-y-2">
@@ -634,15 +635,15 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
                   table={
                     <div className="grid grid-cols-3 gap-6 py-2">
                       <div>
-                        <p className="text-xs text-muted-foreground">Total Premium</p>
+                        <p className="text-xs text-on-surface-variant">Total Premium</p>
                         <p className="text-lg font-bold">{formatCurrency(commissionReport.totalPremium)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Est. New Business Commission</p>
+                        <p className="text-xs text-on-surface-variant">Est. New Business Commission</p>
                         <p className="text-lg font-bold text-green-600">{formatCurrency(commissionReport.totalEstimatedCommission)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Est. Renewal Commission</p>
+                        <p className="text-xs text-on-surface-variant">Est. Renewal Commission</p>
                         <p className="text-lg font-bold text-blue-600">{formatCurrency(commissionReport.totalEstimatedRenewal)}</p>
                       </div>
                     </div>
@@ -660,7 +661,7 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
                   onToggle={() => toggleRow("comm-carrier")}
                   table={
                     commissionReport.byCarrier.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-6 text-sm">No commission data for this period.</p>
+                      <p className="text-center text-on-surface-variant py-6 text-sm">No commission data for this period.</p>
                     ) : (
                       <Table>
                         <TableHeader>
@@ -706,7 +707,7 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
                   onToggle={() => toggleRow("comm-lob")}
                   table={
                     commissionReport.byProduct.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-6 text-sm">No commission data for this period.</p>
+                      <p className="text-center text-on-surface-variant py-6 text-sm">No commission data for this period.</p>
                     ) : (
                       <Table>
                         <TableHeader>
@@ -738,14 +739,14 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
                   label="By Agent"
                   stats={[
                     { label: "Agents", value: String(commissionReport.byUser.length) },
-                    { label: "Agent Comm", value: formatCompact(commissionReport.byUser.reduce((s, r) => s + r.agentCommission, 0)), color: "text-purple-600" },
+                    { label: "Agent Comm", value: formatCompact(commissionReport.byUser.reduce((s, r) => s + r.agentCommission, 0)), color: "text-primary" },
                     { label: "Agent Renewal", value: formatCompact(commissionReport.byUser.reduce((s, r) => s + r.agentRenewal, 0)), color: "text-blue-600" },
                   ]}
                   isExpanded={expandedRow === "comm-agent"}
                   onToggle={() => toggleRow("comm-agent")}
                   table={
                     commissionReport.byUser.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-6 text-sm">No commission data for this period.</p>
+                      <p className="text-center text-on-surface-variant py-6 text-sm">No commission data for this period.</p>
                     ) : (
                       <Table>
                         <TableHeader>
@@ -769,7 +770,7 @@ export function SalesReportDashboard({ organizationId, selectedMonth, selectedYe
                               <TableCell className="text-right">{row.policies}</TableCell>
                               <TableCell className="text-right">{formatCurrency(row.premium)}</TableCell>
                               <TableCell className="text-right text-green-600">{formatCurrency(row.commission)}</TableCell>
-                              <TableCell className="text-right text-purple-600 font-medium">{formatCurrency(row.agentCommission)}</TableCell>
+                              <TableCell className="text-right text-primary font-medium">{formatCurrency(row.agentCommission)}</TableCell>
                               <TableCell className="text-right text-blue-600">{formatCurrency(row.agentRenewal)}</TableCell>
                             </TableRow>
                           ))}

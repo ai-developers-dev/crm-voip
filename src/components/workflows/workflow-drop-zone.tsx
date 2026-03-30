@@ -26,7 +26,7 @@ export function WorkflowDropZone({ index, isActiveDragFromPalette }: WorkflowDro
         "mx-auto transition-all duration-200 rounded-lg border-2 border-dashed flex items-center justify-center",
         isOver
           ? "h-14 border-primary bg-primary/5 text-primary"
-          : "h-8 border-border/40 text-muted-foreground/40"
+          : "h-8 border-border/40 text-on-surface-variant/40"
       )}
     >
       {isOver && <Plus className="h-4 w-4" />}

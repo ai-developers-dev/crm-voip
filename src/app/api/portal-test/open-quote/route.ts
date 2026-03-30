@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import { loginForQuoting } from "@/lib/portals/natgen-portal";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 import type { Id } from "../../../../../convex/_generated/dataModel";
@@ -16,8 +16,6 @@ export async function POST(req: Request) {
   if (!organizationId || !quoteNumber) {
     return NextResponse.json({ error: "Missing organizationId or quoteNumber" }, { status: 400 });
   }
-
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
   try {
     // Get carrier credentials
@@ -91,6 +89,12 @@ export async function POST(req: Request) {
       await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
       await delay(1000);
     }
+
+    // Auto-close browser after 5 minutes so it doesn't pile up in the dock
+    const { browser } = loginResult;
+    setTimeout(() => {
+      browser?.close().catch(() => {});
+    }, 5 * 60 * 1000);
 
     return NextResponse.json({
       status: "opened",

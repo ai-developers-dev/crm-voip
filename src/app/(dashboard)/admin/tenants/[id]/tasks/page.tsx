@@ -66,7 +66,7 @@ export default function TenantTasksPage() {
   if (!tenant) {
     return (
       <div className="flex h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -74,7 +74,7 @@ export default function TenantTasksPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       {/* Nav */}
-      <div className="border-b bg-muted/30 px-4 py-2">
+      <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}>
@@ -116,7 +116,7 @@ export default function TenantTasksPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Tasks</h1>
-            <p className="text-sm text-muted-foreground">{filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""} for {tenant.name}</p>
+            <p className="text-sm text-on-surface-variant">{filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""} for {tenant.name}</p>
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="h-9 w-36 text-sm">
@@ -133,16 +133,16 @@ export default function TenantTasksPage() {
         </div>
 
         {!tasks ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" /></div>
         ) : filteredTasks.length === 0 ? (
           <div className="text-center py-12">
-            <ClipboardCheck className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No tasks found</p>
+            <ClipboardCheck className="h-10 w-10 text-on-surface-variant/30 mx-auto mb-3" />
+            <p className="text-sm text-on-surface-variant">No tasks found</p>
           </div>
         ) : (
           <div className="space-y-2">
             {filteredTasks.map((task) => (
-              <div key={task._id} className="flex items-center gap-3 border rounded-lg px-4 py-3">
+              <div key={task._id} className="flex items-center gap-3 border rounded-2xl px-4 py-3">
                 {/* Status */}
                 <Select
                   value={task.status}
@@ -164,7 +164,7 @@ export default function TenantTasksPage() {
                 {/* Title + details */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{task.title}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-on-surface-variant">
                     <Badge className={`${PRIORITY_COLORS[task.priority]} text-[10px] px-1.5 py-0`}>
                       {task.priority}
                     </Badge>
@@ -185,7 +185,7 @@ export default function TenantTasksPage() {
                   >
                     <SelectTrigger className="h-8 text-xs w-36">
                       <div className="flex items-center gap-1.5">
-                        <User className="h-3 w-3 text-muted-foreground" />
+                        <User className="h-3 w-3 text-on-surface-variant" />
                         <span className="truncate">{getUserName(task.assignedToUserId)}</span>
                       </div>
                     </SelectTrigger>

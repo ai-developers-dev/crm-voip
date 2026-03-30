@@ -116,7 +116,7 @@ function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<
     const info = stepTypeInfo[activeDrag.stepType];
     const Icon = info.icon;
     overlayContent = (
-      <div className="flex items-center gap-2.5 rounded-lg border bg-card p-2.5 shadow-lg w-56">
+      <div className="flex items-center gap-2.5 rounded-lg border bg-card p-2.5 neu-ambient w-56">
         <div className={cn("flex h-7 w-7 items-center justify-center rounded-md shrink-0", info.bgColor)}>
           <Icon className={cn("h-3.5 w-3.5", info.color)} />
         </div>
@@ -127,7 +127,7 @@ function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<
     const info = stepTypeInfo[activeDrag.step.type];
     const Icon = info.icon;
     overlayContent = (
-      <div className="flex items-center gap-2.5 rounded-lg border bg-card p-3 shadow-lg w-64">
+      <div className="flex items-center gap-2.5 rounded-lg border bg-card p-3 neu-ambient w-64">
         <div className={cn("flex h-7 w-7 items-center justify-center rounded-md shrink-0", info.bgColor)}>
           <Icon className={cn("h-3.5 w-3.5", info.color)} />
         </div>
@@ -161,7 +161,7 @@ function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<
                     "flex-1 px-3 py-2 text-xs font-medium transition-colors",
                     rightPanelMode !== "activity"
                       ? "text-foreground border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-on-surface-variant hover:text-on-surface"
                   )}
                 >
                   Actions
@@ -172,7 +172,7 @@ function CanvasInner({ workflowId, basePath = "/workflows" }: { workflowId?: Id<
                     "flex-1 px-3 py-2 text-xs font-medium transition-colors flex items-center justify-center gap-1.5",
                     rightPanelMode === "activity"
                       ? "text-foreground border-b-2 border-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-on-surface-variant hover:text-on-surface"
                   )}
                 >
                   <Users className="h-3 w-3" />

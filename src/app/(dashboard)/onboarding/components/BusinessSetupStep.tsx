@@ -270,7 +270,7 @@ export function BusinessSetupStep({ onNext, onBack, onSkip }: BusinessSetupStepP
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-2">Business Setup</h2>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Select your agency type, carriers, and products to configure your commission structure.
         </p>
       </div>
@@ -302,7 +302,7 @@ export function BusinessSetupStep({ onNext, onBack, onSkip }: BusinessSetupStepP
                 <SelectItem key={type._id} value={type._id}>
                   {type.name}
                   {type.description && (
-                    <span className="text-muted-foreground ml-2">- {type.description}</span>
+                    <span className="text-on-surface-variant ml-2">- {type.description}</span>
                   )}
                 </SelectItem>
               ))}
@@ -318,15 +318,15 @@ export function BusinessSetupStep({ onNext, onBack, onSkip }: BusinessSetupStepP
           <div className="space-y-3">
             <Label className="text-base">Carriers You Work With</Label>
             {activeCarriers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-on-surface-variant">
                 No carriers configured for this agency type.
               </p>
             ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto rounded-lg border border-border/60 p-3">
+              <div className="space-y-2 max-h-60 overflow-y-auto rounded-2xl border p-3">
                 {activeCarriers.map((carrier) => (
                   <label
                     key={carrier._id}
-                    className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-surface-container-high/50 cursor-pointer"
                   >
                     <Checkbox
                       checked={selectedCarrierIds.has(carrier._id)}
@@ -335,7 +335,7 @@ export function BusinessSetupStep({ onNext, onBack, onSkip }: BusinessSetupStepP
                     <div>
                       <div className="text-sm font-medium">{carrier.name}</div>
                       {carrier.description && (
-                        <div className="text-xs text-muted-foreground">{carrier.description}</div>
+                        <div className="text-xs text-on-surface-variant">{carrier.description}</div>
                       )}
                     </div>
                   </label>
@@ -348,15 +348,15 @@ export function BusinessSetupStep({ onNext, onBack, onSkip }: BusinessSetupStepP
           <div className="space-y-3">
             <Label className="text-base">Lines of Business</Label>
             {activeProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-on-surface-variant">
                 No products configured for this agency type.
               </p>
             ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto rounded-lg border border-border/60 p-3">
+              <div className="space-y-2 max-h-60 overflow-y-auto rounded-2xl border p-3">
                 {activeProducts.map((product) => (
                   <label
                     key={product._id}
-                    className="flex items-start gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
+                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-surface-container-high/50 cursor-pointer"
                   >
                     <Checkbox
                       checked={selectedProductIds.has(product._id)}
@@ -365,7 +365,7 @@ export function BusinessSetupStep({ onNext, onBack, onSkip }: BusinessSetupStepP
                     <div>
                       <div className="text-sm font-medium">{product.name}</div>
                       {product.description && (
-                        <div className="text-xs text-muted-foreground">{product.description}</div>
+                        <div className="text-xs text-on-surface-variant">{product.description}</div>
                       )}
                     </div>
                   </label>
@@ -381,21 +381,21 @@ export function BusinessSetupStep({ onNext, onBack, onSkip }: BusinessSetupStepP
         <div className="space-y-3">
           <div>
             <Label className="text-base">Commission Rates</Label>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-on-surface-variant mt-1">
               Enter your commission and renewal rates (%) for each carrier and product combination.
             </p>
           </div>
-          <div className="overflow-x-auto rounded-lg border border-border/60">
+          <div className="overflow-x-auto rounded-2xl border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="text-left p-3 font-medium text-muted-foreground">
+                <tr className="border-b bg-surface-container/30">
+                  <th className="text-left p-3 font-medium text-on-surface-variant">
                     Carrier
                   </th>
                   {selectedProductsList.map((product) => (
                     <th
                       key={product._id}
-                      className="text-center p-3 font-medium text-muted-foreground min-w-[140px]"
+                      className="text-center p-3 font-medium text-on-surface-variant min-w-[140px]"
                     >
                       {product.name}
                     </th>

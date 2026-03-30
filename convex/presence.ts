@@ -11,10 +11,11 @@ export const getOnlineUsers = query({
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
       .collect();
 
-    // Filter to only recent heartbeats (within last 30 seconds)
+    // Filter to only recent heartbeats (within 2x the 30s heartbeat interval
+    // to account for network jitter and browser tab throttling)
     const now = Date.now();
     const activePresence = presenceRecords.filter(
-      (p) => now - p.lastHeartbeat < 30000 && p.status !== "offline"
+      (p) => now - p.lastHeartbeat < 60000 && p.status !== "offline"
     );
 
     // Get user details for each presence record

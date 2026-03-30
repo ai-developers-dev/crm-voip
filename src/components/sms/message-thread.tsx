@@ -100,9 +100,9 @@ export function MessageThread({
     switch (status) {
       case "queued":
       case "sending":
-        return <Clock className="h-3 w-3 text-muted-foreground" />;
+        return <Clock className="h-3 w-3 text-on-surface-variant" />;
       case "sent":
-        return <Check className="h-3 w-3 text-muted-foreground" />;
+        return <Check className="h-3 w-3 text-on-surface-variant" />;
       case "delivered":
         return <CheckCheck className="h-3 w-3 text-blue-500" />;
       case "failed":
@@ -129,14 +129,14 @@ export function MessageThread({
   return (
     <div className="flex flex-col h-full">
       {/* Thread Header */}
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="p-4 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold">
+          <h3 className="text-sm font-extrabold">
             {conversation.contactName ||
               formatPhoneDisplay(conversation.customerPhoneNumber)}
           </h3>
           {conversation.contactName && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-on-surface-variant">
               {formatPhoneDisplay(conversation.customerPhoneNumber)}
             </p>
           )}
@@ -176,7 +176,7 @@ export function MessageThread({
           <div key={group.date}>
             {/* Date Divider */}
             <div className="flex items-center justify-center my-4">
-              <span className="text-xs text-muted-foreground bg-background px-2">
+              <span className="text-xs text-on-surface-variant bg-surface px-2">
                 {new Date(group.date).toLocaleDateString([], {
                   weekday: "long",
                   month: "long",
@@ -200,7 +200,7 @@ export function MessageThread({
                     "rounded-2xl px-4 py-2",
                     message.direction === "outbound"
                       ? "bg-primary text-primary-foreground rounded-br-sm"
-                      : "bg-muted rounded-bl-sm"
+                      : "bg-surface-container rounded-bl-sm"
                   )}
                 >
                   {/* Media Attachments */}
@@ -238,7 +238,7 @@ export function MessageThread({
 
                 {/* Message Meta */}
                 <div className="flex items-center gap-1 mt-1 px-1">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-on-surface-variant">
                     {formatMessageTime(message.sentAt)}
                   </span>
 
@@ -249,7 +249,7 @@ export function MessageThread({
 
                   {/* Segment count if > 1 */}
                   {message.segmentCount > 1 && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-on-surface-variant">
                       ({message.segmentCount} segments)
                     </span>
                   )}
@@ -278,8 +278,8 @@ export function MessageThread({
 // Empty state when no conversation is selected
 export function MessageThreadEmpty() {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+    <div className="flex flex-col items-center justify-center h-full text-on-surface-variant">
+      <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center mb-4">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="32"

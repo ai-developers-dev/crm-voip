@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import { loginForQuoting, cleanupQuoteSession, getQuoteSession } from "@/lib/portals/natgen-portal";
 import type { PortalCredentials } from "@/lib/portals/natgen-portal";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 import type { Id } from "../../../../../convex/_generated/dataModel";
@@ -25,6 +25,17 @@ interface MapperSession {
   createdAt: number;
 }
 const MAPPER_SESSIONS = new Map<string, MapperSession>();
+
+// Auto-close stale mapper sessions (browsers left open > 10 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [sid, session] of MAPPER_SESSIONS) {
+    if (now - session.createdAt > 10 * 60 * 1000) {
+      session.browser?.close().catch(() => {});
+      MAPPER_SESSIONS.delete(sid);
+    }
+  }
+}, 60 * 1000); // Check every minute
 
 /** Auto-capture cleaned page source for the current screen */
 async function autoCapturePageSource(page: any, session: MapperSession) {
@@ -415,7 +426,6 @@ export async function POST(req: Request) {
       }
 
       // Get credentials
-      const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
       const carriers = await convex.query(api.tenantCommissions.getCarriersWithCredentials, {
         organizationId: organizationId as Id<"organizations">,
       });
@@ -516,8 +526,7 @@ export async function POST(req: Request) {
     // ── Resume after 2FA ──────────────────────────────────────────
     if (action === "resume_2fa" && sessionId && body.code) {
       const { completeQuoting2FA } = await import("@/lib/portals/natgen-portal");
-      const convex2fa = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-      const result = await completeQuoting2FA(sessionId, body.code, convex2fa);
+      const result = await completeQuoting2FA(sessionId, body.code, convex);
 
       if (result.status !== "logged_in") {
         return NextResponse.json(result);

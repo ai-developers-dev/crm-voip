@@ -174,12 +174,12 @@ function WorkflowBadge({ info, onOpenWorkflow, onStopWorkflow }: {
             <ChevronRight className="h-3.5 w-3.5 shrink-0" />
           </button>
           {info.nextStepLabel && (
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Next:</span> {info.nextStepLabel}
+            <div className="text-xs text-on-surface-variant">
+              <span className="font-medium text-on-surface">Next:</span> {info.nextStepLabel}
             </div>
           )}
           {!info.nextStepLabel && (
-            <div className="text-xs text-muted-foreground">Workflow completed</div>
+            <div className="text-xs text-on-surface-variant">Workflow completed</div>
           )}
           {isRunning && (
             <button
@@ -243,10 +243,10 @@ function CommunicationItemRow({ item, onOpenWorkflow, onStopWorkflow }: {
             {item.workflowInfo && (
               <WorkflowBadge info={item.workflowInfo} onOpenWorkflow={onOpenWorkflow} onStopWorkflow={onStopWorkflow} />
             )}
-            <span className="text-xs text-muted-foreground">{formatTime(item.timestamp)}</span>
+            <span className="text-xs text-on-surface-variant">{formatTime(item.timestamp)}</span>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground truncate">{getDetails()}</p>
+        <p className="text-xs text-on-surface-variant truncate">{getDetails()}</p>
       </div>
     </div>
   );
@@ -336,11 +336,11 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
   if (!contact) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-center p-8">
-        <div className="rounded-full bg-muted p-4 mb-4">
-          <MessageCircle className="h-8 w-8 text-muted-foreground" />
+        <div className="rounded-full bg-surface-container p-4 mb-4">
+          <MessageCircle className="h-8 w-8 text-on-surface-variant" />
         </div>
         <h3 className="text-sm font-medium">Select a Contact</h3>
-        <p className="text-muted-foreground mt-1 max-w-sm">
+        <p className="text-on-surface-variant mt-1 max-w-sm">
           Choose a contact from the list to view their communication history including calls and messages.
         </p>
       </div>
@@ -351,7 +351,7 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
   if (history === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -361,11 +361,11 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b px-4 py-3">
+      <div className="px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold">Communications</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-sm font-extrabold">Communications</h2>
+            <p className="text-sm text-on-surface-variant">
               {contact.firstName} {contact.lastName}
             </p>
           </div>
@@ -375,11 +375,11 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
 
       {/* SMS opt-out banner */}
       {contact?.smsOptedOut && (
-        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+        <div className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 rounded-xl bg-amber-500/10">
           <Ban className="h-4 w-4 text-amber-500 shrink-0" />
           <div>
             <p className="text-xs font-medium text-amber-700 dark:text-amber-400">SMS Opted Out</p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-on-surface-variant">
               This contact replied STOP{contact.smsOptOutDate ? ` on ${new Date(contact.smsOptOutDate).toLocaleDateString()}` : ""}. They must reply START to re-subscribe.
             </p>
           </div>
@@ -388,11 +388,11 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
 
       {/* Email opt-out banner */}
       {contact?.emailOptedOut && (
-        <div className="flex items-center gap-2 mx-4 mt-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+        <div className="flex items-center gap-2 mx-4 mt-2 px-3 py-2 rounded-xl bg-amber-500/10">
           <Ban className="h-4 w-4 text-amber-500 shrink-0" />
           <div>
             <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Email Unsubscribed</p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[10px] text-on-surface-variant">
               This contact has unsubscribed from email{contact.emailOptOutDate ? ` on ${new Date(contact.emailOptOutDate).toLocaleDateString()}` : ""}.
             </p>
           </div>
@@ -406,7 +406,7 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
             {Object.entries(groupedCommunications).map(([dateGroup, items]) => (
               <div key={dateGroup} className="mb-6 last:mb-0">
                 <div className="sticky top-0 bg-background pb-2">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <span className="text-xs font-medium text-on-surface-variant uppercase tracking-wide">
                     {dateGroup}
                   </span>
                 </div>
@@ -426,11 +426,11 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         </ScrollArea>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center text-center p-8">
-          <div className="rounded-full bg-muted p-3 mb-3">
-            <MessageCircle className="h-6 w-6 text-muted-foreground" />
+          <div className="rounded-full bg-surface-container p-3 mb-3">
+            <MessageCircle className="h-6 w-6 text-on-surface-variant" />
           </div>
           <h3 className="text-sm font-medium">No Communications</h3>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-on-surface-variant mt-1">
             No calls or messages found for this contact.
           </p>
         </div>

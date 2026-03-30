@@ -97,7 +97,7 @@ export function NatGenLoginTest({ organizationId, carrierId, username, password 
 
   if (stage.type === "loading") {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-2 flex items-center gap-2 text-xs text-on-surface-variant">
         <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
         {stage.message}
       </div>
@@ -140,7 +140,7 @@ export function NatGenLoginTest({ organizationId, carrierId, username, password 
       <div className="mt-2 flex items-center gap-2 text-xs text-emerald-400">
         <CheckCircle className="h-3.5 w-3.5 shrink-0" />
         <span>{stage.message}</span>
-        <button onClick={() => setStage({ type: "idle" })} className="text-muted-foreground hover:text-foreground ml-auto text-[10px]">
+        <button onClick={() => setStage({ type: "idle" })} className="text-on-surface-variant hover:text-on-surface ml-auto text-[10px]">
           Dismiss
         </button>
       </div>
@@ -153,7 +153,7 @@ export function NatGenLoginTest({ organizationId, carrierId, username, password 
       <div className="flex items-start gap-2">
         <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
         <pre className="flex-1 whitespace-pre-wrap break-all font-sans">{stage.message}</pre>
-        <button onClick={() => setStage({ type: "idle" })} className="text-muted-foreground hover:text-foreground text-[10px] shrink-0">
+        <button onClick={() => setStage({ type: "idle" })} className="text-on-surface-variant hover:text-on-surface text-[10px] shrink-0">
           Retry
         </button>
       </div>

@@ -35,10 +35,10 @@ export function DateTimePicker({ value, onChange, label }: DateTimePickerProps) 
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex h-9 w-full items-center gap-1.5 rounded-md border border-input bg-transparent px-2 text-xs shadow-sm hover:bg-muted/50 transition-colors text-left whitespace-nowrap overflow-hidden"
+          className="flex h-9 w-full items-center gap-1.5 rounded-xl border border-input bg-transparent px-2 text-xs hover:bg-surface-container-high/50 transition-colors text-left whitespace-nowrap overflow-hidden"
         >
-          <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className={value ? "text-foreground" : "text-muted-foreground"}>
+          <CalendarDays className="h-4 w-4 text-on-surface-variant shrink-0" />
+          <span className={value ? "text-on-surface" : "text-on-surface-variant"}>
             {displayValue}
           </span>
         </button>
@@ -105,7 +105,7 @@ function PickerContent({
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-0">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-          <div key={d} className="text-center text-[11px] font-medium text-muted-foreground py-1">
+          <div key={d} className="text-center text-[11px] font-medium text-on-surface-variant py-1">
             {d}
           </div>
         ))}
@@ -124,8 +124,8 @@ function PickerContent({
                   : today
                     ? "bg-primary/10 text-primary font-semibold"
                     : inMonth
-                      ? "hover:bg-muted text-foreground"
-                      : "text-muted-foreground/40"
+                      ? "hover:bg-surface-container-high text-on-surface"
+                      : "text-on-surface-variant/40"
               }`}
               onClick={() => setSelectedDate(day)}
             >
@@ -136,13 +136,13 @@ function PickerContent({
       </div>
 
       {/* Time picker */}
-      <div className="flex items-center gap-2 border-t pt-3">
-        <span className="text-xs text-muted-foreground">Time</span>
+      <div className="flex items-center gap-2 pt-3">
+        <span className="text-xs text-on-surface-variant">Time</span>
         <div className="flex items-center gap-1 ml-auto">
           <select
             value={hour}
             onChange={(e) => setHour(Number(e.target.value))}
-            className="h-8 w-14 rounded-md border bg-transparent px-1 text-sm text-center"
+            className="h-8 w-14 rounded-xl border bg-transparent px-1 text-sm text-center"
           >
             {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
               <option key={h} value={h}>{h}</option>
@@ -152,23 +152,23 @@ function PickerContent({
           <select
             value={minute}
             onChange={(e) => setMinute(Number(e.target.value))}
-            className="h-8 w-14 rounded-md border bg-transparent px-1 text-sm text-center"
+            className="h-8 w-14 rounded-xl border bg-transparent px-1 text-sm text-center"
           >
             {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
               <option key={m} value={m}>{m.toString().padStart(2, "0")}</option>
             ))}
           </select>
-          <div className="flex rounded-md border overflow-hidden">
+          <div className="flex rounded-xl border overflow-hidden">
             <button
               type="button"
-              className={`px-2 py-1 text-xs ${ampm === "AM" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              className={`px-2 py-1 text-xs ${ampm === "AM" ? "bg-primary text-primary-foreground" : "hover:bg-surface-container-high"}`}
               onClick={() => setAmpm("AM")}
             >
               AM
             </button>
             <button
               type="button"
-              className={`px-2 py-1 text-xs ${ampm === "PM" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              className={`px-2 py-1 text-xs ${ampm === "PM" ? "bg-primary text-primary-foreground" : "hover:bg-surface-container-high"}`}
               onClick={() => setAmpm("PM")}
             >
               PM
@@ -178,7 +178,7 @@ function PickerContent({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between border-t pt-3">
+      <div className="flex items-center justify-between pt-3">
         <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleNow}>
           Now
         </Button>

@@ -47,12 +47,12 @@ function ContactCard({ pc, isDragOverlay }: { pc: PipelineContact; isDragOverlay
   return (
     <div
       ref={isDragOverlay ? undefined : setNodeRef}
-      className={`flex items-start gap-2 rounded-md border bg-background p-3 text-sm transition-shadow
-        ${isDragging ? "opacity-30" : "hover:shadow-sm"}
-        ${isDragOverlay ? "shadow-lg ring-2 ring-primary/20" : ""}`}
+      className={`flex items-start gap-2 rounded-xl border bg-surface p-3 text-sm transition-shadow
+        ${isDragging ? "opacity-30" : ""}
+        ${isDragOverlay ? "neu-ambient ring-2 ring-primary/20" : ""}`}
     >
       <button
-        className="mt-0.5 cursor-grab text-muted-foreground hover:text-foreground shrink-0"
+        className="mt-0.5 cursor-grab text-on-surface-variant hover:text-on-surface shrink-0"
         {...listeners}
         {...attributes}
       >
@@ -61,7 +61,7 @@ function ContactCard({ pc, isDragOverlay }: { pc: PipelineContact; isDragOverlay
       <div className="min-w-0 flex-1">
         <p className="font-medium truncate">{pc.contactName}</p>
         {pc.contactPhone && (
-          <p className="text-xs text-muted-foreground truncate">{pc.contactPhone}</p>
+          <p className="text-xs text-on-surface-variant truncate">{pc.contactPhone}</p>
         )}
         {pc.contactTags.length > 0 && (
           <div className="flex items-center gap-1 mt-1.5 flex-wrap">
@@ -74,7 +74,7 @@ function ContactCard({ pc, isDragOverlay }: { pc: PipelineContact; isDragOverlay
               />
             ))}
             {pc.contactTags.length > 3 && (
-              <span className="text-[10px] text-muted-foreground">+{pc.contactTags.length - 3}</span>
+              <span className="text-[10px] text-on-surface-variant">+{pc.contactTags.length - 3}</span>
             )}
           </div>
         )}
@@ -103,7 +103,7 @@ function StageColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col w-72 shrink-0 rounded-lg border bg-muted/30 transition-colors
+      className={`flex flex-col w-72 shrink-0 rounded-2xl border bg-surface-container/30 transition-colors
         ${isOver ? "ring-2 ring-primary/40 bg-primary/5" : ""}`}
     >
       {/* Color bar */}
@@ -112,7 +112,7 @@ function StageColumn({
         style={{ backgroundColor: stage.color || "#94a3b8" }}
       />
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b">
+      <div className="flex items-center justify-between px-3 py-2.5">
         <span className="text-sm font-semibold truncate">{stage.name}</span>
         <Badge variant="secondary" className="text-xs tabular-nums">{contacts.length}</Badge>
       </div>
@@ -123,7 +123,7 @@ function StageColumn({
             <ContactCard pc={pc} />
             <button
               onClick={() => onRemove(pc._id)}
-              className="absolute top-1 right-1 p-0.5 rounded opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+              className="absolute top-1 right-1 p-0.5 rounded opacity-0 group-hover:opacity-100 text-on-surface-variant hover:text-destructive transition-all"
               title="Remove from pipeline"
             >
               <X className="h-3 w-3" />
@@ -131,7 +131,7 @@ function StageColumn({
           </div>
         ))}
         {contacts.length === 0 && (
-          <div className="flex items-center justify-center h-20 text-xs text-muted-foreground">
+          <div className="flex items-center justify-center h-20 text-xs text-on-surface-variant">
             Drop contacts here
           </div>
         )}
@@ -200,7 +200,7 @@ function AddContactDialog({
           <DialogTitle>Add Contact to Pipeline</DialogTitle>
         </DialogHeader>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
           <Input
             placeholder="Search contacts..."
             value={search}
@@ -210,7 +210,7 @@ function AddContactDialog({
         </div>
         <div className="max-h-64 overflow-y-auto space-y-1">
           {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">
+            <p className="text-sm text-on-surface-variant text-center py-6">
               {contacts === undefined ? "Loading..." : "No contacts found"}
             </p>
           )}
@@ -220,15 +220,15 @@ function AddContactDialog({
               <button
                 key={c._id}
                 onClick={() => handleAdd(c._id)}
-                className="flex items-center justify-between w-full rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors text-left"
+                className="flex items-center justify-between w-full rounded-xl px-3 py-2 text-sm hover:bg-surface-container-high transition-colors text-left"
               >
                 <div className="min-w-0">
                   <span className="font-medium">{c.firstName} {c.lastName || ""}</span>
                   {primaryPhone && (
-                    <span className="ml-2 text-xs text-muted-foreground">{primaryPhone.number}</span>
+                    <span className="ml-2 text-xs text-on-surface-variant">{primaryPhone.number}</span>
                   )}
                 </div>
-                <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Plus className="h-4 w-4 text-on-surface-variant shrink-0" />
               </button>
             );
           })}
@@ -340,7 +340,7 @@ export default function PipelineKanbanPage() {
   if (!tenant || !pipeline) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span>
         </div>
       </div>
@@ -350,7 +350,7 @@ export default function PipelineKanbanPage() {
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - var(--header-height, 3.5rem))" }}>
       {/* Tenant header with inline nav */}
-      <div className="shrink-0 border-b bg-background px-6 py-3">
+      <div className="shrink-0 bg-surface px-6 py-3">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}><Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button></Link>
@@ -368,7 +368,7 @@ export default function PipelineKanbanPage() {
       </div>
 
       {/* Pipeline header */}
-      <div className="shrink-0 border-b px-6 py-3 flex items-center justify-between">
+      <div className="shrink-0 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href={`/admin/tenants/${tenant._id}/pipelines`}>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -380,7 +380,7 @@ export default function PipelineKanbanPage() {
           )}
           <h1 className="page-title">{pipeline.name}</h1>
           {pipeline.description && (
-            <span className="text-sm text-muted-foreground hidden sm:inline">
+            <span className="text-sm text-on-surface-variant hidden sm:inline">
               {pipeline.description}
             </span>
           )}
@@ -407,7 +407,7 @@ export default function PipelineKanbanPage() {
               />
             ))}
             {stages && stages.length === 0 && (
-              <div className="flex items-center justify-center w-full text-sm text-muted-foreground py-20">
+              <div className="flex items-center justify-center w-full text-sm text-on-surface-variant py-20">
                 No stages in this pipeline. Edit the pipeline to add stages.
               </div>
             )}

@@ -156,7 +156,7 @@ export function PhoneRoutingDialog({ open, onOpenChange, phoneNumber, organizati
                 <SelectItem value="ring_group">Ring Group (Select Users)</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-[10px] text-on-surface-variant mt-1">
               {routingType === "ring_all" && "All available agents will ring simultaneously."}
               {routingType === "direct" && "Only the assigned user will ring when this number is called."}
               {routingType === "ring_group" && "Only selected users will ring when this number is called."}
@@ -186,7 +186,7 @@ export function PhoneRoutingDialog({ open, onOpenChange, phoneNumber, organizati
               <Label className="text-xs">Ring Group Members</Label>
               <div className="mt-1 space-y-1 max-h-40 overflow-y-auto border rounded-md p-2">
                 {(users || []).map((u) => (
-                  <label key={u._id} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                  <label key={u._id} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-surface-container-high/50 cursor-pointer">
                     <Checkbox
                       checked={ringGroupUserIds.includes(u._id)}
                       onCheckedChange={() => toggleRingGroupUser(u._id)}
@@ -196,7 +196,7 @@ export function PhoneRoutingDialog({ open, onOpenChange, phoneNumber, organizati
                   </label>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">{ringGroupUserIds.length} user{ringGroupUserIds.length !== 1 ? "s" : ""} selected</p>
+              <p className="text-[10px] text-on-surface-variant mt-1">{ringGroupUserIds.length} user{ringGroupUserIds.length !== 1 ? "s" : ""} selected</p>
             </div>
           )}
 
@@ -212,7 +212,7 @@ export function PhoneRoutingDialog({ open, onOpenChange, phoneNumber, organizati
                 onChange={(e) => setUnansweredTimeout(Number(e.target.value))}
                 className="h-9 text-sm w-20"
               />
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-on-surface-variant">
                 seconds (≈ {Math.round(unansweredTimeout / 5)} rings)
               </span>
             </div>
@@ -231,7 +231,7 @@ export function PhoneRoutingDialog({ open, onOpenChange, phoneNumber, organizati
                 <SelectItem value="ai_agent">AI Agent Answers</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-[10px] text-on-surface-variant mt-1">
               {unansweredAction === "voicemail" && "Caller can leave a voice message."}
               {unansweredAction === "parking" && "Caller hears hold music. Agents see the parked call and can pick it up."}
               {unansweredAction === "ai_agent" && "AI agent picks up and handles the conversation."}

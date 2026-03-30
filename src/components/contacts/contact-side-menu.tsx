@@ -38,7 +38,7 @@ export function ContactSideMenu({ activePanel, onPanelChange }: ContactSideMenuP
                 type="button"
                 onClick={() => onPanelChange(type)}
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+                  "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
                   "hover:bg-accent hover:text-accent-foreground",
                   activePanel === type && "bg-accent text-accent-foreground"
                 )}
@@ -53,7 +53,7 @@ export function ContactSideMenu({ activePanel, onPanelChange }: ContactSideMenuP
         ))}
 
         {/* Divider */}
-        <div className="w-6 border-t border-border/60 my-1" />
+        <div className="w-6 my-1" />
 
         {/* Sort button */}
         <Tooltip>
@@ -62,7 +62,7 @@ export function ContactSideMenu({ activePanel, onPanelChange }: ContactSideMenuP
               type="button"
               onClick={() => onPanelChange("sort")}
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+                "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
                 "hover:bg-accent hover:text-accent-foreground",
                 activePanel === "sort" && "bg-accent text-accent-foreground"
               )}

@@ -90,7 +90,7 @@ export function EmailSetupStep({ onNext, onBack, onSkip, onConfigured }: EmailSe
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-2">Connect Your Email</h2>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Connect your Gmail or Outlook account to send and receive email directly within the CRM.
           This step is optional and can be done later from Settings.
         </p>
@@ -118,7 +118,7 @@ export function EmailSetupStep({ onNext, onBack, onSkip, onConfigured }: EmailSe
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{account.email}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{account.provider}</p>
+                  <p className="text-xs text-on-surface-variant capitalize">{account.provider}</p>
                 </div>
               </div>
               <Button
@@ -136,13 +136,13 @@ export function EmailSetupStep({ onNext, onBack, onSkip, onConfigured }: EmailSe
 
       {/* Connect buttons */}
       {!hasActiveAccount ? (
-        <div className="flex flex-col items-center gap-4 py-6 rounded-lg border-2 border-dashed">
+        <div className="flex flex-col items-center gap-4 py-6 rounded-2xl border-2 border-dashed">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
             <Mail className="h-6 w-6 text-amber-600" />
           </div>
           <div className="text-center">
             <p className="font-medium">No email account connected</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-on-surface-variant mt-1">
               Connect Gmail or Outlook to get started
             </p>
           </div>

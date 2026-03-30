@@ -525,7 +525,7 @@ export default function AdminSettingsPage() {
   if (!userLoaded || isSuperAdmin === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -550,7 +550,7 @@ export default function AdminSettingsPage() {
     <div className="p-6 max-w-5xl mx-auto space-y-5">
       <div>
         <h1 className="text-lg font-semibold tracking-tight">Platform Settings</h1>
-        <p className="text-sm text-muted-foreground">Manage agency types, carriers, and lines of business</p>
+        <p className="text-sm text-on-surface-variant">Manage agency types, carriers, and lines of business</p>
       </div>
 
       {/* Settings Rows */}
@@ -572,14 +572,14 @@ export default function AdminSettingsPage() {
         >
           {agencyTypes === undefined ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="h-4 w-4 animate-spin text-on-surface-variant" />
             </div>
           ) : agencyTypes.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">No agency types yet.</p>
+            <p className="text-xs text-on-surface-variant text-center py-4">No agency types yet.</p>
           ) : (
             <div className="space-y-0.5">
               {agencyTypes.map((type) => (
-                <div key={type._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50 group -mx-2">
+                <div key={type._id} className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-surface-container-high/50 group -mx-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-sm font-medium truncate">{type.name}</span>
                     <Badge variant={type.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
@@ -613,10 +613,10 @@ export default function AdminSettingsPage() {
         >
           {allCarriers === undefined ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="h-4 w-4 animate-spin text-on-surface-variant" />
             </div>
           ) : allCarriers.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">No carriers yet. Add an agency type first, then add carriers.</p>
+            <p className="text-xs text-on-surface-variant text-center py-4">No carriers yet. Add an agency type first, then add carriers.</p>
           ) : (
             <div className="space-y-px">
               {allCarriers.map((carrier) => {
@@ -625,16 +625,16 @@ export default function AdminSettingsPage() {
                 return (
                   <div key={carrier._id}>
                     <div
-                      className="flex items-center justify-between py-2 px-2 rounded-md hover:bg-muted/50 group cursor-pointer -mx-2"
+                      className="flex items-center justify-between py-2 px-2 rounded-xl hover:bg-surface-container-high/50 group cursor-pointer -mx-2"
                       onClick={() => toggleExpandCarrier(carrier._id)}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`} />
+                        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-on-surface-variant transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"}`} />
                         <span className="text-sm font-medium truncate">{carrier.name}</span>
                         <Badge variant={carrier.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
                           {carrier.isActive ? "Active" : "Off"}
                         </Badge>
-                        <span className="text-[11px] text-muted-foreground shrink-0">{carrierProducts.length} LOB</span>
+                        <span className="text-[11px] text-on-surface-variant shrink-0">{carrierProducts.length} LOB</span>
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditCarrier(carrier)}><Pencil className="h-2.5 w-2.5" /></Button>
@@ -643,21 +643,21 @@ export default function AdminSettingsPage() {
                       </div>
                     </div>
                     <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}>
-                      <div className="ml-4 pl-4 py-1 space-y-px border-l-2 border-border/50">
+                      <div className="ml-4 pl-4 py-1 space-y-px">
                         {carrierProducts.length === 0 ? (
-                          <p className="text-xs text-muted-foreground py-2 px-2">No lines of business yet.</p>
+                          <p className="text-xs text-on-surface-variant py-2 px-2">No lines of business yet.</p>
                         ) : (
                           carrierProducts.map((product) => {
                             const fieldCount = (product as any).coverageFields?.length ?? 0;
                             return (
-                              <div key={product._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/30 group/lob">
+                              <div key={product._id} className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-surface-container-high/30 group/lob">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span className="text-sm truncate">{product.name}</span>
                                   <Badge variant={product.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
                                     {product.isActive ? "Active" : "Off"}
                                   </Badge>
                                   {fieldCount > 0 && (
-                                    <span className="text-[10px] text-muted-foreground shrink-0">{fieldCount} {fieldCount === 1 ? "field" : "fields"}</span>
+                                    <span className="text-[10px] text-on-surface-variant shrink-0">{fieldCount} {fieldCount === 1 ? "field" : "fields"}</span>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-0.5 opacity-0 group-hover/lob:opacity-100 transition-opacity shrink-0">
@@ -672,7 +672,7 @@ export default function AdminSettingsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-xs h-7 text-muted-foreground"
+                          className="text-xs h-7 text-on-surface-variant"
                           onClick={() => openAddProductForCarrier(carrier._id)}
                         >
                           <Plus className="h-3 w-3 mr-1" />
@@ -703,28 +703,28 @@ export default function AdminSettingsPage() {
         >
           {platformUsers === undefined ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="h-4 w-4 animate-spin text-on-surface-variant" />
             </div>
           ) : platformUsers.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">No platform users found.</p>
+            <p className="text-xs text-on-surface-variant text-center py-4">No platform users found.</p>
           ) : (
             <div className="space-y-0.5">
               {platformUsers.map((pu) => {
                 const isCurrentUser = pu.clerkUserId === user?.id;
                 return (
-                  <div key={pu._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50 group -mx-2">
+                  <div key={pu._id} className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-surface-container-high/50 group -mx-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium truncate">
                           {pu.name}
-                          {isCurrentUser && <span className="text-[10px] text-muted-foreground ml-1">(you)</span>}
+                          {isCurrentUser && <span className="text-[10px] text-on-surface-variant ml-1">(you)</span>}
                         </span>
                         <Badge variant={pu.role === "super_admin" ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 gap-0.5 shrink-0">
                           {pu.role === "super_admin" && <Shield className="h-2.5 w-2.5" />}
                           {pu.role === "super_admin" ? "Admin" : "User"}
                         </Badge>
                       </div>
-                      <span className="text-[11px] text-muted-foreground truncate block">{pu.email}</span>
+                      <span className="text-[11px] text-on-surface-variant truncate block">{pu.email}</span>
                     </div>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditUser(pu)} disabled={isCurrentUser}><Pencil className="h-2.5 w-2.5" /></Button>
@@ -750,7 +750,7 @@ export default function AdminSettingsPage() {
           onToggle={() => toggleSection("phone-system")}
         >
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-on-surface-variant">
               Enter your master Twilio credentials. These are used to provision subaccounts and phone numbers for tenants.
             </p>
             <div className="field-gap">
@@ -802,7 +802,7 @@ export default function AdminSettingsPage() {
                 <Label className="text-xs font-semibold">Retell AI (Voice Agents)</Label>
                 {retellConfigured && <Badge variant="default" className="text-[10px] px-1.5 py-0">Connected</Badge>}
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-on-surface-variant">
                 Powers AI outbound calling agents. Get your key from{" "}
                 <a href="https://www.retellai.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">retellai.com</a>.
               </p>
@@ -826,7 +826,7 @@ export default function AdminSettingsPage() {
                 <Label className="text-xs font-semibold">OpenAI (SMS AI Agents)</Label>
                 {openaiConfigured && <Badge variant="default" className="text-[10px] px-1.5 py-0">Connected</Badge>}
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[11px] text-on-surface-variant">
                 Powers AI SMS conversation agents (appointment booking, customer service, etc.). Get your key from{" "}
                 <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary underline">platform.openai.com</a>.
               </p>
@@ -912,7 +912,7 @@ export default function AdminSettingsPage() {
                 {/* Cost Markups */}
                 <div className="border-t pt-4 mt-4 space-y-3">
                   <h4 className="text-xs font-semibold">Cost Markups</h4>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[10px] text-on-surface-variant">
                     Percentage added to actual provider costs when billing tenants.
                   </p>
                   <div className="grid grid-cols-3 gap-3">
@@ -927,7 +927,7 @@ export default function AdminSettingsPage() {
                           min={0}
                           max={500}
                         />
-                        <span className="text-[10px] text-muted-foreground">% on calls & SMS</span>
+                        <span className="text-[10px] text-on-surface-variant">% on calls & SMS</span>
                       </div>
                     </div>
                     <div>
@@ -941,7 +941,7 @@ export default function AdminSettingsPage() {
                           min={0}
                           max={500}
                         />
-                        <span className="text-[10px] text-muted-foreground">% on AI voice</span>
+                        <span className="text-[10px] text-on-surface-variant">% on AI voice</span>
                       </div>
                     </div>
                     <div>
@@ -955,7 +955,7 @@ export default function AdminSettingsPage() {
                           min={0}
                           max={500}
                         />
-                        <span className="text-[10px] text-muted-foreground">% on AI SMS</span>
+                        <span className="text-[10px] text-on-surface-variant">% on AI SMS</span>
                       </div>
                     </div>
                   </div>
@@ -978,7 +978,7 @@ export default function AdminSettingsPage() {
           onToggle={() => toggleSection("nylas")}
         >
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-on-surface-variant">
               Configure Nylas for email and calendar sync. Tenants will use these credentials to connect their Gmail/Outlook accounts. Get your keys from{" "}
               <a href="https://dashboard.nylas.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">dashboard.nylas.com</a>.
             </p>
@@ -1019,7 +1019,7 @@ export default function AdminSettingsPage() {
               {savingNylas ? "Saving..." : nylasConfigured ? "Update Nylas Credentials" : "Save Nylas Credentials"}
             </Button>
             {nylasConfigured && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Nylas is configured. Tenants can connect their email accounts from their Settings page. Cost: ~$2/connected account/month (included in per-user billing).
               </p>
             )}
@@ -1124,7 +1124,7 @@ export default function AdminSettingsPage() {
                   disabled={isSubmitting}
                   className="mt-2"
                 />
-                <p className="text-xs text-muted-foreground mt-1">Clicking carrier in policies will open this URL and copy the policy number</p>
+                <p className="text-xs text-on-surface-variant mt-1">Clicking carrier in policies will open this URL and copy the policy number</p>
               </div>
               {carrierDialog?.mode !== "edit" && (
                 <div>
@@ -1219,12 +1219,12 @@ export default function AdminSettingsPage() {
               {/* Coverage Fields Editor */}
               <div>
                 <Label>Coverage Fields</Label>
-                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                <p className="text-xs text-on-surface-variant mt-1 mb-2">
                   Define the coverage inputs agents will fill out for this line of business.
                 </p>
                 <div className="space-y-3">
                   {productCoverageFields.map((field, i) => (
-                    <div key={i} className="space-y-1.5 rounded-md border border-border/60 p-2.5">
+                    <div key={i} className="space-y-1.5 rounded-xl p-2.5">
                       <div className="flex items-center gap-2">
                         <Input
                           placeholder="Label (e.g., Collision Deductible)"
@@ -1259,7 +1259,7 @@ export default function AdminSettingsPage() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          className="h-8 w-8 shrink-0 text-on-surface-variant hover:text-destructive"
                           onClick={() => setProductCoverageFields((f) => f.filter((_, j) => j !== i))}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

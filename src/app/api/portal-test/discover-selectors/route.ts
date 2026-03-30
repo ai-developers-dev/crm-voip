@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 import { chromium } from "playwright-core";
@@ -179,7 +179,6 @@ export async function POST(req: Request) {
       // If contactId provided, fetch real contact data from Convex
       if (body.contactId && body.organizationId) {
         try {
-          const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
           const contact = await convex.query(api.contacts.getById, { contactId: body.contactId });
           if (contact) {
             leadData = {
@@ -365,7 +364,6 @@ async function resolveCredentials(body: any) {
     return { username: body.username, password: body.password, portalUrl: body.portalUrl };
   }
   if (body.organizationId && body.carrierId) {
-    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
     const carriers = await convex.query(api.tenantCommissions.getCarriersWithCredentials, {
       organizationId: body.organizationId as Id<"organizations">,
     });

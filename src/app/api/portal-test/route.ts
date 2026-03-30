@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 import {
@@ -12,14 +12,12 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 
 export const maxDuration = 120;
 
-async function getConvex() {
-  const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+async function authenticateConvex() {
   try {
     const { getToken } = await auth();
     const token = await getToken({ template: "convex" });
     if (token) convex.setAuth(token);
   } catch {}
-  return convex;
 }
 
 export async function POST(req: Request) {
@@ -29,7 +27,7 @@ export async function POST(req: Request) {
 
     if (action === "start_login") {
       const { organizationId, carrierId, username, password, portalUrl } = body;
-      const convex = await getConvex();
+      await authenticateConvex();
 
       let creds: { username: string; password: string; portalUrl?: string };
 

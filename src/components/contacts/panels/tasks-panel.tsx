@@ -67,7 +67,7 @@ export function TasksPanel({ contact, organizationId, userId, onClose }: TasksPa
 
       <div className="px-4 py-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-on-surface-variant" />
           <Input
             placeholder="Search tasks..."
             value={search}
@@ -80,7 +80,7 @@ export function TasksPanel({ contact, organizationId, userId, onClose }: TasksPa
       <ScrollArea className="flex-1">
         <div className="space-y-2 px-4 pb-4">
           {filtered?.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No tasks found</p>
+            <p className="text-sm text-on-surface-variant text-center py-8">No tasks found</p>
           )}
           {filtered?.map((task) => (
             <div key={task._id} className="rounded-lg border p-3 space-y-2">
@@ -108,7 +108,7 @@ export function TasksPanel({ contact, organizationId, userId, onClose }: TasksPa
                 </DropdownMenu>
               </div>
               {task.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                <p className="text-xs text-on-surface-variant line-clamp-2">{task.description}</p>
               )}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Badge variant="secondary" className="text-xs px-1.5 py-0">
@@ -118,7 +118,7 @@ export function TasksPanel({ contact, organizationId, userId, onClose }: TasksPa
                   {task.status.replace("_", " ")}
                 </Badge>
                 {task.dueDate && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-on-surface-variant">
                     Due {new Date(task.dueDate).toLocaleDateString()}
                   </span>
                 )}

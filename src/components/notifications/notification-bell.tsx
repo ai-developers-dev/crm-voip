@@ -73,8 +73,8 @@ export function NotificationBell({ organizationId, userId }: NotificationBellPro
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="relative p-1.5 rounded-md hover:bg-muted transition-colors">
-          <Bell className="h-4 w-4 text-muted-foreground" />
+        <button className="relative p-1.5 rounded-xl hover:bg-surface-container-high transition-colors">
+          <Bell className="h-4 w-4 text-on-surface-variant" />
           {count > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">
               {count > 99 ? "99+" : count}
@@ -83,10 +83,10 @@ export function NotificationBell({ organizationId, userId }: NotificationBellPro
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0" sideOffset={8}>
-        <div className="px-3 py-2 border-b flex items-center justify-between">
+        <div className="px-3 py-2 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold">Notifications</h3>
-            <p className="text-[10px] text-muted-foreground">{count} item{count !== 1 ? "s" : ""}</p>
+            <p className="text-[10px] text-on-surface-variant">{count} item{count !== 1 ? "s" : ""}</p>
           </div>
           {count > 0 && (
             <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={dismissAll}>
@@ -98,13 +98,13 @@ export function NotificationBell({ organizationId, userId }: NotificationBellPro
         <div className="max-h-80 overflow-y-auto">
           {count === 0 ? (
             <div className="py-8 text-center">
-              <Bell className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">No notifications</p>
+              <Bell className="h-8 w-8 text-on-surface-variant/20 mx-auto mb-2" />
+              <p className="text-xs text-on-surface-variant">No notifications</p>
             </div>
           ) : (
             activeNotifications.map((n) => {
               const Icon = ICONS[n.icon] || Bell;
-              const color = TYPE_COLORS[n.type] || "text-muted-foreground";
+              const color = TYPE_COLORS[n.type] || "text-on-surface-variant";
               const isTask = n.type === "task_due" || n.type === "task_overdue";
               const href = n.contactId
                 ? `/contacts?id=${n.contactId}${isTask ? "&panel=tasks" : ""}`
@@ -113,7 +113,7 @@ export function NotificationBell({ organizationId, userId }: NotificationBellPro
               return (
                 <div
                   key={n.id}
-                  className="flex items-start gap-3 px-3 py-2.5 hover:bg-muted/50 transition-colors border-b last:border-b-0 group"
+                  className="flex items-start gap-3 px-3 py-2.5 hover:bg-surface-container-high/50 transition-colors last:border-b-0 group"
                 >
                   <Link href={href} onClick={() => { dismissOne(n.id); setOpen(false); }} className="flex items-start gap-3 flex-1 min-w-0">
                     <div className={cn("mt-0.5 shrink-0", color)}>
@@ -122,9 +122,9 @@ export function NotificationBell({ organizationId, userId }: NotificationBellPro
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-semibold truncate">{n.title}</p>
-                        <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(n.timestamp)}</span>
+                        <span className="text-[10px] text-on-surface-variant shrink-0">{timeAgo(n.timestamp)}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-1">{n.description}</p>
+                      <p className="text-xs text-on-surface-variant line-clamp-1">{n.description}</p>
                       {n.contactName && (
                         <p className="text-[10px] text-primary mt-0.5">{n.contactName}</p>
                       )}
@@ -132,9 +132,9 @@ export function NotificationBell({ organizationId, userId }: NotificationBellPro
                   </Link>
                   <button
                     onClick={() => dismissOne(n.id)}
-                    className="mt-1 shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted transition-all"
+                    className="mt-1 shrink-0 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-surface-container-high transition-all"
                   >
-                    <X className="h-3 w-3 text-muted-foreground" />
+                    <X className="h-3 w-3 text-on-surface-variant" />
                   </button>
                 </div>
               );

@@ -226,7 +226,7 @@ export default function AgencyTypeDetailPage() {
   if (!userLoaded || isSuperAdmin === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -249,7 +249,7 @@ export default function AgencyTypeDetailPage() {
   if (agencyType === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -313,15 +313,15 @@ export default function AgencyTypeDetailPage() {
             <CardContent className="pt-6">
               <dl className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
                 <div>
-                  <dt className="text-muted-foreground mb-1">Name</dt>
+                  <dt className="text-on-surface-variant mb-1">Name</dt>
                   <dd className="font-medium text-sm">{agencyType.name}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground mb-1">Description</dt>
+                  <dt className="text-on-surface-variant mb-1">Description</dt>
                   <dd className="font-medium">{agencyType.description || "---"}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground mb-1">Status</dt>
+                  <dt className="text-on-surface-variant mb-1">Status</dt>
                   <dd>
                     <Badge variant={agencyType.isActive ? "default" : "secondary"}>
                       {agencyType.isActive ? "Active" : "Inactive"}
@@ -329,23 +329,23 @@ export default function AgencyTypeDetailPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground mb-1">Default Base Price</dt>
+                  <dt className="text-on-surface-variant mb-1">Default Base Price</dt>
                   <dd className="font-medium">{agencyType.monthlyBasePrice != null ? `$${agencyType.monthlyBasePrice}/mo` : "---"}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground mb-1">Default Per-User Price</dt>
+                  <dt className="text-on-surface-variant mb-1">Default Per-User Price</dt>
                   <dd className="font-medium">{agencyType.perUserPrice != null ? `$${agencyType.perUserPrice}/mo` : "---"}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground mb-1">Tenants Using</dt>
+                  <dt className="text-on-surface-variant mb-1">Tenants Using</dt>
                   <dd className="font-medium">{tenantCount}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground mb-1">Carriers</dt>
+                  <dt className="text-on-surface-variant mb-1">Carriers</dt>
                   <dd className="font-medium">{carriers?.length ?? 0}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground mb-1">Products</dt>
+                  <dt className="text-on-surface-variant mb-1">Products</dt>
                   <dd className="font-medium">{products?.length ?? 0}</dd>
                 </div>
               </dl>
@@ -359,7 +359,7 @@ export default function AgencyTypeDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Briefcase className="h-5 w-5 text-muted-foreground" />
+                  <Briefcase className="h-5 w-5 text-on-surface-variant" />
                   <div>
                     <CardTitle className="text-sm">Carriers</CardTitle>
                     <CardDescription>Companies/carriers this agency type represents</CardDescription>
@@ -385,7 +385,7 @@ export default function AgencyTypeDetailPage() {
                     {carriers.map((carrier) => (
                       <TableRow key={carrier._id}>
                         <TableCell className="font-medium">{carrier.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{carrier.description || "---"}</TableCell>
+                        <TableCell className="text-on-surface-variant">{carrier.description || "---"}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant={carrier.isActive ? "default" : "secondary"}>
                             {carrier.isActive ? "Active" : "Inactive"}
@@ -410,7 +410,7 @@ export default function AgencyTypeDetailPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-on-surface-variant">
                   <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">No carriers yet. Add carriers that this agency type represents.</p>
                 </div>
@@ -425,7 +425,7 @@ export default function AgencyTypeDetailPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Package className="h-5 w-5 text-muted-foreground" />
+                  <Package className="h-5 w-5 text-on-surface-variant" />
                   <div>
                     <CardTitle className="text-sm">Products</CardTitle>
                     <CardDescription>Services/products this agency type sells</CardDescription>
@@ -451,7 +451,7 @@ export default function AgencyTypeDetailPage() {
                     {products.map((product) => (
                       <TableRow key={product._id}>
                         <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{product.description || "---"}</TableCell>
+                        <TableCell className="text-on-surface-variant">{product.description || "---"}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant={product.isActive ? "default" : "secondary"}>
                             {product.isActive ? "Active" : "Inactive"}
@@ -476,7 +476,7 @@ export default function AgencyTypeDetailPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-on-surface-variant">
                   <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">No products yet. Add products/services this agency type offers.</p>
                 </div>
@@ -490,7 +490,7 @@ export default function AgencyTypeDetailPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <Grid3X3 className="h-5 w-5 text-muted-foreground" />
+                <Grid3X3 className="h-5 w-5 text-on-surface-variant" />
                 <div>
                   <CardTitle className="text-sm">Commission Rates</CardTitle>
                   <CardDescription>Commission and renewal rates per carrier-product combination. Click a cell to set rates.</CardDescription>
@@ -499,7 +499,7 @@ export default function AgencyTypeDetailPage() {
             </CardHeader>
             <CardContent>
               {(!carriers || carriers.length === 0 || !products || products.length === 0) ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-8 text-on-surface-variant">
                   <Grid3X3 className="h-10 w-10 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">
                     {!carriers || carriers.length === 0
@@ -512,7 +512,7 @@ export default function AgencyTypeDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="sticky left-0 bg-background z-10 min-w-[150px]">Carrier</TableHead>
+                        <TableHead className="sticky left-0 bg-surface z-10 min-w-[150px]">Carrier</TableHead>
                         {products.map((product) => (
                           <TableHead key={product._id} className="text-center min-w-[120px]">
                             {product.name}
@@ -523,7 +523,7 @@ export default function AgencyTypeDetailPage() {
                     <TableBody>
                       {carriers.map((carrier) => (
                         <TableRow key={carrier._id}>
-                          <TableCell className="sticky left-0 bg-background z-10 font-medium">
+                          <TableCell className="sticky left-0 bg-surface z-10 font-medium">
                             {carrier.name}
                           </TableCell>
                           {products.map((product) => {
@@ -531,17 +531,17 @@ export default function AgencyTypeDetailPage() {
                             return (
                               <TableCell
                                 key={product._id}
-                                className="text-center cursor-pointer hover:bg-muted transition-colors"
+                                className="text-center cursor-pointer hover:bg-surface-container-high transition-colors"
                                 onClick={() => openCommissionDialog(carrier._id, product._id)}
                               >
                                 {comm ? (
                                   <div className="text-sm">
                                     <span className="font-medium">{comm.commissionRate}%</span>
-                                    <span className="text-muted-foreground"> / </span>
-                                    <span className="text-muted-foreground">{comm.renewalRate}%</span>
+                                    <span className="text-on-surface-variant"> / </span>
+                                    <span className="text-on-surface-variant">{comm.renewalRate}%</span>
                                   </div>
                                 ) : (
-                                  <span className="text-muted-foreground">---</span>
+                                  <span className="text-on-surface-variant">---</span>
                                 )}
                               </TableCell>
                             );
@@ -550,7 +550,7 @@ export default function AgencyTypeDetailPage() {
                       ))}
                     </TableBody>
                   </Table>
-                  <p className="text-xs text-muted-foreground mt-3">Format: Commission% / Renewal%</p>
+                  <p className="text-xs text-on-surface-variant mt-3">Format: Commission% / Renewal%</p>
                 </div>
               )}
             </CardContent>

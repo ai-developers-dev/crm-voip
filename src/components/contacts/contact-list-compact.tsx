@@ -74,7 +74,7 @@ function ContactCard({
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "rounded-md transition-colors relative",
-        isSelected ? "border border-primary bg-background" : "border border-transparent hover:bg-muted/50"
+        isSelected ? "bg-surface-container-lowest" : "hover:bg-surface-container-high/50"
       )}
     >
       {/* Main row */}
@@ -86,7 +86,7 @@ function ContactCard({
           <div
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-              isSelected ? "bg-primary/20" : "bg-muted"
+              isSelected ? "bg-primary/20" : "bg-surface-container"
             )}
           >
             <User className="h-4 w-4" />
@@ -102,7 +102,7 @@ function ContactCard({
                 </span>
               )}
             </p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className="text-xs text-on-surface-variant flex items-center gap-1">
               <Phone className="h-3 w-3" />
               <span className="truncate">{getPrimaryPhone(contact)}</span>
             </p>
@@ -115,7 +115,7 @@ function ContactCard({
             {onEdit && (
               <button
                 onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                className="p-1.5 rounded text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                className="p-1.5 rounded text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -123,7 +123,7 @@ function ContactCard({
             {onDelete && !showDeleteConfirm && (
               <button
                 onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
-                className="p-1.5 rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                className="p-1.5 rounded text-on-surface-variant hover:bg-destructive/10 hover:text-destructive transition-colors"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -144,7 +144,7 @@ function ContactCard({
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false); }}
-            className="text-[12px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 transition-colors"
+            className="text-[12px] px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high/80 transition-colors"
           >
             Cancel
           </button>
@@ -160,7 +160,7 @@ function ContactCard({
       >
         <button
           onClick={handleExpandClick}
-          className="flex items-center justify-center w-8 h-5 rounded-b-md text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center justify-center w-8 h-5 rounded-b-md text-on-surface-variant hover:text-on-surface transition-colors"
         >
           <ChevronDown
             className={cn(
@@ -178,11 +178,11 @@ function ContactCard({
           isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className="px-3 pb-3 pt-1 border-t border-border/40 mx-2.5">
+        <div className="px-3 pb-3 pt-1 mx-2.5">
           <div className="space-y-1.5 text-[14px]">
             {/* All phone numbers */}
             {contact.phoneNumbers.map((p, i) => (
-              <div key={i} className="flex items-center gap-2 text-muted-foreground">
+              <div key={i} className="flex items-center gap-2 text-on-surface-variant">
                 <Phone className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{formatPhoneDisplay(p.number)}</span>
                 <span className="text-[11px] uppercase tracking-wide opacity-60">{p.type}</span>
@@ -194,7 +194,7 @@ function ContactCard({
 
             {/* Email */}
             {contact.email && (
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-on-surface-variant">
                 <Mail className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{contact.email}</span>
               </div>
@@ -202,7 +202,7 @@ function ContactCard({
 
             {/* Company */}
             {contact.company && (
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2 text-on-surface-variant">
                 <Building2 className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{contact.company}</span>
               </div>
@@ -211,7 +211,7 @@ function ContactCard({
             {/* Address + action buttons */}
             {address && (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 text-on-surface-variant">
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{address}</span>
                 </div>
@@ -221,7 +221,7 @@ function ContactCard({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-[12px] px-2.5 py-1 rounded bg-muted hover:bg-primary/10 hover:text-primary transition-colors"
+                    className="text-[12px] px-2.5 py-1 rounded bg-surface-container hover:bg-primary/10 hover:text-primary transition-colors"
                   >
                     Maps
                   </a>
@@ -230,7 +230,7 @@ function ContactCard({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-[12px] px-2.5 py-1 rounded bg-muted hover:bg-blue-500/10 hover:text-blue-600 transition-colors"
+                    className="text-[12px] px-2.5 py-1 rounded bg-surface-container hover:bg-blue-500/10 hover:text-blue-600 transition-colors"
                   >
                     Zillow
                   </a>
@@ -240,7 +240,7 @@ function ContactCard({
                       <PopoverTrigger asChild>
                         <button
                           onClick={(e) => e.stopPropagation()}
-                          className="text-[12px] px-2.5 py-1 rounded bg-muted hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
+                          className="text-[12px] px-2.5 py-1 rounded bg-surface-container hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
                         >
                           Tag
                         </button>
@@ -256,7 +256,7 @@ function ContactCard({
                                   e.stopPropagation();
                                   onToggleTag(contact._id, tag._id, contactTagIds);
                                 }}
-                                className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors"
+                                className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-surface-container-high transition-colors"
                               >
                                 <div className={cn(
                                   "flex h-4 w-4 items-center justify-center rounded border",
@@ -284,7 +284,7 @@ function ContactCard({
                   <PopoverTrigger asChild>
                     <button
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[12px] px-2.5 py-1 rounded bg-muted hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
+                      className="text-[12px] px-2.5 py-1 rounded bg-surface-container hover:bg-orange-500/10 hover:text-orange-600 transition-colors"
                     >
                       Tag
                     </button>
@@ -300,7 +300,7 @@ function ContactCard({
                               e.stopPropagation();
                               onToggleTag(contact._id, tag._id, contactTagIds);
                             }}
-                            className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-muted transition-colors"
+                            className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-surface-container-high transition-colors"
                           >
                             <div className={cn(
                               "flex h-4 w-4 items-center justify-center rounded border",
@@ -345,7 +345,7 @@ function ContactCard({
                         const currentTags = contact.tags ?? [];
                         onToggleTag?.(contact._id, tag._id, currentTags);
                       }}
-                      className="hidden group-hover/tag:inline-flex items-center justify-center h-4 w-4 rounded-full text-muted-foreground hover:text-destructive transition-colors"
+                      className="hidden group-hover/tag:inline-flex items-center justify-center h-4 w-4 rounded-full text-on-surface-variant hover:text-destructive transition-colors"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -359,9 +359,9 @@ function ContactCard({
               <button
                 type="button"
                 onClick={() => setIsDndExpanded(!isDndExpanded)}
-                className="w-full flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
+                className="w-full flex items-center gap-2 rounded-lg border bg-surface-container/30 px-3 py-2 text-left hover:bg-surface-container-high/50 transition-colors"
               >
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide flex-1">Do Not Contact</span>
+                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide flex-1">Do Not Contact</span>
                 {(contact.smsOptedOut || contact.emailOptedOut || contact.voiceOptedOut) && (
                   <span className="flex items-center gap-0.5">
                     {contact.smsOptedOut && <span className="text-[8px] px-1 py-0 rounded-full bg-destructive/10 text-destructive font-medium">SMS</span>}
@@ -369,7 +369,7 @@ function ContactCard({
                     {contact.voiceOptedOut && <span className="text-[8px] px-1 py-0 rounded-full bg-destructive/10 text-destructive font-medium">Voice</span>}
                   </span>
                 )}
-                <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", isDndExpanded && "rotate-180")} />
+                <ChevronDown className={cn("h-3.5 w-3.5 text-on-surface-variant transition-transform", isDndExpanded && "rotate-180")} />
               </button>
               <div className={cn("overflow-hidden transition-all duration-200", isDndExpanded ? "max-h-40 opacity-100 mt-2" : "max-h-0 opacity-0")}>
                 <div className="flex items-center gap-4 px-3">
@@ -382,8 +382,8 @@ function ContactCard({
                       className="rounded h-3.5 w-3.5"
                       readOnly
                     />
-                    <span className={contact.smsOptedOut ? "text-destructive" : "text-muted-foreground"}>SMS</span>
-                    {contact.smsOptedOut && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    <span className={contact.smsOptedOut ? "text-destructive" : "text-on-surface-variant"}>SMS</span>
+                    {contact.smsOptedOut && <Lock className="h-3 w-3 text-on-surface-variant" />}
                   </label>
 
                   {/* Email - freely toggleable */}
@@ -394,7 +394,7 @@ function ContactCard({
                       onChange={() => toggleEmailOptOut({ contactId: contact._id })}
                       className="rounded h-3.5 w-3.5 cursor-pointer"
                     />
-                    <span className={contact.emailOptedOut ? "text-destructive" : "text-muted-foreground"}>Email</span>
+                    <span className={contact.emailOptedOut ? "text-destructive" : "text-on-surface-variant"}>Email</span>
                   </label>
 
                   {/* Voice - freely toggleable */}
@@ -405,7 +405,7 @@ function ContactCard({
                       onChange={() => toggleVoiceOptOut({ contactId: contact._id })}
                       className="rounded h-3.5 w-3.5 cursor-pointer"
                     />
-                    <span className={contact.voiceOptedOut ? "text-destructive" : "text-muted-foreground"}>Voice</span>
+                    <span className={contact.voiceOptedOut ? "text-destructive" : "text-on-surface-variant"}>Voice</span>
                   </label>
                 </div>
               </div>
@@ -477,7 +477,7 @@ export function ContactListCompact({
       <div className="flex flex-col h-full">
         <div className="p-3 border-b space-y-2">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             <Input placeholder="Search..." value="" className="pl-8 h-9" disabled />
           </div>
           <Button disabled className="w-full h-9" size="sm">
@@ -486,7 +486,7 @@ export function ContactListCompact({
           </Button>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Loader2 className="h-5 w-5 animate-spin text-on-surface-variant" />
         </div>
       </div>
     );
@@ -496,7 +496,7 @@ export function ContactListCompact({
     <div className="flex flex-col h-full">
       <div className="p-3 border-b space-y-2">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
           <Input
             placeholder="Search..."
             value={searchQuery}
@@ -514,13 +514,13 @@ export function ContactListCompact({
         <div className="p-2">
           {filteredContacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center px-2">
-              <div className="rounded-full bg-muted p-3 mb-3">
-                <Users className="h-5 w-5 text-muted-foreground" />
+              <div className="rounded-full bg-surface-container p-3 mb-3">
+                <Users className="h-5 w-5 text-on-surface-variant" />
               </div>
               {contacts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No contacts yet</p>
+                <p className="text-sm text-on-surface-variant">No contacts yet</p>
               ) : (
-                <p className="text-sm text-muted-foreground">No matches</p>
+                <p className="text-sm text-on-surface-variant">No matches</p>
               )}
             </div>
           ) : (
@@ -543,7 +543,7 @@ export function ContactListCompact({
         </div>
       </ScrollArea>
 
-      <div className="px-3 py-2 border-t text-xs text-muted-foreground text-center">
+      <div className="px-3 py-2 border-t text-xs text-on-surface-variant text-center">
         {filteredContacts.length === contacts.length
           ? `${contacts.length} contact${contacts.length === 1 ? "" : "s"}`
           : `${filteredContacts.length} of ${contacts.length}`}

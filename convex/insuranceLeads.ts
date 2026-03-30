@@ -113,6 +113,60 @@ export const create = mutation({
   handler: async (ctx, args) => {
     await authorizeOrgMember(ctx, args.organizationId);
 
+    // Dedup: check email, then phone, then name+dob+zip
+    if (args.email) {
+      const existing = await ctx.db
+        .query("insuranceLeads")
+        .withIndex("by_organizationId_email", (q) =>
+          q.eq("organizationId", args.organizationId).eq("email", args.email!)
+        )
+        .first();
+      if (existing) return existing._id;
+    }
+
+    if (args.phone) {
+      const phoneNorm = args.phone.replace(/\D/g, "");
+      const byPhone = await ctx.db
+        .query("insuranceLeads")
+        .withIndex("by_organizationId_phone", (q) =>
+          q.eq("organizationId", args.organizationId).eq("phone", args.phone!)
+        )
+        .first();
+      // Also check normalized phone in case formatting differs
+      if (!byPhone) {
+        const allLeads = await ctx.db
+          .query("insuranceLeads")
+          .withIndex("by_organizationId", (q) =>
+            q.eq("organizationId", args.organizationId)
+          )
+          .collect();
+        const match = allLeads.find(
+          (l) => l.phone && l.phone.replace(/\D/g, "") === phoneNorm
+        );
+        if (match) return match._id;
+      } else {
+        return byPhone._id;
+      }
+    }
+
+    // Fallback: same person by name + DOB + zip
+    const firstLower = args.firstName.toLowerCase().trim();
+    const lastLower = args.lastName.toLowerCase().trim();
+    const orgLeads = await ctx.db
+      .query("insuranceLeads")
+      .withIndex("by_organizationId", (q) =>
+        q.eq("organizationId", args.organizationId)
+      )
+      .collect();
+    const nameMatch = orgLeads.find(
+      (l) =>
+        l.firstName.toLowerCase().trim() === firstLower &&
+        l.lastName.toLowerCase().trim() === lastLower &&
+        l.dob === args.dob &&
+        l.zip === args.zip
+    );
+    if (nameMatch) return nameMatch._id;
+
     const now = Date.now();
     return await ctx.db.insert("insuranceLeads", {
       ...args,

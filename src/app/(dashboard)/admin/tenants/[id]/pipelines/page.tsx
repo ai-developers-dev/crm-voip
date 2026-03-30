@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { PipelineBuilder } from "@/components/pipelines/pipeline-builder";
+import { cardPatterns } from "@/lib/style-constants";
+import { cn } from "@/lib/utils";
 
 export default function TenantPipelinesPage() {
   const params = useParams();
@@ -36,7 +38,7 @@ export default function TenantPipelinesPage() {
   if (!tenant) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span>
         </div>
       </div>
@@ -46,7 +48,7 @@ export default function TenantPipelinesPage() {
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - var(--header-height, 3.5rem))" }}>
       {/* Tenant header with inline nav */}
-      <div className="shrink-0 border-b bg-background px-6 py-3">
+      <div className="shrink-0 bg-surface px-6 py-3">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}><Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button></Link>
@@ -77,11 +79,11 @@ export default function TenantPipelinesPage() {
 
         {pipelines && pipelines.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
-              <Columns3 className="h-7 w-7 text-muted-foreground" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-container mb-4">
+              <Columns3 className="h-7 w-7 text-on-surface-variant" />
             </div>
             <h2 className="text-base font-semibold mb-1">No pipelines yet</h2>
-            <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+            <p className="text-sm text-on-surface-variant mb-4 max-w-sm">
               Create your first pipeline to track contacts through stages.
             </p>
             <Button onClick={() => setShowBuilder(true)}>
@@ -89,12 +91,12 @@ export default function TenantPipelinesPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {(pipelines ?? []).map((pipeline) => (
               <Link
                 key={pipeline._id}
                 href={`/admin/tenants/${tenant._id}/pipelines/${pipeline._id}`}
-                className="flex items-center gap-3 group rounded-lg border bg-card p-4 hover:shadow-sm transition-shadow"
+                className={cn(cardPatterns.pageCardInteractive, "group flex items-center gap-3 p-4")}
               >
                 {pipeline.color && (
                   <div
@@ -105,7 +107,7 @@ export default function TenantPipelinesPage() {
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-semibold">{pipeline.name}</span>
                   {pipeline.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{pipeline.description}</p>
+                    <p className="text-xs text-on-surface-variant mt-0.5 truncate">{pipeline.description}</p>
                   )}
                   <div className="flex items-center gap-2 mt-1.5">
                     <Badge variant="secondary" className="text-xs px-2 py-0.5">
@@ -126,7 +128,7 @@ export default function TenantPipelinesPage() {
                       removePipeline({ id: pipeline._id });
                     }
                   }}
-                  className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-1.5 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

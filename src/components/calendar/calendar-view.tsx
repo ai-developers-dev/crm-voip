@@ -74,7 +74,7 @@ export function CalendarView({ events, onEventClick, onDateClick, loading }: Cal
   return (
     <div className="flex flex-col h-full px-6">
       {/* Toolbar */}
-      <div className="flex items-center justify-between py-3 border-b">
+      <div className="flex items-center justify-between py-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={goToToday}>
             Today
@@ -89,7 +89,7 @@ export function CalendarView({ events, onEventClick, onDateClick, loading }: Cal
           </div>
           <h2 className="text-sm font-semibold">{headerLabel}</h2>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border p-0.5">
+        <div className="flex items-center gap-1 rounded-2xl border p-0.5">
           {(["month", "week", "day"] as const).map((mode) => (
             <Button
               key={mode}
@@ -107,8 +107,8 @@ export function CalendarView({ events, onEventClick, onDateClick, loading }: Cal
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto relative">
         {loading && (
-          <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
-            <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="absolute inset-0 bg-surface/50 flex items-center justify-center z-10">
+            <div className="flex items-center gap-2 text-on-surface-variant">
               <Calendar className="h-5 w-5 animate-pulse" />
               <span>Loading events...</span>
             </div>
@@ -174,9 +174,9 @@ function MonthView({
   return (
     <div className="h-full flex flex-col">
       {/* Day headers */}
-      <div className="grid grid-cols-7 border-b">
+      <div className="grid grid-cols-7">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="px-2 py-1.5 text-xs font-medium text-muted-foreground text-center">
+          <div key={day} className="px-2 py-1.5 text-xs font-medium text-on-surface-variant text-center">
             {day}
           </div>
         ))}
@@ -192,8 +192,8 @@ function MonthView({
           return (
             <div
               key={dayKey}
-              className={`border-b border-r p-1 min-h-[80px] cursor-pointer hover:bg-muted/30 transition-colors ${
-                !inMonth ? "bg-muted/10" : ""
+              className={`border-b p-1 min-h-[80px] cursor-pointer hover:bg-surface-container-high/30 transition-colors ${
+                !inMonth ? "bg-surface-container/10" : ""
               }`}
               onClick={() => onDateClick?.(day)}
             >
@@ -201,8 +201,8 @@ function MonthView({
                 today
                   ? "bg-primary text-primary-foreground"
                   : !inMonth
-                    ? "text-muted-foreground/50"
-                    : "text-foreground"
+                    ? "text-on-surface-variant/50"
+                    : "text-on-surface"
               }`}>
                 {format(day, "d")}
               </div>
@@ -219,7 +219,7 @@ function MonthView({
                   </button>
                 ))}
                 {dayEvents.length > 3 && (
-                  <div className="text-xs text-muted-foreground px-1">
+                  <div className="text-xs text-on-surface-variant px-1">
                     +{dayEvents.length - 3} more
                   </div>
                 )}
@@ -256,14 +256,14 @@ function WeekView({
   return (
     <div className="flex flex-col h-full">
       {/* Day headers */}
-      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b sticky top-0 bg-background z-10">
+      <div className="grid grid-cols-[60px_repeat(7,1fr)] sticky top-0 bg-surface z-10">
         <div className="border-r" />
         {days.map((day) => (
           <div
             key={day.toISOString()}
-            className={`px-2 py-2 text-center border-r ${isToday(day) ? "bg-primary/5" : ""}`}
+            className={`px-2 py-2 text-center ${isToday(day) ? "bg-primary/5" : ""}`}
           >
-            <div className="text-xs text-muted-foreground">{format(day, "EEE")}</div>
+            <div className="text-xs text-on-surface-variant">{format(day, "EEE")}</div>
             <div className={`text-sm font-semibold ${
               isToday(day) ? "text-primary" : ""
             }`}>
@@ -279,7 +279,7 @@ function WeekView({
           <div className="border-r">
             {hours.map((hour) => (
               <div key={hour} className="h-[60px] pr-2 flex items-start justify-end">
-                <span className="text-xs text-muted-foreground -mt-2">
+                <span className="text-xs text-on-surface-variant -mt-2">
                   {hour === 0 ? "" : format(new Date(2000, 0, 1, hour), "h a")}
                 </span>
               </div>
@@ -291,7 +291,7 @@ function WeekView({
             return (
               <div key={day.toISOString()} className="border-r relative">
                 {hours.map((hour) => (
-                  <div key={hour} className="h-[60px] border-b border-border/30" />
+                  <div key={hour} className="h-[60px]order/30" />
                 ))}
                 {/* Event overlays */}
                 {dayEvents.filter((e) => !e.isAllDay).map((event) => {
@@ -305,7 +305,7 @@ function WeekView({
                       className={`absolute left-0.5 right-1 rounded px-1.5 py-0.5 text-xs leading-tight overflow-hidden ${
                         event.type === "synced"
                           ? `${calendarEventColors.synced} border-l-2 border-emerald-500`
-                          : `${calendarEventColors.appointment} border-l-2 border-blue-500`
+                          : `${calendarEventColors.appointment} border-l-2lue-500`
                       }`}
                       style={{
                         top: `${topMinutes}px`,
@@ -358,7 +358,7 @@ function DayView({
       {/* All-day events */}
       {allDayEvents.length > 0 && (
         <div className="border-b p-2 space-y-1">
-          <div className="text-xs text-muted-foreground font-medium mb-1">All day</div>
+          <div className="text-xs text-on-surface-variant font-medium mb-1">All day</div>
           {allDayEvents.map((event) => (
             <button
               key={event.id}
@@ -378,7 +378,7 @@ function DayView({
           <div className="border-r">
             {hours.map((hour) => (
               <div key={hour} className="h-[60px] pr-2 flex items-start justify-end">
-                <span className="text-xs text-muted-foreground -mt-2">
+                <span className="text-xs text-on-surface-variant -mt-2">
                   {hour === 0 ? "" : format(new Date(2000, 0, 1, hour), "h a")}
                 </span>
               </div>
@@ -386,7 +386,7 @@ function DayView({
           </div>
           <div className="relative">
             {hours.map((hour) => (
-              <div key={hour} className="h-[60px] border-b border-border/30" />
+              <div key={hour} className="h-[60px]order/30" />
             ))}
             {timedEvents.map((event) => {
               const start = new Date(event.startTime);
@@ -399,7 +399,7 @@ function DayView({
                   className={`absolute left-1 right-4 rounded px-2 py-1 text-xs overflow-hidden ${
                     event.type === "synced"
                       ? `${calendarEventColors.synced} border-l-2 border-emerald-500`
-                      : `${calendarEventColors.appointment} border-l-2 border-blue-500`
+                      : `${calendarEventColors.appointment} border-l-2lue-500`
                   }`}
                   style={{
                     top: `${topMinutes}px`,

@@ -1,10 +1,55 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, MutationCtx, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { normalizePhone } from "./lib/phone";
 import { authorizeOrgMember, authorizeOrgAdmin } from "./lib/auth";
 import { checkContactLimit } from "./lib/planLimits";
+
+/**
+ * Sync the contactPhoneLookup table for a contact.
+ * Deletes old entries and inserts new ones based on current phone numbers.
+ */
+async function syncPhoneLookup(
+  ctx: MutationCtx,
+  contactId: Id<"contacts">,
+  organizationId: Id<"organizations">,
+  phoneNumbers: Array<{ number: string }>,
+) {
+  // Delete existing lookup entries for this contact
+  const existing = await ctx.db
+    .query("contactPhoneLookup")
+    .withIndex("by_contact", (q) => q.eq("contactId", contactId))
+    .collect();
+  for (const entry of existing) {
+    await ctx.db.delete(entry._id);
+  }
+
+  // Insert new lookup entries
+  for (const phone of phoneNumbers) {
+    const normalized = phone.number.replace(/\D/g, "").slice(-10);
+    if (normalized.length >= 7) {
+      await ctx.db.insert("contactPhoneLookup", {
+        normalizedPhone: normalized,
+        contactId,
+        organizationId,
+      });
+    }
+  }
+}
+
+/**
+ * Delete all phone lookup entries for a contact.
+ */
+async function deletePhoneLookup(ctx: MutationCtx, contactId: Id<"contacts">) {
+  const existing = await ctx.db
+    .query("contactPhoneLookup")
+    .withIndex("by_contact", (q) => q.eq("contactId", contactId))
+    .collect();
+  for (const entry of existing) {
+    await ctx.db.delete(entry._id);
+  }
+}
 
 // Phone number validator used across all contact mutations
 const phoneNumberValidator = v.object({
@@ -27,22 +72,14 @@ export const getByOrganization = query({
   handler: async (ctx, args) => {
     let contacts;
     if (args.assignedToUserId) {
-      // Agent view: only assigned contacts
-      contacts = await ctx.db
-        .query("contacts")
-        .withIndex("by_assigned_user", (q) => q.eq("assignedUserId", args.assignedToUserId))
-        .collect();
-      // Also include unassigned contacts in same org
-      const unassigned = await ctx.db
+      // Agent view: single query, filter to assigned + unassigned contacts
+      const allOrgContacts = await ctx.db
         .query("contacts")
         .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
         .collect();
-      const assignedIds = new Set(contacts.map((c) => c._id));
-      for (const c of unassigned) {
-        if (!c.assignedUserId && !assignedIds.has(c._id)) {
-          contacts.push(c);
-        }
-      }
+      contacts = allOrgContacts.filter(
+        (c) => c.assignedUserId === args.assignedToUserId || !c.assignedUserId
+      );
     } else {
       // Admin/supervisor view: all contacts
       contacts = await ctx.db
@@ -154,6 +191,9 @@ export const create = mutation({
       updatedAt: now,
     });
 
+    // Sync phone lookup table
+    await syncPhoneLookup(ctx, contactId, args.organizationId, args.phoneNumbers);
+
     // Trigger workflow: contact_created
     await ctx.scheduler.runAfter(0, internal.workflowEngine.checkTriggers, {
       organizationId: args.organizationId,
@@ -229,6 +269,11 @@ export const update = mutation({
       updatedAt: Date.now(),
     });
 
+    // Sync phone lookup table if phone numbers changed
+    if (args.phoneNumbers) {
+      await syncPhoneLookup(ctx, contactId, contact.organizationId, args.phoneNumbers);
+    }
+
     // Trigger workflow: tag_added (for each newly added tag)
     if (args.tags) {
       const newTags = args.tags.filter((t) => !oldTags.includes(t));
@@ -256,6 +301,7 @@ export const remove = mutation({
     }
     await authorizeOrgMember(ctx, contact.organizationId);
 
+    await deletePhoneLookup(ctx, args.contactId);
     await ctx.db.delete(args.contactId);
     return { success: true };
   },
@@ -554,5 +600,40 @@ export const updateDriversAndVehicles = mutation({
     if (args.drivers) updates.drivers = args.drivers;
     if (args.vehicles) updates.vehicles = args.vehicles;
     await ctx.db.patch(args.contactId, updates);
+  },
+});
+
+// One-time migration: backfill contactPhoneLookup table from existing contacts.
+// Run via Convex dashboard: npx convex run contacts:backfillPhoneLookup
+export const backfillPhoneLookup = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const contacts = await ctx.db.query("contacts").collect();
+    let inserted = 0;
+
+    for (const contact of contacts) {
+      for (const phone of contact.phoneNumbers) {
+        const normalized = phone.number.replace(/\D/g, "").slice(-10);
+        if (normalized.length >= 7) {
+          // Check if entry already exists to make this idempotent
+          const existing = await ctx.db
+            .query("contactPhoneLookup")
+            .withIndex("by_org_phone", (q) =>
+              q.eq("organizationId", contact.organizationId).eq("normalizedPhone", normalized)
+            )
+            .first();
+          if (!existing) {
+            await ctx.db.insert("contactPhoneLookup", {
+              normalizedPhone: normalized,
+              contactId: contact._id,
+              organizationId: contact.organizationId,
+            });
+            inserted++;
+          }
+        }
+      }
+    }
+
+    return { totalContacts: contacts.length, lookupEntriesInserted: inserted };
   },
 });

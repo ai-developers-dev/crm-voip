@@ -77,7 +77,7 @@ export default function SetupPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading setup...
         </div>
@@ -100,12 +100,12 @@ export default function SetupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border bg-muted/50 p-4">
+            <div className="rounded-2xl border bg-surface-container/50 p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-on-surface-variant" />
                 <span className="font-medium">Platform Organization</span>
               </div>
-              <p className="text-sm text-muted-foreground">{platformOrg.name}</p>
+              <p className="text-sm text-on-surface-variant">{platformOrg.name}</p>
             </div>
 
             {isSuperAdmin && (
@@ -154,7 +154,7 @@ export default function SetupPage() {
               Please create or select an organization first to set up the platform.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-sm text-muted-foreground">
+          <CardContent className="text-center text-sm text-on-surface-variant">
             <p>
               Use the organization switcher in the header to create your platform organization.
             </p>
@@ -179,7 +179,7 @@ export default function SetupPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Current user info */}
-          <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+          <div className="rounded-2xl border bg-surface-container/50 p-4 space-y-3">
             <h4 className="font-medium text-sm">You will be configured as:</h4>
             <div className="flex items-center gap-3">
               {user?.imageUrl && (
@@ -191,7 +191,7 @@ export default function SetupPage() {
               )}
               <div>
                 <p className="font-medium">{user?.fullName || "User"}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-on-surface-variant">
                   {user?.primaryEmailAddress?.emailAddress}
                 </p>
               </div>
@@ -200,15 +200,15 @@ export default function SetupPage() {
           </div>
 
           {/* Organization info */}
-          <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+          <div className="rounded-2xl border bg-surface-container/50 p-4 space-y-3">
             <h4 className="font-medium text-sm">Platform Organization:</h4>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-medium">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-medium">
                 {organization.name?.charAt(0).toUpperCase() || "O"}
               </div>
               <div>
                 <p className="font-medium">{organization.name}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-on-surface-variant">
                   This will be your SaaS platform organization
                 </p>
               </div>
@@ -216,9 +216,9 @@ export default function SetupPage() {
           </div>
 
           {/* Role hierarchy explanation */}
-          <div className="rounded-lg border p-4 space-y-2">
+          <div className="rounded-2xl border p-4 space-y-2">
             <h4 className="font-medium text-sm">Role Hierarchy</h4>
-            <div className="text-sm text-muted-foreground space-y-1">
+            <div className="text-sm text-on-surface-variant space-y-1">
               <p><strong>Platform Level (SaaS Owner):</strong></p>
               <ul className="list-disc list-inside ml-2 space-y-1">
                 <li>Super Admin - Full platform access</li>
@@ -234,7 +234,7 @@ export default function SetupPage() {
           </div>
 
           {error && (
-            <div className="rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="rounded-2xl border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
@@ -257,7 +257,7 @@ export default function SetupPage() {
             )}
           </Button>
 
-          <p className="text-xs text-center text-muted-foreground">
+          <p className="text-xs text-center text-on-surface-variant">
             This action cannot be undone. You will become the Super Admin of this platform.
           </p>
         </CardContent>

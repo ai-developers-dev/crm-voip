@@ -78,11 +78,11 @@ export function ConversationList({
   };
 
   return (
-    <div className="flex flex-col h-full border-r">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b space-y-3">
+      <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Messages</h2>
+          <h2 className="text-sm font-extrabold">Messages</h2>
           <Button
             variant="outline"
             size="sm"
@@ -96,7 +96,7 @@ export function ConversationList({
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
           <Input
             placeholder="Search conversations..."
             value={searchQuery}
@@ -109,7 +109,7 @@ export function ConversationList({
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
         {filteredConversations.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">
+          <div className="p-4 text-center text-on-surface-variant">
             {searchQuery ? "No conversations match your search" : "No conversations yet"}
           </div>
         ) : (
@@ -119,8 +119,8 @@ export function ConversationList({
                 key={conversation._id}
                 onClick={() => onSelectConversation(conversation)}
                 className={cn(
-                  "w-full p-4 text-left hover:bg-muted/50 transition-colors",
-                  selectedConversationId === conversation._id && "bg-muted"
+                  "w-full p-4 text-left hover:bg-surface-container-high/50 transition-colors",
+                  selectedConversationId === conversation._id && "bg-surface-container"
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -140,7 +140,7 @@ export function ConversationList({
 
                     {/* Show phone if we have a name */}
                     {conversation.contactName && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-xs text-on-surface-variant mt-0.5">
                         {formatPhoneDisplay(conversation.customerPhoneNumber)}
                       </p>
                     )}
@@ -150,8 +150,8 @@ export function ConversationList({
                       className={cn(
                         "text-sm mt-1 truncate",
                         conversation.unreadCount > 0
-                          ? "text-foreground font-medium"
-                          : "text-muted-foreground"
+                          ? "text-on-surface font-medium"
+                          : "text-on-surface-variant"
                       )}
                     >
                       {conversation.lastMessagePreview}
@@ -159,7 +159,7 @@ export function ConversationList({
                   </div>
 
                   {/* Timestamp */}
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  <span className="text-xs text-on-surface-variant whitespace-nowrap">
                     {formatRelativeTime(conversation.lastMessageAt)}
                   </span>
                 </div>

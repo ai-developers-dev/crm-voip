@@ -215,7 +215,7 @@ export default function UsersSettingsPage() {
   if (!orgLoaded || convexOrg === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -255,7 +255,7 @@ export default function UsersSettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">
+          <p className="text-on-surface-variant">
             Manage your team members and their roles
           </p>
         </div>
@@ -309,7 +309,7 @@ export default function UsersSettingsPage() {
                   <Label htmlFor="role">Role</Label>
                   <select
                     id="role"
-                    className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                    className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                     value={formData.role}
                     onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as any }))}
                   >
@@ -339,7 +339,7 @@ export default function UsersSettingsPage() {
                     value={formData.agentCommissionSplit}
                     onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+                  <p className="text-xs text-on-surface-variant">Percentage of agency commission this agent receives</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="renewal-split">Agent Renewal %</Label>
@@ -353,7 +353,7 @@ export default function UsersSettingsPage() {
                     value={formData.agentRenewalSplit}
                     onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
+                  <p className="text-xs text-on-surface-variant">Percentage of agency renewal commission this agent receives</p>
                 </div>
               </div>
               <DialogFooter>
@@ -386,9 +386,9 @@ export default function UsersSettingsPage() {
         <CardContent>
           {!users || users.length === 0 ? (
             <div className="text-center py-8">
-              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <Users className="h-12 w-12 text-on-surface-variant mx-auto mb-4" />
               <h3 className="text-lg font-medium">No Users Yet</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-on-surface-variant mb-4">
                 Add team members to see them on the calling dashboard
               </p>
               <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -419,7 +419,7 @@ export default function UsersSettingsPage() {
                         {user.role === "tenant_admin" ? "Admin" : user.role}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-on-surface-variant">
                       {user.agentCommissionSplit != null ? `${user.agentCommissionSplit}%` : "—"}
                     </TableCell>
                     <TableCell>
@@ -510,7 +510,7 @@ export default function UsersSettingsPage() {
                 <Label htmlFor="edit-role">Role</Label>
                 <select
                   id="edit-role"
-                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
                   value={formData.role}
                   onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as any }))}
                 >
@@ -539,7 +539,7 @@ export default function UsersSettingsPage() {
                   value={formData.agentCommissionSplit}
                   onChange={(e) => setFormData(prev => ({ ...prev, agentCommissionSplit: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">Percentage of agency commission this agent receives</p>
+                <p className="text-xs text-on-surface-variant">Percentage of agency commission this agent receives</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-renewal-split">Agent Renewal %</Label>
@@ -553,7 +553,7 @@ export default function UsersSettingsPage() {
                   value={formData.agentRenewalSplit}
                   onChange={(e) => setFormData(prev => ({ ...prev, agentRenewalSplit: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">Percentage of agency renewal commission this agent receives</p>
+                <p className="text-xs text-on-surface-variant">Percentage of agency renewal commission this agent receives</p>
               </div>
             </div>
             <DialogFooter>
@@ -583,7 +583,7 @@ export default function UsersSettingsPage() {
         <CardHeader>
           <CardTitle className="text-sm">How User Invitations Work</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
+        <CardContent className="text-sm text-on-surface-variant">
           <p>
             When you add a user, they will receive an email invitation to join your organization.
             Once they accept and create their account, they will automatically appear in the list above

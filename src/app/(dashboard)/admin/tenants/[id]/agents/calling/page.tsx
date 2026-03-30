@@ -162,7 +162,7 @@ export default function TenantAICallingPage() {
   if (!tenant) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span></div>
+        <div className="flex items-center gap-2 text-on-surface-variant"><Loader2 className="h-5 w-5 animate-spin" /><span>Loading...</span></div>
       </div>
     );
   }
@@ -170,7 +170,7 @@ export default function TenantAICallingPage() {
   return (
     <div className="page-full">
       {/* Tenant header */}
-      <div className="shrink-0 border-b bg-background px-6 py-3">
+      <div className="shrink-0 bg-surface px-6 py-3">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
             <Link href={`/admin/tenants/${tenant._id}`}><Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button></Link>
@@ -190,7 +190,7 @@ export default function TenantAICallingPage() {
       {/* Content */}
       <div className="flex-1 overflow-auto p-6 space-y-6">
         <div className="flex items-center gap-3">
-          <Link href={`/admin/tenants/${tenant._id}/agents`} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted transition-colors">
+          <Link href={`/admin/tenants/${tenant._id}/agents`} className="flex h-8 w-8 items-center justify-center rounded-2xl hover:bg-surface-container-high transition-colors">
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="flex-1">
@@ -207,11 +207,11 @@ export default function TenantAICallingPage() {
 
         {/* AI Calling not configured warning */}
         {!hasRetell && (
-          <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
             <Bot className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1 text-sm">
               <p className="font-medium">AI Calling not configured</p>
-              <p className="text-muted-foreground mt-0.5">AI Calling is not configured. Contact your platform administrator.</p>
+              <p className="text-on-surface-variant mt-0.5">AI Calling is not configured. Contact your platform administrator.</p>
             </div>
           </div>
         )}
@@ -220,9 +220,9 @@ export default function TenantAICallingPage() {
         {agents && agents.length > 0 && (
           <div className="space-y-3">
             {agents.map((agent: any) => (
-              <div key={agent._id} className="rounded-xl border bg-card p-4 hover:shadow-sm transition-shadow">
+              <div key={agent._id} className="rounded-xl border bg-surface-container-lowest p-4 transition-shadow">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/30 shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-100 dark:bg-cyan-900/30 shrink-0">
                     {agent.type === "inbound" ? <PhoneIncoming className="h-5 w-5 text-cyan-600" /> :
                      agent.type === "outbound" ? <PhoneOutgoing className="h-5 w-5 text-cyan-600" /> :
                      <Phone className="h-5 w-5 text-cyan-600" />}
@@ -235,8 +235,8 @@ export default function TenantAICallingPage() {
                       </Badge>
                       <Badge variant="outline" className="text-[10px] capitalize">{agent.type}</Badge>
                     </div>
-                    {agent.description && <p className="text-xs text-muted-foreground mb-2">{agent.description}</p>}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {agent.description && <p className="text-xs text-on-surface-variant mb-2">{agent.description}</p>}
+                    <div className="flex items-center gap-3 text-xs text-on-surface-variant">
                       <span className="flex items-center gap-1"><Mic className="h-3 w-3" />{agent.voiceModel || "Default"}</span>
                       <span className="flex items-center gap-1"><Brain className="h-3 w-3" />{agent.model || "gpt-4.1-mini"}</span>
                       <span className="flex items-center gap-1"><Volume2 className="h-3 w-3" />{agent.language || "en-US"}</span>
@@ -247,7 +247,7 @@ export default function TenantAICallingPage() {
                       <Button variant="ghost" size="sm" className="text-xs">History</Button>
                     </Link>
                     <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(agent._id)}>
-                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                      <Trash2 className="h-3.5 w-3.5 text-on-surface-variant hover:text-destructive" />
                     </Button>
                   </div>
                 </div>
@@ -258,11 +258,11 @@ export default function TenantAICallingPage() {
 
         {agents && agents.length === 0 && hasRetell && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
-              <Phone className="h-7 w-7 text-muted-foreground" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-container mb-4">
+              <Phone className="h-7 w-7 text-on-surface-variant" />
             </div>
             <h2 className="section-title mb-1">No AI calling agents yet</h2>
-            <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+            <p className="text-sm text-on-surface-variant mb-4 max-w-sm">
               Create your first AI calling agent to handle inbound calls or make outbound follow-up calls.
             </p>
             <Button onClick={() => { resetForm(); setShowForm(true); }}>
@@ -277,10 +277,10 @@ export default function TenantAICallingPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex">
           <div className="flex-1 bg-black/40" onClick={() => setShowForm(false)} />
-          <div className="w-full max-w-xl bg-card border-l h-full overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-card z-10">
+          <div className="w-full max-w-xl bg-surface-container-lowest h-full overflow-y-auto flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 sticky top-0 bg-surface-container-lowest z-10">
               <h2 className="text-lg font-semibold">{editingId ? "Edit Agent" : "New AI Calling Agent"}</h2>
-              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+              <button onClick={() => setShowForm(false)} className="text-on-surface-variant hover:text-on-surface"><X className="h-5 w-5" /></button>
             </div>
 
             <div className="flex-1 px-6 py-5 space-y-6">
@@ -442,7 +442,7 @@ export default function TenantAICallingPage() {
             </div>
 
             {/* Footer */}
-            <div className="shrink-0 border-t px-6 py-4 flex gap-3">
+            <div className="shrink-0 px-6 py-4 flex gap-3">
               <Button className="flex-1" onClick={handleSave} disabled={!name || !generalPrompt || saving}>
                 {saving ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Saving...</> : editingId ? "Save Changes" : "Create Agent"}
               </Button>

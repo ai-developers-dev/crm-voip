@@ -25,8 +25,8 @@ export function WorkflowCanvasStepCard({ step, index }: WorkflowCanvasStepCardPr
       className={cn(
         "group max-w-xs mx-auto rounded-lg border bg-card p-3 transition-all cursor-pointer",
         isSelected
-          ? "border-primary ring-1 ring-primary/30 shadow-sm"
-          : "hover:shadow-sm hover:border-border"
+          ? "border-primary ring-1 ring-primary/30"
+          : "hover:border-border"
       )}
       onClick={() => selectStep(step.id)}
     >
@@ -43,8 +43,8 @@ export function WorkflowCanvasStepCard({ step, index }: WorkflowCanvasStepCardPr
             className={cn(
               "p-0.5 rounded transition-colors",
               isFirst
-                ? "text-muted-foreground/20 cursor-not-allowed"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "text-on-surface-variant/20 cursor-not-allowed"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
             )}
           >
             <ChevronUp className="h-3.5 w-3.5" />
@@ -59,8 +59,8 @@ export function WorkflowCanvasStepCard({ step, index }: WorkflowCanvasStepCardPr
             className={cn(
               "p-0.5 rounded transition-colors",
               isLast
-                ? "text-muted-foreground/20 cursor-not-allowed"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "text-on-surface-variant/20 cursor-not-allowed"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
             )}
           >
             <ChevronDown className="h-3.5 w-3.5" />
@@ -74,7 +74,7 @@ export function WorkflowCanvasStepCard({ step, index }: WorkflowCanvasStepCardPr
         {/* Content */}
         <div className="flex-1 min-w-0 pt-0.5">
           <span className="text-sm font-medium">{info.label}</span>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{summary}</p>
+          <p className="text-xs text-on-surface-variant mt-0.5 line-clamp-1">{summary}</p>
         </div>
 
         {/* Delete */}
@@ -83,7 +83,7 @@ export function WorkflowCanvasStepCard({ step, index }: WorkflowCanvasStepCardPr
             e.stopPropagation();
             removeStep(step.id);
           }}
-          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+          className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>

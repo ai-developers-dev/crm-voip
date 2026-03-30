@@ -173,7 +173,7 @@ export default function SmsAgentsPage() {
     return (
       <PageContainer>
         <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
         </div>
       </PageContainer>
     );
@@ -194,14 +194,14 @@ export default function SmsAgentsPage() {
 
       {!agents ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-on-surface-variant" />
         </div>
       ) : agents.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <BrainCircuit className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <BrainCircuit className="h-10 w-10 text-on-surface-variant mx-auto mb-3" />
             <p className="text-sm font-medium">No SMS Agents Yet</p>
-            <p className="text-xs text-muted-foreground mt-1 mb-4">
+            <p className="text-xs text-on-surface-variant mt-1 mb-4">
               Create your first AI SMS agent to start automated conversations.
             </p>
             <Button size="sm" onClick={openCreate}>
@@ -216,7 +216,7 @@ export default function SmsAgentsPage() {
             <Card key={agent._id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 dark:bg-violet-900/30 shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 dark:bg-violet-900/30 shrink-0">
                     <BrainCircuit className="h-5 w-5 text-violet-600" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -227,14 +227,14 @@ export default function SmsAgentsPage() {
                       </Badge>
                     </div>
                     {agent.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{agent.description}</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5">{agent.description}</p>
                     )}
                     {agent.objective && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-on-surface-variant mt-1">
                         <span className="font-medium">Objective:</span> {agent.objective}
                       </p>
                     )}
-                    <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-3 mt-2 text-[10px] text-on-surface-variant">
                       <span>Model: {agent.model}</span>
                       <span>Max turns: {agent.maxTurns || 20}</span>
                       <span>Tools: {(agent.enabledTools || []).length}</span>
@@ -250,7 +250,7 @@ export default function SmsAgentsPage() {
                       {agent.isActive ? (
                         <ToggleRight className="h-4 w-4 text-green-600" />
                       ) : (
-                        <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                        <ToggleLeft className="h-4 w-4 text-on-surface-variant" />
                       )}
                     </Button>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(agent)}>
@@ -317,7 +317,7 @@ export default function SmsAgentsPage() {
                 placeholder="You are a friendly and professional assistant..."
                 className="text-sm mt-1 min-h-[120px]"
               />
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <p className="text-[10px] text-on-surface-variant mt-1">
                 This is the main instruction that controls how the agent behaves. Be specific about tone, objective, and boundaries.
               </p>
             </div>
@@ -377,10 +377,10 @@ export default function SmsAgentsPage() {
                             : form.enabledTools.filter((t) => t !== tool.id),
                         });
                       }}
-                      className="rounded border-border"
+                      className="rounded"
                     />
                     <span className="text-sm">{tool.label}</span>
-                    <span className="text-[10px] text-muted-foreground">— {tool.description}</span>
+                    <span className="text-[10px] text-on-surface-variant">— {tool.description}</span>
                   </label>
                 ))}
               </div>
@@ -424,7 +424,7 @@ export default function SmsAgentsPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">User who receives handoff conversations</p>
+                    <p className="text-[10px] text-on-surface-variant mt-0.5">User who receives handoff conversations</p>
                   </div>
                   <div>
                     <Label className="text-xs">Handoff Phone Number</Label>
@@ -434,7 +434,7 @@ export default function SmsAgentsPage() {
                       placeholder="+1 (555) 123-4567"
                       className="h-9 text-sm mt-1"
                     />
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Optional: notify via call/SMS on handoff</p>
+                    <p className="text-[10px] text-on-surface-variant mt-0.5">Optional: notify via call/SMS on handoff</p>
                   </div>
                 </div>
                 <div>

@@ -179,7 +179,7 @@ export function WorkflowDialog({
                 {workflow.isActive ? (
                   <span className="text-green-600 font-medium">Active</span>
                 ) : (
-                  <span className="text-muted-foreground">Inactive</span>
+                  <span className="text-on-surface-variant">Inactive</span>
                 )}
               </DialogDescription>
             )}
@@ -189,7 +189,7 @@ export function WorkflowDialog({
             <div className="space-y-4 pb-4">
               {/* Name */}
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Workflow Name</Label>
+                <Label className="text-xs text-on-surface-variant mb-1.5 block">Workflow Name</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -199,7 +199,7 @@ export function WorkflowDialog({
               </div>
 
               {/* Trigger Section */}
-              <div className="rounded-lg border p-4 bg-muted/20">
+              <div className="rounded-lg border p-4 bg-surface-container/20">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-100 dark:bg-cyan-900/30">
                     <Zap className="h-3.5 w-3.5 text-cyan-600" />
@@ -216,7 +216,7 @@ export function WorkflowDialog({
               </div>
 
               {/* Steps Section */}
-              <div className="rounded-lg border p-4 bg-muted/20">
+              <div className="rounded-lg border p-4 bg-surface-container/20">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-100 dark:bg-violet-900/30">
                     <ListOrdered className="h-3.5 w-3.5 text-violet-600" />
@@ -226,8 +226,8 @@ export function WorkflowDialog({
 
                 {steps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <ListOrdered className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                    <p className="text-xs text-muted-foreground mb-3">
+                    <ListOrdered className="h-8 w-8 text-on-surface-variant/30 mb-2" />
+                    <p className="text-xs text-on-surface-variant mb-3">
                       Add your first step to build the workflow
                     </p>
                   </div>
@@ -270,7 +270,7 @@ export function WorkflowDialog({
                 <button
                   type="button"
                   onClick={() => handleAddStep()}
-                  className="w-full mt-2 rounded-lg border-2 border-dashed border-border/60 p-3 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors cursor-pointer"
+                  className="w-full mt-2 rounded-lg border-2 border-dashed border-border/60 p-3 flex items-center justify-center gap-2 text-sm text-on-surface-variant hover:border-primary/40 hover:text-primary transition-colors cursor-pointer"
                 >
                   <Plus className="h-4 w-4" />
                   Add a step
@@ -301,7 +301,7 @@ export function WorkflowDialog({
         {isEditing && (
           <TooltipProvider delayDuration={200}>
             {/* Icon strip */}
-            <div className="flex flex-col items-center gap-1 pt-14 pb-4 px-1.5 border-l bg-muted/30 shrink-0">
+            <div className="flex flex-col items-center gap-1 pt-14 pb-4 px-1.5 border-l bg-surface-container/30 shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -310,7 +310,7 @@ export function WorkflowDialog({
                     className={`relative h-10 w-10 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
                       activityOpen
                         ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
                     }`}
                   >
                     <Users className="h-5 w-5" />
@@ -345,7 +345,7 @@ export function WorkflowDialog({
                   <button
                     type="button"
                     onClick={() => setActivityOpen(false)}
-                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -354,7 +354,7 @@ export function WorkflowDialog({
                 {/* Summary bar */}
                 {executions && executions.length > 0 && (
                   <div className="flex items-center gap-2 px-4 pb-3 flex-wrap">
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1 text-xs text-on-surface-variant">
                       <Users className="h-3 w-3" />
                       {executions.length}
                     </span>
@@ -382,14 +382,14 @@ export function WorkflowDialog({
                 {/* Execution list */}
                 <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-4">
                   {!executions ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-6 justify-center">
+                    <div className="flex items-center gap-2 text-xs text-on-surface-variant py-6 justify-center">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       Loading...
                     </div>
                   ) : executions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
-                      <Users className="h-8 w-8 text-muted-foreground/20 mb-2" />
-                      <p className="text-xs text-muted-foreground">
+                      <Users className="h-8 w-8 text-on-surface-variant/20 mb-2" />
+                      <p className="text-xs text-on-surface-variant">
                         No contacts have entered this workflow yet.
                       </p>
                     </div>
@@ -427,15 +427,15 @@ export function WorkflowDialog({
                         else if (mins >= 1) timeAgo = `${mins}m ago`;
 
                         return (
-                          <div key={ex._id} className="group rounded-lg p-2.5 hover:bg-muted/40 transition-colors">
+                          <div key={ex._id} className="group rounded-lg p-2.5 hover:bg-surface-container-high/40 transition-colors">
                             <div className="flex items-start gap-2.5">
                               <si.Icon className={`h-4 w-4 shrink-0 mt-0.5 ${si.color} ${si.spin ? "animate-spin" : ""}`} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-sm font-medium truncate">{ex.contactName}</span>
-                                  <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo}</span>
+                                  <span className="text-[10px] text-on-surface-variant shrink-0">{timeAgo}</span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">{stepLabel}</span>
+                                <span className="text-xs text-on-surface-variant">{stepLabel}</span>
                                 {/* Segmented progress bar */}
                                 <div className="flex items-center gap-0.5 mt-1.5 max-w-32">
                                   {ex.snapshotSteps.map((s, i) => {
@@ -457,7 +457,7 @@ export function WorkflowDialog({
                                       <button
                                         type="button"
                                         onClick={() => cancelExecution({ executionId: ex._id })}
-                                        className="p-1 rounded text-muted-foreground hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                                        className="p-1 rounded text-on-surface-variant hover:text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
                                       >
                                         <Ban className="h-3.5 w-3.5" />
                                       </button>
@@ -470,7 +470,7 @@ export function WorkflowDialog({
                                     <button
                                       type="button"
                                       onClick={() => cancelExecution({ executionId: ex._id })}
-                                      className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                      className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors"
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </button>

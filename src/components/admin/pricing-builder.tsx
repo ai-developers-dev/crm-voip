@@ -309,12 +309,12 @@ export function PricingBuilder() {
             Add Add-On
           </Button>
         </div>
-        <p className="text-[10px] text-muted-foreground mb-3">
+        <p className="text-[10px] text-on-surface-variant mb-3">
           {includedCount} included in base, {paidCount} paid. Check "Include in base plan" to make an add-on free.
         </p>
 
         {addonItems.length === 0 && (
-          <p className="text-xs text-muted-foreground py-4 text-center border border-dashed rounded-lg">
+          <p className="text-xs text-on-surface-variant py-4 text-center border border-dashed rounded-lg">
             No add-ons configured. Click "Add Add-On" to create one.
           </p>
         )}
@@ -336,7 +336,7 @@ export function PricingBuilder() {
                   </div>
                   {!item.includedInBase && (
                     <div className="flex items-center gap-1 shrink-0">
-                      <span className="text-xs text-muted-foreground">$</span>
+                      <span className="text-xs text-on-surface-variant">$</span>
                       <Input
                         type="number"
                         min={0}
@@ -344,7 +344,7 @@ export function PricingBuilder() {
                         onChange={(e) => updateAddonItem(idx, { priceMonthly: Number(e.target.value) })}
                         className="h-8 text-sm w-20"
                       />
-                      <span className="text-xs text-muted-foreground">/mo</span>
+                      <span className="text-xs text-on-surface-variant">/mo</span>
                     </div>
                   )}
                   {item.includedInBase && (
@@ -370,7 +370,7 @@ export function PricingBuilder() {
                     <Badge key={key} variant="outline" className="gap-1.5 pl-2 pr-1 py-0.5 text-xs">
                       <FeatureIcon featureKey={key} className="h-3 w-3" />
                       {featureLabel(key)}
-                      <button onClick={() => removeFeatureFromAddon(idx, key)} className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20">
+                      <button onClick={() => removeFeatureFromAddon(idx, key)} className="ml-0.5 rounded-full p-0.5 hover:bg-surface-container-foreground/20">
                         <X className="h-2.5 w-2.5" />
                       </button>
                     </Badge>
@@ -436,7 +436,7 @@ export function PricingBuilder() {
           </Button>
         </div>
         {plan?.stripeProductId && (
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[10px] text-on-surface-variant">
             Stripe: {plan.stripeProductId.slice(0, 24)}...
           </p>
         )}

@@ -200,24 +200,24 @@ function TenantSwitcher() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 px-2 py-1 text-sm border border-border/60 rounded-md hover:bg-muted transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-xl bg-surface hover:bg-surface-container-low transition-all"
         >
           <div className="flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground text-xs font-medium">
             T
           </div>
           <span className="font-medium">Tenants</span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-4 w-4 text-on-surface-variant transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
 
         {open && (
-          <div className="absolute left-0 mt-2 w-80 rounded-xl border border-border bg-card shadow-xl z-50">
+          <div className="absolute left-0 mt-2 w-80 rounded-2xl bg-surface-container-lowest neu-ambient z-50">
             {/* Tenant List */}
             <div className="max-h-72 overflow-y-auto py-2">
               {tenants && tenants.length > 0 ? (
                 tenants.map((tenant) => (
                   <div
                     key={tenant._id}
-                    className="flex items-center justify-between px-3 py-2 mx-2 hover:bg-muted rounded-lg group"
+                    className="flex items-center justify-between px-3 py-2 mx-2 hover:bg-surface-container-high rounded-xl group"
                   >
                     <button
                       onClick={async () => {
@@ -231,25 +231,25 @@ function TenantSwitcher() {
                       }}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-medium shrink-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl gradient-primary text-white font-bold shrink-0">
                         {tenant.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{tenant.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{tenant.plan}</p>
+                        <p className="text-xs text-on-surface-variant truncate">{tenant.plan}</p>
                       </div>
                     </button>
                     <button
                       onClick={() => openEditDialog(tenant)}
-                      className="p-2 hover:bg-background rounded-md transition-colors border border-border/60"
+                      className="p-2 hover:bg-surface-container-high rounded-xl transition-colors"
                       title="Edit Tenant"
                     >
-                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      <Settings className="h-4 w-4 text-on-surface-variant" />
                     </button>
                   </div>
                 ))
               ) : (
-                <div className="px-4 py-6 text-center text-muted-foreground">
+                <div className="px-4 py-6 text-center text-on-surface-variant">
                   <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No tenants yet</p>
                 </div>
@@ -257,14 +257,14 @@ function TenantSwitcher() {
             </div>
 
             {/* Add Tenant Button */}
-            <div className="border-t border-border p-2">
+            <div className="p-2">
               <button
                 onClick={() => {
                   resetForm();
                   setIsAddDialogOpen(true);
                   setOpen(false);
                 }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Create tenant
@@ -297,14 +297,14 @@ function TenantSwitcher() {
               </Alert>
             )}
             {updateSuccess && (
-              <Alert className="mb-4 bg-primary/10 border-primary/20">
+              <Alert className="mb-4 bg-primary/10">
                 <CheckCircle className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-foreground">{updateSuccess}</AlertDescription>
               </Alert>
             )}
             <div className="space-y-4 py-4">
               <div className="space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground">Business Information</h3>
+                <h3 className="font-medium text-sm text-on-surface-variant">Business Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="edit-businessName">Business Name *</Label>
                   <Input id="edit-businessName" value={editFormData.businessName} onChange={(e) => setEditFormData(prev => ({ ...prev, businessName: e.target.value }))} required disabled={isUpdating || !!updateSuccess} />
@@ -332,8 +332,8 @@ function TenantSwitcher() {
                   <Input id="edit-phone" type="tel" value={editFormData.phone} onChange={(e) => setEditFormData(prev => ({ ...prev, phone: e.target.value }))} required disabled={isUpdating || !!updateSuccess} />
                 </div>
               </div>
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Owner Information</h3>
+              <div className="space-y-4 pt-4">
+                <h3 className="font-medium text-sm text-on-surface-variant">Owner Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="edit-ownerName">Owner Name *</Label>
                   <Input id="edit-ownerName" value={editFormData.ownerName} onChange={(e) => setEditFormData(prev => ({ ...prev, ownerName: e.target.value }))} required disabled={isUpdating || !!updateSuccess} />
@@ -343,8 +343,8 @@ function TenantSwitcher() {
                   <Input id="edit-ownerEmail" type="email" value={editFormData.ownerEmail} onChange={(e) => setEditFormData(prev => ({ ...prev, ownerEmail: e.target.value }))} required disabled={isUpdating || !!updateSuccess} />
                 </div>
               </div>
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Plan & Pricing</h3>
+              <div className="space-y-4 pt-4">
+                <h3 className="font-medium text-sm text-on-surface-variant">Plan & Pricing</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="edit-basePlanPrice">Base ($/mo)</Label>
@@ -359,9 +359,9 @@ function TenantSwitcher() {
                     <Input id="edit-includedUsers" type="number" min="1" value={editFormData.includedUsers} onChange={(e) => setEditFormData(prev => ({ ...prev, includedUsers: parseInt(e.target.value) || 1 }))} disabled={isUpdating || !!updateSuccess} />
                   </div>
                 </div>
-                <div className="rounded-lg bg-muted p-4">
+                <div className="rounded-2xl bg-surface-container-low p-4 neu-inset-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Monthly Estimate</span>
+                    <span className="text-sm text-on-surface-variant">Monthly Estimate</span>
                     <span className="text-2xl font-bold">${editMonthlyEstimate}</span>
                   </div>
                 </div>
@@ -392,14 +392,14 @@ function TenantSwitcher() {
               </Alert>
             )}
             {createSuccess && (
-              <Alert className="mb-4 bg-primary/10 border-primary/20">
+              <Alert className="mb-4 bg-primary/10">
                 <CheckCircle className="h-4 w-4 text-primary" />
                 <AlertDescription className="text-foreground">{createSuccess}</AlertDescription>
               </Alert>
             )}
             <div className="space-y-4 py-4">
               <div className="space-y-4">
-                <h3 className="font-medium text-sm text-muted-foreground">Business Information</h3>
+                <h3 className="font-medium text-sm text-on-surface-variant">Business Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="businessName">Business Name *</Label>
                   <Input id="businessName" placeholder="Acme Insurance Agency" value={formData.businessName} onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))} required disabled={isCreating || !!createSuccess} />
@@ -427,8 +427,8 @@ function TenantSwitcher() {
                   <Input id="phone" type="tel" placeholder="(555) 123-4567" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} required disabled={isCreating || !!createSuccess} />
                 </div>
               </div>
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Owner Information</h3>
+              <div className="space-y-4 pt-4">
+                <h3 className="font-medium text-sm text-on-surface-variant">Owner Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="ownerName">Owner Name *</Label>
                   <Input id="ownerName" placeholder="John Smith" value={formData.ownerName} onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))} required disabled={isCreating || !!createSuccess} />
@@ -436,11 +436,11 @@ function TenantSwitcher() {
                 <div className="space-y-2">
                   <Label htmlFor="ownerEmail">Owner Email *</Label>
                   <Input id="ownerEmail" type="email" placeholder="john@acmeinsurance.com" value={formData.ownerEmail} onChange={(e) => setFormData(prev => ({ ...prev, ownerEmail: e.target.value }))} required disabled={isCreating || !!createSuccess} />
-                  <p className="text-xs text-muted-foreground">An invitation will be sent to this email address</p>
+                  <p className="text-xs text-on-surface-variant">An invitation will be sent to this email address</p>
                 </div>
               </div>
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Agency Type</h3>
+              <div className="space-y-4 pt-4">
+                <h3 className="font-medium text-sm text-on-surface-variant">Agency Type</h3>
                 <div className="space-y-2">
                   <Label htmlFor="agencyType">Agency Type</Label>
                   <Select
@@ -467,11 +467,11 @@ function TenantSwitcher() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Selecting an agency type will auto-fill default pricing</p>
+                  <p className="text-xs text-on-surface-variant">Selecting an agency type will auto-fill default pricing</p>
                 </div>
               </div>
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="font-medium text-sm text-muted-foreground">Plan & Pricing</h3>
+              <div className="space-y-4 pt-4">
+                <h3 className="font-medium text-sm text-on-surface-variant">Plan & Pricing</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="basePlanPrice">Base Plan ($/mo) *</Label>
@@ -486,9 +486,9 @@ function TenantSwitcher() {
                     <Input id="includedUsers" type="number" min="1" value={formData.includedUsers} onChange={(e) => setFormData(prev => ({ ...prev, includedUsers: parseInt(e.target.value) || 1 }))} required disabled={isCreating || !!createSuccess} />
                   </div>
                 </div>
-                <div className="rounded-lg bg-muted p-4">
+                <div className="rounded-2xl bg-surface-container-low p-4 neu-inset-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Monthly Estimate</span>
+                    <span className="text-sm text-on-surface-variant">Monthly Estimate</span>
                     <span className="text-2xl font-bold">${monthlyEstimate}</span>
                   </div>
                 </div>
@@ -604,13 +604,13 @@ function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvat
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 rounded-lg border border-border bg-card shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-surface-container-lowest neu-ambient z-50">
           {/* Profile Card */}
-          <div className="p-4 border-b border-border">
+          <div className="p-4">
             <div className="flex items-start gap-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={convexAvatarUrl || user.imageUrl} alt={user.fullName || "User"} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="gradient-primary text-white font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -618,7 +618,7 @@ function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvat
                 <p className="font-medium text-sm text-foreground truncate">
                   {user.fullName || "User"}
                 </p>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-xs text-on-surface-variant truncate">
                   {user.emailAddresses[0]?.emailAddress}
                 </p>
                 {roleLabel && (
@@ -638,7 +638,7 @@ function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvat
                 <Link
                   href="/admin"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high rounded-xl transition-colors"
                 >
                   <Building2 className="h-4 w-4" />
                   Admin Dashboard
@@ -646,7 +646,7 @@ function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvat
                 <Link
                   href="/admin/billing"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high rounded-xl transition-colors"
                 >
                   <CreditCard className="h-4 w-4" />
                   Billing & Revenue
@@ -654,7 +654,7 @@ function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvat
                 <Link
                   href="/admin/settings"
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high rounded-xl transition-colors"
                 >
                   <Settings className="h-4 w-4" />
                   Admin Settings
@@ -666,14 +666,14 @@ function CustomUserButton({ roleLabel, isSuperAdmin, isPlatformStaff, convexAvat
                 setOpen(false);
                 openUserProfile();
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high rounded-xl transition-colors"
             >
               <UserCog className="h-4 w-4" />
               Manage account
             </button>
             <button
               onClick={() => signOut({ redirectUrl: "/" })}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-surface-container-high rounded-xl transition-colors"
             >
               <LogOut className="h-4 w-4" />
               Sign out
@@ -772,7 +772,7 @@ export default function DashboardLayout({
   if (!isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="animate-pulse text-on-surface-variant">Loading...</div>
       </div>
     );
   }
@@ -798,10 +798,10 @@ export default function DashboardLayout({
       <ActiveCallBar />
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-card">
+      <header className="sticky top-0 z-40 bg-surface">
         <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors">
+            <Link href="/dashboard" className="flex items-center gap-2 text-foreground hover:text-on-surface/80 transition-colors">
               {orgLogoUrl && !(pathname === "/admin" || pathname?.startsWith("/admin/settings")) ? (
                 <img
                   src={orgLogoUrl}
@@ -810,16 +810,16 @@ export default function DashboardLayout({
                 />
               ) : (
                 <>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-surface">
                     <Phone className="h-4 w-4 text-primary" />
                   </div>
-                  <span className="text-base font-semibold">VoIP CRM</span>
+                  <span className="text-base font-extrabold tracking-tight">VoIP CRM</span>
                 </>
               )}
             </Link>
             {isPlatformUser && (
               <>
-                <span className="text-muted-foreground/50">/</span>
+                <span className="text-on-surface-variant/50">/</span>
                 <TenantSwitcher />
               </>
             )}
@@ -840,7 +840,7 @@ export default function DashboardLayout({
             {isPlatformUser ? (
               <>
                 <Link href="/admin">
-                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                     <Building2 className="h-3 w-3" />
                     Admin
                   </Badge>
@@ -848,7 +848,7 @@ export default function DashboardLayout({
                 {!pathname?.startsWith("/admin/tenants/") && (
                   <>
                   <Link href="/admin/support">
-                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors relative">
+                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-colors relative">
                       <MessageCircle className="h-3 w-3" />
                       Support
                       {(supportUnread ?? 0) > 0 && (
@@ -859,13 +859,13 @@ export default function DashboardLayout({
                     </Badge>
                   </Link>
                   <Link href="/admin/billing">
-                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <CreditCard className="h-3 w-3" />
                       Billing
                     </Badge>
                   </Link>
                   <Link href="/admin/settings">
-                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <Settings className="h-3 w-3" />
                       Settings
                     </Badge>
@@ -876,40 +876,40 @@ export default function DashboardLayout({
             ) : (
               <>
                 <Link href="/stats">
-                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                     <BarChart3 className="h-3 w-3" />
                     Stats
                   </Badge>
                 </Link>
                 <Link href="/reports">
-                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                     <TrendingUp className="h-3 w-3" />
                     Reports
                   </Badge>
                 </Link>
                 {currentUser?.role !== "agent" && (
                   <Link href="/workflows">
-                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <Workflow className="h-3 w-3" />
                       Workflows
                     </Badge>
                   </Link>
                 )}
                 <Link href="/contacts">
-                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                     <Users className="h-3 w-3" />
                     Contacts
                   </Badge>
                 </Link>
                 <Link href="/calendar">
-                  <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                     <Calendar className="h-3 w-3" />
                     Calendar
                   </Badge>
                 </Link>
                 {currentUser?.role !== "agent" && (
                   <Link href="/settings">
-                    <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-muted transition-colors">
+                    <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <Settings className="h-3 w-3" />
                       Settings
                     </Badge>
@@ -924,7 +924,7 @@ export default function DashboardLayout({
 
       {/* Past-due billing banner */}
       {(currentOrg?.billing as any)?.subscriptionStatus === "past_due" && (
-        <div className="bg-destructive/10 border-b border-destructive/30 px-6 py-2 flex items-center justify-between">
+        <div className="bg-error-container/30 px-6 py-2 flex items-center justify-between rounded-2xl mx-4 mt-2">
           <p className="text-sm text-destructive font-medium">
             Your subscription payment has failed. Please update your payment method to avoid service interruption.
           </p>

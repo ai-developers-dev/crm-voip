@@ -102,7 +102,7 @@ export default function TenantTwilioSettingsPage() {
   if (!userLoaded || isPlatformUser === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function TenantTwilioSettingsPage() {
   if (tenant === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -176,7 +176,7 @@ export default function TenantTwilioSettingsPage() {
         {/* Header */}
         <div>
           <h1 className="text-lg font-semibold tracking-tight">Phone System Settings</h1>
-          <p className="text-muted-foreground">
+          <p className="text-on-surface-variant">
             Configure voice calling credentials for {tenant.name}
           </p>
         </div>
@@ -204,7 +204,7 @@ export default function TenantTwilioSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-900/30">
                 <Phone className="h-5 w-5 text-red-600" />
               </div>
               <div>
@@ -227,7 +227,7 @@ export default function TenantTwilioSettingsPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, accountSid: e.target.value }))}
                   required
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-on-surface-variant">
                   Your Account SID from your provider dashboard
                 </p>
               </div>
@@ -255,7 +255,7 @@ export default function TenantTwilioSettingsPage() {
                   </Button>
                 </div>
                 {isConfigured && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-on-surface-variant">
                     Leave blank to keep existing token: {existingCreds?.authToken}
                   </p>
                 )}
@@ -270,7 +270,7 @@ export default function TenantTwilioSettingsPage() {
                   value={formData.apiKey}
                   onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-on-surface-variant">
                   For enhanced security, use API Keys instead of Auth Token
                 </p>
               </div>
@@ -307,7 +307,7 @@ export default function TenantTwilioSettingsPage() {
                   value={formData.twimlAppSid}
                   onChange={(e) => setFormData(prev => ({ ...prev, twimlAppSid: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-on-surface-variant">
                   Required for browser-based calling
                 </p>
               </div>
@@ -337,7 +337,7 @@ export default function TenantTwilioSettingsPage() {
           <CardHeader>
             <CardTitle className="text-sm">Need Help?</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
+          <CardContent className="text-sm text-on-surface-variant space-y-2">
             <p>To find your credentials:</p>
             <ol className="list-decimal list-inside space-y-1">
               <li>Log in to your voice provider dashboard</li>

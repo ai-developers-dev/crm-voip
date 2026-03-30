@@ -8,6 +8,7 @@ import { Loader2, ChevronDown, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing,
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { cardPatterns } from "@/lib/style-constants";
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
@@ -65,10 +66,10 @@ function CallSummaryRow({
 
   if (report === undefined) {
     return (
-      <Card>
+      <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
         <CardContent className="py-4">
           <div className="flex items-center justify-center">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 className="h-4 w-4 animate-spin text-on-surface-variant" />
           </div>
         </CardContent>
       </Card>
@@ -81,6 +82,7 @@ function CallSummaryRow({
 
   return (
     <Card
+      className={cn(cardPatterns.pageCard, "gap-0 py-0")}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -90,37 +92,37 @@ function CallSummaryRow({
 
           <div className="flex items-center gap-6 flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total</span>
+              <Phone className="h-3.5 w-3.5 text-on-surface-variant" />
+              <span className="text-xs text-on-surface-variant">Total</span>
               <span className="text-sm font-bold">{report.summary.totalCalls}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <PhoneIncoming className="h-3.5 w-3.5 text-green-600" />
-              <span className="text-xs text-muted-foreground">In</span>
+              <span className="text-xs text-on-surface-variant">In</span>
               <span className="text-sm font-bold text-green-600">{report.summary.inboundAnswered}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <PhoneMissed className="h-3.5 w-3.5 text-red-500" />
-              <span className="text-xs text-muted-foreground">Missed</span>
+              <span className="text-xs text-on-surface-variant">Missed</span>
               <span className="text-sm font-bold text-red-500">{report.summary.inboundMissed}</span>
             </div>
 
             <div className="flex items-center gap-2">
               <PhoneOutgoing className="h-3.5 w-3.5 text-blue-600" />
-              <span className="text-xs text-muted-foreground">Out</span>
+              <span className="text-xs text-on-surface-variant">Out</span>
               <span className="text-sm font-bold text-blue-600">{report.summary.outbound}</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Avg</span>
+              <Clock className="h-3.5 w-3.5 text-on-surface-variant" />
+              <span className="text-xs text-on-surface-variant">Avg</span>
               <span className="text-sm font-bold">{formatDurationCompact(report.summary.avgTalkTime)}</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Answer</span>
+              <span className="text-xs text-on-surface-variant">Answer</span>
               <span className={cn("text-sm font-bold", typeof answerRate === "string" && answerRate !== "—" && parseInt(answerRate) >= 80 ? "text-green-600" : parseInt(answerRate as string) < 60 ? "text-red-500" : "")}>
                 {answerRate}{answerRate !== "—" ? "%" : ""}
               </span>
@@ -135,7 +137,7 @@ function CallSummaryRow({
           >
             <button
               onClick={onToggle}
-              className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
             >
               <ChevronDown
                 className={cn(
@@ -156,7 +158,7 @@ function CallSummaryRow({
         >
           <div className="border-t border-border/40 pt-3">
             {report.byUser.length === 0 ? (
-              <p className="text-center text-muted-foreground py-6 text-sm">No calls for this period.</p>
+              <p className="text-center text-on-surface-variant py-6 text-sm">No calls for this period.</p>
             ) : (
               <Table>
                 <TableHeader>
@@ -301,7 +303,7 @@ export function CallReportDashboard({ organizationId, selectedMonth, selectedYea
 
       {/* Hourly Call Volume */}
       {hourlyData && (
-        <Card>
+        <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
           <CardContent className="pt-5 pb-4 px-4">
             <p className="text-sm font-semibold mb-3">Call Volume by Hour (Monthly)</p>
             <div className="flex items-end gap-[3px] h-28">
@@ -317,7 +319,7 @@ export function CallReportDashboard({ organizationId, selectedMonth, selectedYea
                       <div className="absolute top-0 w-full bg-blue-400" style={{ height: `${100 - inPct}%` }} />
                     </div>
                     {h.hour % 3 === 0 && (
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[10px] text-on-surface-variant">
                         {h.hour === 0 ? "12a" : h.hour < 12 ? `${h.hour}a` : h.hour === 12 ? "12p" : `${h.hour - 12}p`}
                       </span>
                     )}
@@ -325,7 +327,7 @@ export function CallReportDashboard({ organizationId, selectedMonth, selectedYea
                 );
               })}
             </div>
-            <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+            <div className="flex gap-4 mt-2 text-xs text-on-surface-variant">
               <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-green-400" /> Inbound</div>
               <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-sm bg-blue-400" /> Outbound</div>
             </div>
@@ -335,7 +337,7 @@ export function CallReportDashboard({ organizationId, selectedMonth, selectedYea
 
       {/* Outcome Breakdown */}
       {monthlyReport && monthlyReport.byOutcome.length > 0 && (
-        <Card>
+        <Card className={cn(cardPatterns.pageCard, "gap-0 py-0")}>
           <CardContent className="pt-5 pb-4 px-4">
             <p className="text-sm font-semibold mb-3">Outcomes (Monthly)</p>
             <div className="flex gap-3">
@@ -349,7 +351,7 @@ export function CallReportDashboard({ organizationId, selectedMonth, selectedYea
                   cancelled: "bg-gray-100 text-gray-500 dark:bg-gray-900/30",
                 };
                 return (
-                  <div key={o.outcome} className={cn("rounded-md px-3 py-2 text-center", colors[o.outcome] || "bg-muted")}>
+                  <div key={o.outcome} className={cn("rounded-md px-3 py-2 text-center", colors[o.outcome] || "bg-surface-container")}>
                     <p className="text-lg font-bold">{o.count}</p>
                     <p className="text-xs capitalize">{o.outcome}</p>
                     <p className="text-[10px] opacity-70">{o.percentage.toFixed(0)}%</p>

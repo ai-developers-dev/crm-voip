@@ -1387,6 +1387,26 @@ export async function runNatGenAutoQuote(
       return { area: d.slice(0, 3), prefix: d.slice(3, 6), line: d.slice(6, 10) };
     })() : null;
 
+    // Set Policy Effective Date FIRST (separate step — it may trigger a postback that reloads the page)
+    const effDate = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 14);
+      return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    })();
+    await page.evaluate((date: string) => {
+      const el = document.getElementById("MainContent_ucGeneralInformation_txtPolicyEffDate") as HTMLInputElement;
+      if (el && el.value !== date) {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+        if (setter) setter.call(el, date); else el.value = date;
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+        el.dispatchEvent(new Event("blur", { bubbles: true }));
+      }
+    }, effDate).catch(() => {});
+    // Wait for any postback triggered by date change
+    await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+    await delay(2000);
+
+    // Now fill all other fields (date is already set and any postback is done)
     await page.evaluate(
       (data: any) => {
         // Helper: set input value with proper events
@@ -1402,7 +1422,6 @@ export async function runNatGenAutoQuote(
         function setSel(id: string, val: string) {
           const el = document.getElementById(id) as HTMLSelectElement | null;
           if (!el || !val) return;
-          // Try exact value match first
           const opt = Array.from(el.options).find(
             (o) => o.value === val || o.text === val ||
               o.text.toLowerCase().includes(val.toLowerCase())
@@ -1537,14 +1556,16 @@ export async function runNatGenAutoQuote(
       return results;
     });
     console.log("[auto-quote] Rejection reasons:", reasonResult);
-    await delay(500);
+    // Wait for any postback from rejection reason changes
+    await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+    await delay(2000);
 
     // Step 6b: Vehicles — Accept FIRST, Reject all others
-    // Radio buttons share id="rbAccept"/"rbReject" — use NAME attribute which is unique per row:
-    //   ctl00$MainContent$ucPrefillAuto$gvPrefillAuto$ctl02$rbAccept (row 1)
-    //   ctl00$MainContent$ucPrefillAuto$gvPrefillAuto$ctl03$rbAccept (row 2)
     // Get vehicle radio button names for Playwright-native clicking
-    const vehicleRadios = await page.evaluate(() => {
+    // Try multiple times in case the page is still reloading
+    let vehicleRadios: Array<{ name: string; vehicleName: string; action: string }> = [];
+    for (let attempt = 0; attempt < 3; attempt++) {
+      vehicleRadios = await page.evaluate(() => {
       const results: Array<{ name: string; vehicleName: string; action: string }> = [];
       const vehicleTable = document.getElementById("gvPrefillAuto");
       if (!vehicleTable) return results;
@@ -1563,6 +1584,11 @@ export async function runNatGenAutoQuote(
       });
       return results;
     }).catch(() => []);
+
+      if (vehicleRadios.length > 0) break;
+      console.log(`[auto-quote] Vehicle table not found (attempt ${attempt + 1}), waiting...`);
+      await delay(2000);
+    }
 
     // Click each radio using Playwright's native click (not DOM click)
     const vehicleResult: string[] = [`Found ${vehicleRadios.length} vehicle rows`];

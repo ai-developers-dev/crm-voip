@@ -386,7 +386,7 @@ export const getAvailableAgents = query({
     // Filter to only available, recent heartbeats
     const availablePresence = presenceRecords.filter(
       (p) =>
-        now - p.lastHeartbeat < 30000 &&
+        now - p.lastHeartbeat < 60000 &&
         (p.status === "available" || p.status === "on_break")
     );
 

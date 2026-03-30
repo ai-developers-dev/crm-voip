@@ -4,7 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
-import { statusColors } from "@/lib/style-constants";
+import { cardPatterns, statusColors } from "@/lib/style-constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -215,10 +215,11 @@ export function UserStatusCard({
     <Card
       ref={setNodeRef}
       className={cn(
-        "transition-all duration-200",
+        cardPatterns.pageCard,
+        "gap-0 py-0 transition-all duration-200",
         isOver && "ring-2 ring-primary ring-offset-2",
         user.status === "offline" && "opacity-60",
-        hasActiveCalls && "border-primary border-2"
+        hasActiveCalls ? "border-primary border-2" : "border-border"
       )}
     >
       <CardContent className="p-4">
@@ -226,7 +227,7 @@ export function UserStatusCard({
         <div className="flex items-center gap-3">
           {/* Avatar with status dot */}
           <div className="relative flex-shrink-0">
-            <Avatar className="h-14 w-14 ring-2 ring-primary/20 shadow-md">
+            <Avatar className="h-14 w-14 ring-2 ring-primary/20">
               <AvatarImage src={user.avatarUrl || undefined} />
               <AvatarFallback className={cn("text-sm", status.bgColor)}>
                 {user.name
@@ -247,7 +248,7 @@ export function UserStatusCard({
 
           {/* Name and status */}
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate text-sm">{user.name}</p>
+            <p className="font-bold truncate text-sm">{user.name}</p>
             <div className="flex items-center gap-2">
               <Badge
                 variant="secondary"
@@ -265,15 +266,15 @@ export function UserStatusCard({
           </div>
 
           {/* Daily metrics */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-on-surface-variant">
             <div className="flex items-center gap-1" title="Inbound calls accepted today">
-              <PhoneIncoming className="h-4 w-4 text-purple-600" />
+              <PhoneIncoming className="h-4 w-4 text-primary" />
               <span className="font-medium tabular-nums">
                 {todayMetrics?.inboundCallsAccepted ?? 0}
               </span>
             </div>
             <div className="flex items-center gap-1" title="Outbound calls made today">
-              <PhoneOutgoing className="h-4 w-4 text-indigo-600" />
+              <PhoneOutgoing className="h-4 w-4 text-blue-600" />
               <span className="font-medium tabular-nums">
                 {todayMetrics?.outboundCallsMade ?? 0}
               </span>
@@ -291,24 +292,24 @@ export function UserStatusCard({
             <Switch
               checked={user.status !== "offline"}
               onCheckedChange={handleToggleStatus}
-              className="data-[state=checked]:bg-purple-500"
+              className="data-[state=checked]:bg-primary"
             />
           </div>
         </div>
 
         {/* Targeted ringing indicator - shows when a parked call is unparked to this specific user */}
         {targetedRinging && (
-          <div className="mt-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 animate-pulse">
+          <div className="mt-3 rounded-2xl border border-blue-200 bg-blue-50/80 p-3 animate-pulse dark:border-blue-900/60 dark:bg-blue-950/20">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500 animate-bounce">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary animate-bounce">
                   <Phone className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                     {targetedRinging.callerName || targetedRinging.callerNumber}
                   </p>
-                  <p className="text-xs text-purple-700 dark:text-purple-300">
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
                     Incoming transfer {"\u2022"} {ringTime}s
                   </p>
                 </div>
@@ -413,7 +414,7 @@ export function UserStatusCard({
 
         {/* Drop zone indicator */}
         {isOver && (
-          <div className="mt-2 rounded-md border-2 border-dashed border-primary bg-primary/5 p-2 text-center text-xs text-primary">
+          <div className="mt-2 rounded-xl border-2 border-dashed border-primary bg-primary/5 p-2 text-center text-xs text-primary">
             Drop to transfer call
           </div>
         )}

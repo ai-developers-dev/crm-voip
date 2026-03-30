@@ -117,7 +117,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, contact
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
               <select id="type" value={type} onChange={(e) => setType(e.target.value as typeof type)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                 <option value="meeting">Meeting</option>
                 <option value="call">Call</option>
                 <option value="video">Video</option>
@@ -128,7 +128,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, contact
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <select id="status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                   <option value="scheduled">Scheduled</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>

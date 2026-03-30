@@ -129,13 +129,13 @@ function IfElseDetailPanel({
           <div key={branch.id} className="rounded-lg border bg-card overflow-hidden">
             {/* Branch header */}
             <div
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-surface-container-high/50 transition-colors"
               onClick={() => setExpandedBranchId(isExpanded ? null : branch.id)}
             >
               {isExpanded ? (
-                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                <ChevronDown className="h-3 w-3 text-on-surface-variant shrink-0" />
               ) : (
-                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                <ChevronRight className="h-3 w-3 text-on-surface-variant shrink-0" />
               )}
               <GitBranch className="h-3 w-3 text-primary shrink-0" />
               <Input
@@ -144,7 +144,7 @@ function IfElseDetailPanel({
                 onClick={(e) => e.stopPropagation()}
                 className="h-6 text-xs font-medium border-none bg-transparent px-1 py-0 focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 min-w-0"
               />
-              <span className="text-[10px] text-muted-foreground shrink-0">
+              <span className="text-[10px] text-on-surface-variant shrink-0">
                 {condCount} cond{condCount !== 1 ? "s" : ""} / {branch.steps.length} step{branch.steps.length !== 1 ? "s" : ""}
               </span>
               {namedBranches.length > 1 && (
@@ -154,7 +154,7 @@ function IfElseDetailPanel({
                     e.stopPropagation();
                     removeBranch(step.id, branch.id);
                   }}
-                  className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                  className="p-0.5 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -183,21 +183,21 @@ function IfElseDetailPanel({
 
       {/* "None" (default) branch — not expandable, no conditions */}
       {defaultBranch && (
-        <div className="rounded-lg border bg-muted/30 px-3 py-2">
+        <div className="rounded-lg border bg-surface-container/30 px-3 py-2">
           <div className="flex items-center gap-2">
-            <GitBranch className="h-3 w-3 text-muted-foreground shrink-0" />
-            <span className="text-xs font-medium text-muted-foreground flex-1">{defaultBranch.name}</span>
-            <span className="text-[10px] text-muted-foreground">
+            <GitBranch className="h-3 w-3 text-on-surface-variant shrink-0" />
+            <span className="text-xs font-medium text-on-surface-variant flex-1">{defaultBranch.name}</span>
+            <span className="text-[10px] text-on-surface-variant">
               {defaultBranch.steps.length} step{defaultBranch.steps.length !== 1 ? "s" : ""}
             </span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-[10px] text-on-surface-variant mt-1">
             Executes when none of the branch conditions match.
           </p>
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-[10px] text-on-surface-variant">
         Add steps to each branch directly on the canvas below. Branches are evaluated top to bottom — first match wins.
       </p>
     </div>
@@ -265,7 +265,7 @@ export function WorkflowStepDetailPanel() {
       <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b shrink-0">
         <button
           onClick={() => selectStep(null)}
-          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-surface-container-high transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
         </button>
@@ -279,7 +279,7 @@ export function WorkflowStepDetailPanel() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Step type grid */}
         <div>
-          <Label className="text-xs text-muted-foreground mb-2 block">Step Type</Label>
+          <Label className="text-xs text-on-surface-variant mb-2 block">Step Type</Label>
           <div className="grid grid-cols-4 gap-1.5">
             {stepTypeOptions.map(({ value, label, icon: Icon, color, bgColor }) => (
               <button
@@ -290,7 +290,7 @@ export function WorkflowStepDetailPanel() {
                   "flex flex-col items-center gap-1 rounded-lg border px-1 py-2 text-center transition-all cursor-pointer",
                   step.type === value
                     ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                    : "border-transparent bg-muted/40 hover:bg-muted/70 hover:border-border"
+                    : "border-transparent bg-surface-container/40 hover:bg-surface-container-high/70 hover:border-border"
                 )}
               >
                 <div className={cn("flex h-6 w-6 items-center justify-center rounded-md", bgColor)}>
@@ -298,7 +298,7 @@ export function WorkflowStepDetailPanel() {
                 </div>
                 <span className={cn(
                   "text-[9px] leading-tight font-medium",
-                  step.type === value ? "text-foreground" : "text-muted-foreground"
+                  step.type === value ? "text-foreground" : "text-on-surface-variant"
                 )}>
                   {label}
                 </span>
@@ -312,7 +312,7 @@ export function WorkflowStepDetailPanel() {
         {/* Dynamic config fields */}
         {step.type === "send_sms" && (
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Message Template</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Message Template</Label>
             <Textarea
               ref={smsRef}
               value={step.config.messageTemplate ?? ""}
@@ -331,7 +331,7 @@ export function WorkflowStepDetailPanel() {
         {step.type === "send_email" && (
           <>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Subject</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Subject</Label>
               <Input
                 value={step.config.emailSubject ?? ""}
                 onChange={(e) => updateConfig({ emailSubject: e.target.value })}
@@ -340,7 +340,7 @@ export function WorkflowStepDetailPanel() {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Body</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Body</Label>
               <Textarea
                 ref={emailBodyRef}
                 value={step.config.emailBodyTemplate ?? ""}
@@ -360,7 +360,7 @@ export function WorkflowStepDetailPanel() {
         {step.type === "create_task" && (
           <>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Task Title</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Task Title</Label>
               <Input
                 value={step.config.taskTitle ?? ""}
                 onChange={(e) => updateConfig({ taskTitle: e.target.value })}
@@ -369,7 +369,7 @@ export function WorkflowStepDetailPanel() {
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Description</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Description</Label>
               <Textarea
                 value={step.config.taskDescription ?? ""}
                 onChange={(e) => updateConfig({ taskDescription: e.target.value })}
@@ -379,7 +379,7 @@ export function WorkflowStepDetailPanel() {
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Type</Label>
+                <Label className="text-xs text-on-surface-variant mb-1.5 block">Type</Label>
                 <Select
                   value={step.config.taskType ?? "follow_up"}
                   onValueChange={(v) => updateConfig({ taskType: v })}
@@ -397,7 +397,7 @@ export function WorkflowStepDetailPanel() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Priority</Label>
+                <Label className="text-xs text-on-surface-variant mb-1.5 block">Priority</Label>
                 <Select
                   value={step.config.taskPriority ?? "medium"}
                   onValueChange={(v) => updateConfig({ taskPriority: v })}
@@ -414,7 +414,7 @@ export function WorkflowStepDetailPanel() {
                 </Select>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Due (days)</Label>
+                <Label className="text-xs text-on-surface-variant mb-1.5 block">Due (days)</Label>
                 <Input
                   type="number"
                   min={0}
@@ -429,7 +429,7 @@ export function WorkflowStepDetailPanel() {
 
         {(step.type === "add_tag" || step.type === "remove_tag") && (
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Tag</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Tag</Label>
             <Select
               value={step.config.tagId ?? ""}
               onValueChange={(v) => updateConfig({ tagId: v })}
@@ -450,7 +450,7 @@ export function WorkflowStepDetailPanel() {
 
         {step.type === "create_note" && (
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Note Template</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Note Template</Label>
             <Textarea
               ref={noteRef}
               value={step.config.noteTemplate ?? ""}
@@ -468,7 +468,7 @@ export function WorkflowStepDetailPanel() {
 
         {step.type === "assign_contact" && (
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Assign to</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Assign to</Label>
             <Select
               value={step.config.assignToUserId ?? ""}
               onValueChange={(v) => updateConfig({ assignToUserId: v })}
@@ -489,7 +489,7 @@ export function WorkflowStepDetailPanel() {
 
         {step.type === "ai_outbound_call" && (
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">AI Agent</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">AI Agent</Label>
             <Input
               value={step.config.retellAgentId ?? ""}
               onChange={(e) => updateConfig({ retellAgentId: e.target.value })}
@@ -497,7 +497,7 @@ export function WorkflowStepDetailPanel() {
               className="h-9 text-sm"
               disabled
             />
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-[10px] text-on-surface-variant mt-1">
               Configure AI calling agents in the AI Agents section. The agent will call the contact using their primary phone number.
             </p>
           </div>
@@ -505,7 +505,7 @@ export function WorkflowStepDetailPanel() {
 
         {step.type === "ai_sms_agent" && (
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">SMS AI Agent</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">SMS AI Agent</Label>
             <Select
               value={step.config.smsAgentId ?? ""}
               onValueChange={(v) => updateConfig({ smsAgentId: v })}
@@ -521,7 +521,7 @@ export function WorkflowStepDetailPanel() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-[10px] text-on-surface-variant mt-1">
               The AI agent will start an SMS conversation with the contact to achieve its objective (e.g., book appointment, qualify lead).
             </p>
           </div>
@@ -530,7 +530,7 @@ export function WorkflowStepDetailPanel() {
         {step.type === "move_pipeline_stage" && (
           <>
             <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Pipeline</Label>
+              <Label className="text-xs text-on-surface-variant mb-1.5 block">Pipeline</Label>
               <Select
                 value={step.config.pipelineId ?? ""}
                 onValueChange={(v) => updateConfig({ pipelineId: v, stageId: undefined })}
@@ -549,7 +549,7 @@ export function WorkflowStepDetailPanel() {
             </div>
             {step.config.pipelineId && (
               <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Stage</Label>
+                <Label className="text-xs text-on-surface-variant mb-1.5 block">Stage</Label>
                 <Select
                   value={step.config.stageId ?? ""}
                   onValueChange={(v) => updateConfig({ stageId: v })}
@@ -576,7 +576,7 @@ export function WorkflowStepDetailPanel() {
 
         {step.type === "wait" && (
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Wait Duration</Label>
+            <Label className="text-xs text-on-surface-variant mb-1.5 block">Wait Duration</Label>
             <div className="flex gap-2">
               <Input
                 type="number"

@@ -221,7 +221,7 @@ export function WorkflowConditionEditor({
             className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
               conditionLogic === "and"
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             AND
@@ -232,7 +232,7 @@ export function WorkflowConditionEditor({
             className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
               conditionLogic === "or"
                 ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             OR
@@ -252,7 +252,7 @@ export function WorkflowConditionEditor({
             {/* Logic separator */}
             {idx > 0 && (
               <div className="flex items-center justify-center py-1">
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-on-surface-variant uppercase tracking-wider">
                   {conditionLogic}
                 </span>
               </div>
@@ -323,7 +323,7 @@ export function WorkflowConditionEditor({
                 <button
                   type="button"
                   onClick={() => removeCondition(condition.id)}
-                  className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                  className="p-1.5 rounded text-on-surface-variant hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

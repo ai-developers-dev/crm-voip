@@ -89,7 +89,7 @@ export default function TwilioSettingsPage() {
   if (!orgLoaded || convexOrg === undefined) {
     return (
       <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-on-surface-variant" />
       </div>
     );
   }
@@ -116,7 +116,7 @@ export default function TwilioSettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-lg font-semibold tracking-tight">Phone System Settings</h1>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Configure your voice calling credentials
         </p>
       </div>
@@ -167,7 +167,7 @@ export default function TwilioSettingsPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, accountSid: e.target.value }))}
                 required
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Your Account SID from your provider dashboard
               </p>
             </div>
@@ -195,7 +195,7 @@ export default function TwilioSettingsPage() {
                 </Button>
               </div>
               {isConfigured && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-on-surface-variant">
                   Leave blank to keep existing token: {existingCreds?.authToken}
                 </p>
               )}
@@ -210,7 +210,7 @@ export default function TwilioSettingsPage() {
                 value={formData.apiKey}
                 onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 For enhanced security, use API Keys instead of Auth Token
               </p>
             </div>
@@ -247,7 +247,7 @@ export default function TwilioSettingsPage() {
                 value={formData.twimlAppSid}
                 onChange={(e) => setFormData(prev => ({ ...prev, twimlAppSid: e.target.value }))}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-on-surface-variant">
                 Required for browser-based calling
               </p>
             </div>
@@ -277,7 +277,7 @@ export default function TwilioSettingsPage() {
         <CardHeader>
           <CardTitle className="text-sm">Need Help?</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
+        <CardContent className="text-sm text-on-surface-variant space-y-2">
           <p>To find your credentials:</p>
           <ol className="list-decimal list-inside space-y-1">
             <li>Log in to your voice provider dashboard</li>

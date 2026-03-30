@@ -29,22 +29,22 @@ export function PricingDisplay() {
   const paidGroups = [...paidAddonMap.values()].filter(g => g.priceMonthly > 0);
 
   return (
-    <section className="py-20 bg-muted/30" id="pricing">
+    <section className="py-20 bg-surface-container/30" id="pricing">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold">Simple, Transparent Pricing</h2>
-          <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
+          <p className="text-on-surface-variant mt-3 max-w-lg mx-auto">
             One plan with everything you need. Add features as you grow.
           </p>
         </div>
 
         <div className="max-w-lg mx-auto">
-          <div className="rounded-2xl border-2 border-primary/20 bg-card p-8 shadow-lg">
+          <div className="rounded-2xl border-2 border-primary/20 bg-card p-8 neu-ambient">
             {/* Plan header */}
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold">{plan.name}</h3>
               {plan.description && (
-                <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+                <p className="text-sm text-on-surface-variant mt-1">{plan.description}</p>
               )}
             </div>
 
@@ -52,14 +52,14 @@ export function PricingDisplay() {
             <div className="text-center mb-6">
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-5xl font-bold">${plan.basePriceMonthly}</span>
-                <span className="text-muted-foreground">/month</span>
+                <span className="text-on-surface-variant">/month</span>
               </div>
               {plan.perUserPrice > 0 && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-on-surface-variant mt-1">
                   + ${plan.perUserPrice}/month per additional user
                 </p>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-on-surface-variant mt-1">
                 {plan.includedUsers} user{plan.includedUsers !== 1 ? "s" : ""} included
               </p>
             </div>
@@ -76,7 +76,7 @@ export function PricingDisplay() {
             {/* Included features */}
             {includedAddons.length > 0 && (
               <div className="mb-6">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Included</p>
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-3">Included</p>
                 <ul className="space-y-2">
                   {includedAddons.map((addon) => (
                     <li key={addon._id} className="flex items-center gap-2.5 text-sm">
@@ -91,7 +91,7 @@ export function PricingDisplay() {
             {/* Paid add-ons */}
             {paidGroups.length > 0 && (
               <div className="mb-6 border-t pt-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Available Add-Ons</p>
+                <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-3">Available Add-Ons</p>
                 <ul className="space-y-2">
                   {paidGroups.map((group) => (
                     <li key={group.name} className="flex items-center justify-between text-sm">
@@ -113,7 +113,7 @@ export function PricingDisplay() {
             >
               Start Free Trial
             </a>
-            <p className="text-center text-xs text-muted-foreground mt-2">
+            <p className="text-center text-xs text-on-surface-variant mt-2">
               No credit card required. Cancel anytime.
             </p>
           </div>

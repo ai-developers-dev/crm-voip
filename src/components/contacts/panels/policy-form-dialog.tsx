@@ -128,7 +128,7 @@ export function PolicyFormDialog({ open, onOpenChange, policy, contactId, organi
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
               <select id="type" value={type} onChange={(e) => setType(e.target.value as PolicyType)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                 <option value="home">Home</option>
                 <option value="auto">Auto</option>
                 <option value="life">Life</option>
@@ -142,7 +142,7 @@ export function PolicyFormDialog({ open, onOpenChange, policy, contactId, organi
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <select id="status" value={status} onChange={(e) => setStatus(e.target.value as PolicyStatus)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                   <option value="active">Active</option>
                   <option value="pending">Pending</option>
                   <option value="expired">Expired</option>
@@ -159,7 +159,7 @@ export function PolicyFormDialog({ open, onOpenChange, policy, contactId, organi
             <div className="space-y-2">
               <Label htmlFor="frequency">Frequency</Label>
               <select id="frequency" value={premiumFrequency} onChange={(e) => setPremiumFrequency(e.target.value as PremiumFrequency)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="semi_annual">Semi-Annual</option>

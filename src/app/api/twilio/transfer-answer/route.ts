@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import twilio from "twilio";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { getOrgTwilioClient } from "@/lib/twilio/client";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * Accept a transfer - called when target agent clicks Accept
@@ -38,25 +37,10 @@ export async function POST(request: NextRequest) {
     // Get the transfer details to know the original call SID
     // We need to resume the held call and connect it to the target agent
 
-    // Get Twilio credentials
-    const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
-    if (!org) {
-      return NextResponse.json({ error: "Organization not found" }, { status: 404 });
-    }
-
-    const twilioCredentials = org.settings?.twilioCredentials;
-    let accountSid: string;
-    let authToken: string;
-
-    if (twilioCredentials?.isConfigured && twilioCredentials.accountSid && twilioCredentials.authToken) {
-      accountSid = twilioCredentials.accountSid;
-      authToken = twilioCredentials.authToken;
-    } else {
-      accountSid = process.env.TWILIO_ACCOUNT_SID || "";
-      authToken = process.env.TWILIO_AUTH_TOKEN || "";
-    }
-
-    if (!accountSid || !authToken) {
+    // Get Twilio credentials (validates org exists and creds are configured)
+    try {
+      await getOrgTwilioClient(orgId);
+    } catch {
       return NextResponse.json(
         { error: "Twilio credentials not configured" },
         { status: 400 }

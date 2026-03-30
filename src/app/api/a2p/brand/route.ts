@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
-import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
 import {
@@ -14,7 +14,6 @@ import {
 } from "@/lib/twilio/a2p-registration";
 import type { Id } from "../../../../../convex/_generated/dataModel";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 /**
  * POST /api/a2p/brand — Submit a brand registration

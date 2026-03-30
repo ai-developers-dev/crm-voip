@@ -158,7 +158,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
       <div className="w-full max-w-lg bg-card border-l border-border h-full overflow-y-auto flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card z-10">
           <h2 className="text-lg font-semibold">{isEdit ? "Edit Lead" : "Add Insurance Lead"}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -197,7 +197,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
               </div>
               <div className="space-y-1">
                 <Label>Gender</Label>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                <select value={gender} onChange={(e) => setGender(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                   <option value="">--</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -205,7 +205,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
               </div>
               <div className="space-y-1">
                 <Label>Marital Status</Label>
-                <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                   <option value="">--</option>
                   <option value="single">Single</option>
                   <option value="married">Married</option>
@@ -255,14 +255,14 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
           {quoteAuto && (
             <section className="space-y-3">
               <h3 className="section-heading">
-                Vehicles <span className="text-xs font-normal text-muted-foreground normal-case">(optional -- NatGen auto-finds via DMV)</span>
+                Vehicles <span className="text-xs font-normal text-on-surface-variant normal-case">(optional -- NatGen auto-finds via DMV)</span>
               </h3>
               {vehicles.map((v, i) => (
                 <div key={i} className="rounded-lg border border-border p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Vehicle {i + 1}</span>
+                    <span className="text-xs font-medium text-on-surface-variant">Vehicle {i + 1}</span>
                     {vehicles.length > 1 && (
-                      <button type="button" onClick={() => removeVehicle(i)} className="text-muted-foreground hover:text-destructive">
+                      <button type="button" onClick={() => removeVehicle(i)} className="text-on-surface-variant hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     )}
@@ -276,7 +276,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
                     <div className="space-y-1"><Label className="text-xs">VIN (optional)</Label><Input value={v.vin} onChange={(e) => updateVehicle(i, "vin", e.target.value)} placeholder="1HGCM82633A..." /></div>
                     <div className="space-y-1">
                       <Label className="text-xs">Primary Use</Label>
-                      <select value={v.primaryUse} onChange={(e) => updateVehicle(i, "primaryUse", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                      <select value={v.primaryUse} onChange={(e) => updateVehicle(i, "primaryUse", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                         <option value="commute">Commute</option>
                         <option value="pleasure">Pleasure</option>
                         <option value="business">Business</option>
@@ -301,7 +301,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Construction Type</Label>
-                  <select value={constructionType} onChange={(e) => setConstructionType(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                  <select value={constructionType} onChange={(e) => setConstructionType(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                     <option value="">--</option>
                     <option value="frame">Frame</option>
                     <option value="masonry">Masonry</option>
@@ -310,7 +310,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
                 </div>
                 <div className="space-y-1">
                   <Label>Ownership</Label>
-                  <select value={ownershipType} onChange={(e) => setOwnershipType(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                  <select value={ownershipType} onChange={(e) => setOwnershipType(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                     <option value="own">Own</option>
                     <option value="rent">Rent</option>
                   </select>
@@ -321,7 +321,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
 
           <section className="space-y-1">
             <Label>Notes</Label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Any additional notes..." className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground resize-none" />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Any additional notes..." className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-on-surface-variant resize-none" />
           </section>
 
           {error && <p className="text-sm text-destructive">{error}</p>}

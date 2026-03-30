@@ -85,7 +85,7 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
         <div className="text-center py-8">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Phone System Ready</h2>
-          <p className="text-muted-foreground">
+          <p className="text-on-surface-variant">
             Your phone system has been automatically configured. You can start making and receiving calls right away.
           </p>
         </div>
@@ -108,7 +108,7 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
         <div className="text-center py-8">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Phone System Connected!</h2>
-          <p className="text-muted-foreground">
+          <p className="text-on-surface-variant">
             Your phone system is ready to make and receive calls.
           </p>
         </div>
@@ -129,7 +129,7 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-2">Set Up Phone System</h2>
-        <p className="text-muted-foreground">
+        <p className="text-on-surface-variant">
           Enter your phone system credentials to enable voice calling.
           Get these from your administrator.
         </p>
@@ -152,7 +152,7 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
             onChange={(e) => setFormData((prev) => ({ ...prev, accountSid: e.target.value }))}
             required
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-on-surface-variant">
             Provided by your administrator
           </p>
         </div>
@@ -200,7 +200,7 @@ export function TwilioSetupStep({ onNext, onBack, onSkip, onConfigured }: Twilio
             value={formData.twimlAppSid}
             onChange={(e) => setFormData((prev) => ({ ...prev, twimlAppSid: e.target.value }))}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-on-surface-variant">
             Required for browser-based calling. You can set this up later.
           </p>
         </div>
