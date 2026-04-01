@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { convex } from "@/lib/convex/client";
 import twilio from "twilio";
 import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
