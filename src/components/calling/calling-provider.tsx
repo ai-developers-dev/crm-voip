@@ -184,7 +184,7 @@ export function CallingProvider({
         syncedCallSidsRef.current.delete(sid);
       }
     }
-  }, [twilioDevice.getAllCalls, convexOrg?._id, createOrGetIncomingCall]);
+  }, [twilioDevice.callCount, convexOrg?._id, createOrGetIncomingCall]);
 
   const contextValue: CallingContextValue = useMemo(() => ({
     // Connection state

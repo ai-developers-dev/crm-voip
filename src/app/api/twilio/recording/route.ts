@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const callSid = params["CallSid"];
+    const recordingSid = params["RecordingSid"];
     const recordingUrl = params["RecordingUrl"];
     const recordingStatus = params["RecordingStatus"];
     const recordingDuration = parseInt(params["RecordingDuration"] || "0", 10);
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       twilioCallSid: callSid,
       recordingUrl,
       recordingDuration,
+      recordingSid,
     });
 
     console.log(`Recording stored for call ${callSid}: ${recordingUrl}`);

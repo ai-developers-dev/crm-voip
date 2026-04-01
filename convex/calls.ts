@@ -970,12 +970,14 @@ export const storeTranscription = mutation({
   },
 });
 
-// Store recording URL from Twilio recording status callback
+// Store recording URL from Twilio recording status callback.
+// If the call was a voicemail, also creates a voicemails record.
 export const storeRecording = mutation({
   args: {
     twilioCallSid: v.string(),
     recordingUrl: v.string(),
     recordingDuration: v.number(),
+    recordingSid: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const callHistory = await ctx.db
@@ -988,6 +990,24 @@ export const storeRecording = mutation({
         recordingUrl: args.recordingUrl,
         recordingDuration: args.recordingDuration,
       });
+
+      // If the call outcome is voicemail, create a voicemails record
+      if (callHistory.outcome === "voicemail") {
+        await ctx.db.insert("voicemails", {
+          organizationId: callHistory.organizationId,
+          callHistoryId: callHistory._id,
+          twilioCallSid: args.twilioCallSid,
+          recordingSid: args.recordingSid || "",
+          recordingUrl: args.recordingUrl,
+          duration: args.recordingDuration,
+          callerNumber: callHistory.from,
+          callerName: callHistory.fromName,
+          contactId: callHistory.contactId,
+          isRead: false,
+          createdAt: Date.now(),
+        });
+      }
+
       return { updated: true, callHistoryId: callHistory._id };
     }
 

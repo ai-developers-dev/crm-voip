@@ -18,6 +18,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Verify caller is a platform admin
+    const isPlatformUser = await convex.query(api.platformUsers.isPlatformUser, {
+      clerkUserId: userId,
+    });
+    if (!isPlatformUser) {
+      return NextResponse.json({ error: "Forbidden — platform admin required" }, { status: 403 });
+    }
+
     // Get platform org + master Twilio credentials
     const platformOrg = await convex.query(api.organizations.getPlatformOrg);
     const twilioMaster = (platformOrg?.settings as any)?.twilioMaster;
@@ -34,7 +42,7 @@ export async function POST(req: Request) {
     // Get markup percentage from platform settings
     const markupPercent = (platformOrg?.settings as any)?.twilioMarkupPercent ?? 50;
 
-    const results: Array<{ orgName: string; calls: number; minutes: number; sms: number; twilioCoast: number; markedUpCost: number }> = [];
+    const results: Array<{ orgName: string; calls: number; minutes: number; sms: number; twilioCost: number; markedUpCost: number }> = [];
 
     for (const tenant of allTenants) {
       const twilioCredentials = tenant.settings?.twilioCredentials;
@@ -94,7 +102,7 @@ export async function POST(req: Request) {
           calls: totalCalls,
           minutes: Math.round(totalMinutes),
           sms: totalSms,
-          twilioCoast: Math.round(totalCost * 100) / 100,
+          twilioCost: Math.round(totalCost * 100) / 100,
           markedUpCost,
         });
       } catch (err) {

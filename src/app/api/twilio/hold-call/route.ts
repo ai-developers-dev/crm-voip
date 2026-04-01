@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
           <Conference
             waitUrl="${holdMusicWaitUrl}"
             waitMethod="GET"
-            startConferenceOnEnter="false"
+            startConferenceOnEnter="true"
             endConferenceOnExit="false"
           >${holdConferenceName}</Conference>
         </Dial>

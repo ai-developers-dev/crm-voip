@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { convex } from "@/lib/convex/client";
 import { api } from "../../../../../convex/_generated/api";
+import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
 
 /**
@@ -12,6 +13,18 @@ import { api } from "../../../../../convex/_generated/api";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+
+    // Validate webhook signature
+    const params: Record<string, string> = {};
+    formData.forEach((value, key) => {
+      params[key] = value.toString();
+    });
+    const isValid = await validateTwilioWebhook(request, params, convex);
+    if (!isValid) {
+      console.error("Invalid Twilio webhook signature for parking-status callback");
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     const conferenceName = request.nextUrl.searchParams.get("conference");
     const statusCallbackEvent = formData.get("StatusCallbackEvent") as string;
     const conferenceSid = formData.get("ConferenceSid") as string;

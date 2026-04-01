@@ -111,17 +111,14 @@ export const sendMessage = mutation({
       let contactName: string | undefined;
 
       if (!contactId) {
-        const contacts = await ctx.db
-          .query("contacts")
-          .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-          .collect();
-
         const normalizedTo = args.to.replace(/\D/g, "").slice(-10);
-        const matchingContact = contacts.find((c) =>
-          c.phoneNumbers.some(
-            (p) => p.number.replace(/\D/g, "").slice(-10) === normalizedTo
+        const phoneLookup = await ctx.db
+          .query("contactPhoneLookup")
+          .withIndex("by_org_phone", (q) =>
+            q.eq("organizationId", args.organizationId).eq("normalizedPhone", normalizedTo)
           )
-        );
+          .first();
+        const matchingContact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
 
         if (matchingContact) {
           contactId = matchingContact._id;
@@ -254,17 +251,14 @@ export const receiveMessage = mutation({
       .first();
 
     // Try to find contact by phone number
-    const contacts = await ctx.db
-      .query("contacts")
-      .withIndex("by_organization", (q) => q.eq("organizationId", organizationId))
-      .collect();
-
     const normalizedFrom = args.from.replace(/\D/g, "").slice(-10);
-    const matchingContact = contacts.find((c) =>
-      c.phoneNumbers.some(
-        (p) => p.number.replace(/\D/g, "").slice(-10) === normalizedFrom
+    const phoneLookup = await ctx.db
+      .query("contactPhoneLookup")
+      .withIndex("by_org_phone", (q) =>
+        q.eq("organizationId", organizationId).eq("normalizedPhone", normalizedFrom)
       )
-    );
+      .first();
+    const matchingContact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
 
     const contactId = matchingContact?._id;
     const contactName = matchingContact
@@ -510,13 +504,13 @@ export const handleOptOut = mutation({
     const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
 
     // Find contact by phone number in this org
-    const contacts = await ctx.db.query("contacts")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
-      .collect();
-
-    const contact = contacts.find(c =>
-      c.phoneNumbers.some(p => p.number.replace(/\D/g, "").slice(-10) === normalized)
-    );
+    const phoneLookup = await ctx.db
+      .query("contactPhoneLookup")
+      .withIndex("by_org_phone", (q) =>
+        q.eq("organizationId", args.organizationId).eq("normalizedPhone", normalized)
+      )
+      .first();
+    const contact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
 
     if (contact) {
       await ctx.db.patch(contact._id, {
@@ -539,13 +533,13 @@ export const handleOptIn = mutation({
   handler: async (ctx, args) => {
     const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
 
-    const contacts = await ctx.db.query("contacts")
-      .withIndex("by_organization", q => q.eq("organizationId", args.organizationId))
-      .collect();
-
-    const contact = contacts.find(c =>
-      c.phoneNumbers.some(p => p.number.replace(/\D/g, "").slice(-10) === normalized)
-    );
+    const phoneLookup = await ctx.db
+      .query("contactPhoneLookup")
+      .withIndex("by_org_phone", (q) =>
+        q.eq("organizationId", args.organizationId).eq("normalizedPhone", normalized)
+      )
+      .first();
+    const contact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
 
     if (contact) {
       await ctx.db.patch(contact._id, {

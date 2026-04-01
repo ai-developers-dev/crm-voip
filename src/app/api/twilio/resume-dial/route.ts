@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
+import { convex } from "@/lib/convex/client";
+import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
@@ -10,6 +12,18 @@ const VoiceResponse = twilio.twiml.VoiceResponse;
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate webhook signature
+    const formData = await request.formData();
+    const params: Record<string, string> = {};
+    formData.forEach((value, key) => {
+      params[key] = value.toString();
+    });
+    const isValid = await validateTwilioWebhook(request, params, convex);
+    if (!isValid) {
+      console.error("Invalid Twilio webhook signature for resume-dial");
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const targetIdentity = searchParams.get("target");
 

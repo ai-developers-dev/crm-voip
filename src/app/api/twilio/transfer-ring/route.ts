@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { convex } from "@/lib/convex/client";
 import twilio from "twilio";
-import { api } from "../../../../../convex/_generated/api";
-import { Id } from "../../../../../convex/_generated/dataModel";
+import { validateTwilioWebhook } from "@/lib/twilio/webhook-auth";
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
@@ -14,6 +12,18 @@ const VoiceResponse = twilio.twiml.VoiceResponse;
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate webhook signature
+    const formData = await request.formData();
+    const params: Record<string, string> = {};
+    formData.forEach((value, key) => {
+      params[key] = value.toString();
+    });
+    const isValid = await validateTwilioWebhook(request, params, convex);
+    if (!isValid) {
+      console.error("Invalid Twilio webhook signature for transfer-ring");
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const transferId = searchParams.get("transferId");
 
@@ -26,11 +36,6 @@ export async function POST(request: NextRequest) {
         headers: { "Content-Type": "text/xml" },
       });
     }
-
-    // Get transfer details from Convex
-    const transfer = await convex.query(api.pendingTransfers.getByTwilioSid, {
-      twilioCallSid: transferId,
-    });
 
     console.log(`Transfer ring TwiML for: ${transferId}`);
 

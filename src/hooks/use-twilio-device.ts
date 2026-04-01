@@ -339,9 +339,11 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       // Register event handlers
       newDevice.on("registered", () => {
         console.log("Twilio Device registered (multi-call enabled)");
+        reconnectAttemptRef.current = 0;
         setState((prev) => ({
           ...prev,
           isReady: true,
+          isReconnecting: false,
           error: null,
         }));
       });

@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { convex } from "@/lib/convex/client";
-import twilio from "twilio";
+import { auth } from "@clerk/nextjs/server";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
+import { getOrgTwilioClient } from "@/lib/twilio/client";
 
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId, orgId } = await auth();
+    if (!userId || !orgId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const {
       to,
@@ -26,38 +35,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get organization to check for Twilio credentials
-    const organization = await convex.query(api.organizations.getById, {
-      organizationId: organizationId as Id<"organizations">,
-    });
-
-    if (!organization) {
-      return NextResponse.json(
-        { success: false, error: "Organization not found" },
-        { status: 404 }
-      );
-    }
-
-    // Determine which Twilio credentials to use
-    let accountSid: string;
-    let authToken: string;
-
-    if (organization.settings.twilioCredentials?.isConfigured) {
-      // Use tenant's own Twilio credentials
-      accountSid = organization.settings.twilioCredentials.accountSid;
-      authToken = organization.settings.twilioCredentials.authToken;
-    } else {
-      // Fall back to platform Twilio credentials
-      accountSid = process.env.TWILIO_ACCOUNT_SID!;
-      authToken = process.env.TWILIO_AUTH_TOKEN!;
-    }
-
-    if (!accountSid || !authToken) {
+    // Get authenticated Twilio client (handles credential decryption)
+    let result;
+    try {
+      result = await getOrgTwilioClient(orgId);
+    } catch {
       return NextResponse.json(
         { success: false, error: "Twilio credentials not configured" },
         { status: 500 }
       );
     }
+    const { client, org: organization } = result;
 
     // ── Pre-send opt-out check ──────────────────────────────────────
     if (contactId) {
@@ -108,8 +96,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Created message ${messageId} in conversation ${conversationId}`);
 
-    // Create Twilio client and send message
-    const client = twilio(accountSid, authToken);
+    // Send message via authenticated Twilio client
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
     try {
