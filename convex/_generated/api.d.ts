@@ -58,6 +58,7 @@ import type * as saleTypes from "../saleTypes.js";
 import type * as sales from "../sales.js";
 import type * as salesGoals from "../salesGoals.js";
 import type * as salesReports from "../salesReports.js";
+import type * as signatureRequests from "../signatureRequests.js";
 import type * as sms from "../sms.js";
 import type * as smsAgents from "../smsAgents.js";
 import type * as smsAiEngine from "../smsAiEngine.js";
@@ -131,6 +132,7 @@ declare const fullApi: ApiFromModules<{
   sales: typeof sales;
   salesGoals: typeof salesGoals;
   salesReports: typeof salesReports;
+  signatureRequests: typeof signatureRequests;
   sms: typeof sms;
   smsAgents: typeof smsAgents;
   smsAiEngine: typeof smsAiEngine;

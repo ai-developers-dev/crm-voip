@@ -9,7 +9,7 @@ import Link from "next/link";
 import {
   Phone, Settings, Building2, Shield, LogOut, UserCog,
   ChevronDown, Plus, Loader2, AlertCircle, CheckCircle, BarChart3, Users,
-  Wifi, WifiOff, RefreshCw, Calendar, TrendingUp, Workflow, FileText, CreditCard, MessageCircle
+  Wifi, WifiOff, RefreshCw, Calendar, TrendingUp, Workflow, FileText, CreditCard, MessageCircle, FileSignature, Voicemail
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SupportWidget } from "@/components/support/support-widget";
@@ -907,6 +907,18 @@ export default function DashboardLayout({
                     Calendar
                   </Badge>
                 </Link>
+                <Link href="/voicemails">
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
+                    <Voicemail className="h-3 w-3" />
+                    Voicemails
+                  </Badge>
+                </Link>
+                <Link href="/e-sign">
+                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
+                    <FileSignature className="h-3 w-3" />
+                    E-Sign
+                  </Badge>
+                </Link>
                 {currentUser?.role !== "agent" && (
                   <Link href="/settings">
                     <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
@@ -953,12 +965,12 @@ export default function DashboardLayout({
       {/* Main content */}
       <main className="flex-1">{children}</main>
 
-      {/* Support widget — only for tenant users (not platform admins) */}
-      {!isPlatformUser && currentOrg?._id && !currentOrg.isPlatformOrg && currentUser?._id && (
+      {/* Support widget — show for anyone viewing a tenant org */}
+      {currentOrg?._id && !currentOrg.isPlatformOrg && (currentUser?._id || isPlatformUser) && (
         <SupportWidget
           organizationId={currentOrg._id}
-          userId={currentUser._id}
-          userName={currentUser.name || "User"}
+          userId={currentUser?._id}
+          userName={currentUser?.name || platformUser?.name || user?.fullName || "User"}
           orgName={currentOrg.name || ""}
         />
       )}

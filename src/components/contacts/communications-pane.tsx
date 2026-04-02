@@ -39,6 +39,7 @@ type CommunicationItem = {
   // Call fields
   outcome?: string;
   duration?: number;
+  recordingUrl?: string;
   // SMS fields
   body?: string;
   status?: string;
@@ -247,6 +248,13 @@ function CommunicationItemRow({ item, onOpenWorkflow, onStopWorkflow }: {
           </div>
         </div>
         <p className="text-xs text-on-surface-variant truncate">{getDetails()}</p>
+        {item.type === "call" && item.recordingUrl && (
+          <div className="mt-1.5">
+            <audio controls preload="none" className="h-8 w-full max-w-xs">
+              <source src={item.recordingUrl} type="audio/mpeg" />
+            </audio>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -281,6 +289,7 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         timestamp: call.startedAt,
         outcome: call.outcome,
         duration: call.talkTime || call.duration,
+        recordingUrl: call.recordingUrl,
       });
     }
 

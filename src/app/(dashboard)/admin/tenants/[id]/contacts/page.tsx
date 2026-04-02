@@ -8,7 +8,7 @@ import { Id, Doc } from "../../../../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3, ClipboardCheck
+  ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3, ClipboardCheck, FileSignature
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -157,7 +157,7 @@ export default function TenantContactsPage() {
               <Button variant="ghost" size="sm" className="gap-2"><MessageSquare className="h-4 w-4" />SMS</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/contacts`}>
-              <Button variant="secondary" size="sm" className="gap-2"><Users className="h-4 w-4" />Contacts</Button>
+              <Button variant="ghost" size="sm" className="gap-2 border-b-2 border-primary rounded-none"><Users className="h-4 w-4" />Contacts</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/calendar`}>
               <Button variant="ghost" size="sm" className="gap-2"><Calendar className="h-4 w-4" />Calendar</Button>
@@ -173,6 +173,9 @@ export default function TenantContactsPage() {
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/pipelines`}>
               <Button variant="ghost" size="sm" className="gap-2"><Columns3 className="h-4 w-4" />Pipelines</Button>
+            </Link>
+            <Link href={`/admin/tenants/${tenant._id}/e-sign`}>
+              <Button variant="ghost" size="sm" className="gap-2"><FileSignature className="h-4 w-4" />E-Sign</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/agents`}>
               <Button variant="ghost" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button>

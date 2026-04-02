@@ -17,7 +17,7 @@ import {
 import {
   Loader2, ClipboardCheck, Phone, MessageSquare, Users, Calendar,
   BarChart3, Bot, Workflow, Columns3, Settings, CheckCircle, Clock,
-  AlertCircle, User,
+  AlertCircle, User, FileSignature,
 } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/page-container";
@@ -98,8 +98,11 @@ export default function TenantTasksPage() {
             <Link href={`/admin/tenants/${tenant._id}/pipelines`}>
               <Button variant="ghost" size="sm" className="gap-2"><Columns3 className="h-4 w-4" />Pipelines</Button>
             </Link>
+            <Link href={`/admin/tenants/${tenant._id}/e-sign`}>
+              <Button variant="ghost" size="sm" className="gap-2"><FileSignature className="h-4 w-4" />E-Sign</Button>
+            </Link>
             <Link href={`/admin/tenants/${tenant._id}/tasks`}>
-              <Button variant="secondary" size="sm" className="gap-2"><ClipboardCheck className="h-4 w-4" />Tasks</Button>
+              <Button variant="ghost" size="sm" className="gap-2 border-b-2 border-primary rounded-none"><ClipboardCheck className="h-4 w-4" />Tasks</Button>
             </Link>
             <Link href={`/admin/tenants/${tenant._id}/agents`}>
               <Button variant="ghost" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button>

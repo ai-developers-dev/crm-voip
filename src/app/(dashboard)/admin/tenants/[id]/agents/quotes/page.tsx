@@ -14,7 +14,7 @@ import {
   Plus, FileText, CheckCircle, XCircle, Clock, TrendingUp,
   DollarSign, ChevronDown, ChevronUp, Trash2, User, Car, Home,
   AlertTriangle, Settings, Zap, Pencil, RotateCcw, Loader2,
-  ArrowLeft, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Briefcase, Workflow, Columns3, ClipboardCheck,
+  ArrowLeft, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Briefcase, Workflow, Columns3, ClipboardCheck, FileSignature,
 } from "lucide-react";
 import Link from "next/link";
 import { Compass } from "lucide-react";
@@ -195,7 +195,8 @@ export default function TenantQuotesPage() {
             <Link href={`/admin/tenants/${tenant._id}/reports`}><Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/workflows`}><Button variant="ghost" size="sm" className="gap-2"><Workflow className="h-4 w-4" />Workflows</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/pipelines`}><Button variant="ghost" size="sm" className="gap-2"><Columns3 className="h-4 w-4" />Pipelines</Button></Link>
-            <Link href={`/admin/tenants/${tenant._id}/agents`}><Button variant="secondary" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/e-sign`}><Button variant="ghost" size="sm" className="gap-2"><FileSignature className="h-4 w-4" />E-Sign</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/agents`}><Button variant="ghost" size="sm" className="gap-2 border-b-2 border-primary rounded-none"><Bot className="h-4 w-4" />AI Agents</Button></Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}><Button variant="outline" size="sm"><Settings className="h-4 w-4 mr-2" />Settings</Button></Link>
         </div>

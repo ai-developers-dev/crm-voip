@@ -1000,6 +1000,66 @@ export default defineSchema({
     .index("by_type", ["organizationId", "type"]),
 
   // ============================================
+  // E-SIGNATURE TABLES
+  // ============================================
+
+  signatureRequests: defineTable({
+    organizationId: v.id("organizations"),
+    contactId: v.id("contacts"),
+    documentId: v.optional(v.id("documents")),
+
+    // PDF storage
+    originalPdfStorageId: v.id("_storage"),
+    signedPdfStorageId: v.optional(v.id("_storage")),
+    fileName: v.string(),
+
+    // Signing fields placed by agent
+    fields: v.array(v.object({
+      id: v.string(),
+      type: v.union(v.literal("signature"), v.literal("initials"), v.literal("date"), v.literal("text")),
+      page: v.number(),
+      x: v.number(),
+      y: v.number(),
+      width: v.number(),
+      height: v.number(),
+      label: v.optional(v.string()),
+      required: v.boolean(),
+    })),
+
+    // Status
+    status: v.union(
+      v.literal("draft"),
+      v.literal("sent"),
+      v.literal("viewed"),
+      v.literal("signed"),
+      v.literal("declined"),
+      v.literal("expired"),
+      v.literal("voided")
+    ),
+
+    // Signing token for unauthenticated access
+    signingToken: v.string(),
+
+    // Tracking
+    subject: v.optional(v.string()),
+    message: v.optional(v.string()),
+    sentAt: v.optional(v.number()),
+    viewedAt: v.optional(v.number()),
+    signedAt: v.optional(v.number()),
+    signerName: v.optional(v.string()),
+    signerIp: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+
+    createdByUserId: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_contact", ["contactId"])
+    .index("by_token", ["signingToken"])
+    .index("by_status", ["organizationId", "status"]),
+
+  // ============================================
   // SALES TABLES
   // ============================================
 

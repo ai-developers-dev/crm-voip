@@ -21,11 +21,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`\n=== CLAIM CALL API DEBUG ===`);
-    console.log(`Clerk userId (agentClerkId): ${userId}`);
-    console.log(`Clerk orgId (clerkOrgId): ${orgId}`);
-    console.log(`twilioCallSid: ${twilioCallSid}`);
-
     // Attempt to claim the call atomically
     // Pass clerkOrgId as fallback for race condition handling
     const result = await convex.mutation(api.calls.claimCall, {
@@ -34,17 +29,12 @@ export async function POST(request: NextRequest) {
       clerkOrgId: orgId || undefined,
     });
 
-    console.log(`claimCall result:`, JSON.stringify(result, null, 2));
-
     if (!result.success) {
-      console.log(`❌ Claim FAILED: ${result.reason}`);
       return NextResponse.json(
         { success: false, reason: result.reason },
         { status: 200 }
       );
     }
-
-    console.log(`✅ Claim SUCCESS - callId: ${result.callId}, userId: ${result.userId}`);
     return NextResponse.json({
       success: true,
       callId: result.callId,

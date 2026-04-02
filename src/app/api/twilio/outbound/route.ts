@@ -56,7 +56,27 @@ export async function POST(request: NextRequest) {
     // Format the destination number
     const formattedTo = formatPhoneNumber(to);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-    const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
+
+    // Determine caller ID: use org's configured phone number, not browser client identity
+    let twilioNumber = process.env.TWILIO_PHONE_NUMBER || "";
+    try {
+      // Parse org ID from client identity: "client:org_xxx-user_xxx" or "org_xxx-user_xxx"
+      const clientIdentity = from?.startsWith("client:") ? from.replace("client:", "") : from;
+      const clerkOrgId = clientIdentity?.split("-user_")[0];
+      if (clerkOrgId) {
+        const org = await convex.query(api.organizations.getCurrent, { clerkOrgId });
+        if (org) {
+          const phoneNumbers = await convex.query(api.phoneNumbers.getByOrganization, {
+            organizationId: org._id,
+          });
+          if (phoneNumbers.length > 0) {
+            twilioNumber = phoneNumbers[0].phoneNumber;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch org phone number for caller ID, using env fallback:", err);
+    }
 
     // Parse clerkUserId from the identity (format: clerkOrgId-clerkUserId)
     // The "from" field contains the Twilio client identity
@@ -100,7 +120,7 @@ export async function POST(request: NextRequest) {
     // Generate TwiML to dial the number
     const twiml = new VoiceResponse();
     const dial = twiml.dial({
-      callerId: twilioNumber || process.env.TWILIO_CALLER_ID || from,
+      callerId: twilioNumber || process.env.TWILIO_CALLER_ID,
       timeout: 30,
       action: `${appUrl}/api/twilio/outbound-status`,
       record: "record-from-answer-dual",

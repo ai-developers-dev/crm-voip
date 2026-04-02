@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardCheck, PenLine, CalendarDays, FileText, FolderOpen, ArrowUpDown, Calculator } from "lucide-react";
+import { ClipboardCheck, PenLine, CalendarDays, FileText, FolderOpen, ArrowUpDown, Calculator, FileSignature } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -9,7 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type PanelType = "tasks" | "notes" | "appointments" | "policies" | "documents" | "quotes" | "sort";
+export type PanelType = "tasks" | "notes" | "appointments" | "policies" | "documents" | "quotes" | "e-sign" | "sort";
 
 export type SortField = "name" | "streetAddress" | "city" | "state" | "zip" | "email" | "phone" | "tag";
 
@@ -20,6 +20,7 @@ const menuItems: { type: PanelType; label: string; icon: React.ComponentType<{ c
   { type: "policies", label: "Policies", icon: FileText },
   { type: "documents", label: "Documents", icon: FolderOpen },
   { type: "quotes", label: "Quote", icon: Calculator },
+  { type: "e-sign", label: "E-Sign", icon: FileSignature },
 ];
 
 interface ContactSideMenuProps {

@@ -157,17 +157,9 @@ export async function POST(request: NextRequest) {
       console.error("Twilio send error:", twilioError);
 
       // Update message status to failed
-      await convex.mutation(api.sms.updateStatus, {
-        twilioMessageSid: `pending-${Date.now()}`, // Use temp ID since we haven't updated yet
-        status: "failed",
-        errorCode: (twilioError as Record<string, unknown>).code?.toString(),
-        errorMessage: (twilioError as Error).message,
-      });
-
-      // Try to update the message directly
       await convex.mutation(api.sms.updateTwilioSid, {
         messageId,
-        twilioMessageSid: `failed-${Date.now()}`,
+        twilioMessageSid: `error-${messageId}`,
         status: "failed",
       });
 

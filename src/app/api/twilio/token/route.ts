@@ -7,8 +7,6 @@ import { api } from "../../../../../convex/_generated/api";
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;
 
-// Initialize Convex client
-
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();
@@ -57,7 +55,7 @@ export async function POST(request: NextRequest) {
       });
       const token = new AccessToken(accountSid, apiKey, apiSecret, {
         identity: identity || `${orgId}-${userId}`,
-        ttl: 14400, // 4 hours
+        ttl: 3600, // 1 hour
       });
 
       const voiceGrant = new VoiceGrant({
@@ -83,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Create access token with per-tenant credentials
     const token = new AccessToken(accountSid, apiKey, apiSecret, {
       identity: identity || `${orgId}-${userId}`,
-      ttl: 14400, // 4 hours
+      ttl: 3600, // 1 hour
     });
 
     // Create Voice grant

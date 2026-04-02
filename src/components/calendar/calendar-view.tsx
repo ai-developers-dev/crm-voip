@@ -174,15 +174,15 @@ function MonthView({
   return (
     <div className="h-full flex flex-col">
       {/* Day headers */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 border-b">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="px-2 py-1.5 text-xs font-medium text-on-surface-variant text-center">
+          <div key={day} className="px-2 py-2 text-xs font-medium text-muted-foreground text-center border-r last:border-r-0">
             {day}
           </div>
         ))}
       </div>
       {/* Day cells */}
-      <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+      <div className="grid grid-cols-7 flex-1 auto-rows-fr border-l">
         {days.map((day) => {
           const dayKey = format(day, "yyyy-MM-dd");
           const dayEvents = eventsByDay.get(dayKey) || [];
@@ -192,8 +192,8 @@ function MonthView({
           return (
             <div
               key={dayKey}
-              className={`border-b p-1 min-h-[80px] cursor-pointer hover:bg-surface-container-high/30 transition-colors ${
-                !inMonth ? "bg-surface-container/10" : ""
+              className={`border-r border-b p-1.5 min-h-25 cursor-pointer hover:bg-muted/40 transition-colors ${
+                !inMonth ? "bg-muted/20 text-muted-foreground" : ""
               }`}
               onClick={() => onDateClick?.(day)}
             >
@@ -291,7 +291,7 @@ function WeekView({
             return (
               <div key={day.toISOString()} className="border-r relative">
                 {hours.map((hour) => (
-                  <div key={hour} className="h-[60px]order/30" />
+                  <div key={hour} className="h-[60px] border-b border-border/30" />
                 ))}
                 {/* Event overlays */}
                 {dayEvents.filter((e) => !e.isAllDay).map((event) => {
@@ -305,7 +305,7 @@ function WeekView({
                       className={`absolute left-0.5 right-1 rounded px-1.5 py-0.5 text-xs leading-tight overflow-hidden ${
                         event.type === "synced"
                           ? `${calendarEventColors.synced} border-l-2 border-emerald-500`
-                          : `${calendarEventColors.appointment} border-l-2lue-500`
+                          : `${calendarEventColors.appointment} border-l-2 border-blue-500`
                       }`}
                       style={{
                         top: `${topMinutes}px`,
@@ -386,7 +386,7 @@ function DayView({
           </div>
           <div className="relative">
             {hours.map((hour) => (
-              <div key={hour} className="h-[60px]order/30" />
+              <div key={hour} className="h-[60px] border-b border-border/30" />
             ))}
             {timedEvents.map((event) => {
               const start = new Date(event.startTime);
@@ -399,7 +399,7 @@ function DayView({
                   className={`absolute left-1 right-4 rounded px-2 py-1 text-xs overflow-hidden ${
                     event.type === "synced"
                       ? `${calendarEventColors.synced} border-l-2 border-emerald-500`
-                      : `${calendarEventColors.appointment} border-l-2lue-500`
+                      : `${calendarEventColors.appointment} border-l-2 border-blue-500`
                   }`}
                   style={{
                     top: `${topMinutes}px`,

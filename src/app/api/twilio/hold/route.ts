@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`🚗 PARKING CALL - Starting park flow for ${twilioCallSid}`);
+    // Park the call via conference-based parking
 
     // Get Twilio credentials
     let result;
@@ -54,16 +54,9 @@ export async function POST(request: NextRequest) {
     let parentCall;
 
     try {
-      console.log(`Step 1: Fetching browser client call: ${twilioCallSid}`);
       browserCall = await client.calls(twilioCallSid).fetch();
-      console.log(`Browser call details:`, {
-        sid: browserCall.sid,
-        parentCallSid: browserCall.parentCallSid,
-        direction: browserCall.direction,
-        status: browserCall.status,
-      });
     } catch (twilioError) {
-      console.error("Step 1 FAILED - Could not fetch browser call:", twilioError);
+      console.error("Could not fetch browser call:", twilioError);
       return NextResponse.json(
         { error: "Failed to fetch browser call from Twilio", details: String(twilioError) },
         { status: 500 }
@@ -71,7 +64,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!browserCall.parentCallSid) {
-      console.error("No parent call found - this may not be a browser client call");
       return NextResponse.json(
         { error: "No parent call found - cannot park this call" },
         { status: 400 }
@@ -79,14 +71,12 @@ export async function POST(request: NextRequest) {
     }
 
     pstnCallSid = browserCall.parentCallSid;
-    console.log(`PSTN parent call SID: ${pstnCallSid}`);
 
     // Verify parent call is still active
     try {
       parentCall = await client.calls(pstnCallSid).fetch();
-      console.log(`Parent call status: ${parentCall.status}`);
     } catch (twilioError) {
-      console.error("Step 1b FAILED - Could not fetch parent call:", twilioError);
+      console.error("Could not fetch parent call:", twilioError);
       return NextResponse.json(
         { error: "Failed to fetch parent call from Twilio", details: String(twilioError) },
         { status: 500 }
@@ -106,13 +96,7 @@ export async function POST(request: NextRequest) {
     // STEP 2: Save to database FIRST (like working app)
     let parkResult;
     try {
-      console.log(`Step 2: Saving to database FIRST...`);
-      console.log(`  organizationId from request: ${organizationId}`);
-      console.log(`  org._id from query: ${org._id}`);
-      console.log(`  parkedByUserId: ${parkedByUserId}`);
-
       const convexOrgId = organizationId || org._id;
-      console.log(`  Using convexOrgId: ${convexOrgId}`);
 
       parkResult = await convex.mutation(api.calls.parkByCallSid, {
         twilioCallSid: twilioCallSid,
@@ -124,9 +108,8 @@ export async function POST(request: NextRequest) {
         parkedByUserId: parkedByUserId as Id<"users"> | undefined,
       });
 
-      console.log(`✅ Database updated - slot ${parkResult.slotNumber}`, parkResult);
     } catch (convexError) {
-      console.error("Step 2 FAILED - Convex mutation error:", convexError);
+      console.error("Failed to save parking record:", convexError);
       return NextResponse.json(
         { error: "Failed to save to database", details: String(convexError) },
         { status: 500 }
@@ -135,7 +118,6 @@ export async function POST(request: NextRequest) {
 
     // STEP 3: NOW redirect the PSTN call to conference
     try {
-      console.log(`Step 3: Redirecting PSTN call ${pstnCallSid} to conference: ${conferenceName}`);
 
       // Get the base URL for callbacks - must be publicly accessible (not localhost)
       // Priority: NEXT_PUBLIC_APP_URL (if production), then derive from request headers
@@ -158,7 +140,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log(`Using baseUrl: ${baseUrl}`);
       const statusCallbackUrl = `${baseUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`;
 
       // Get hold music URL - fetch fresh URL if we have a storage ID
@@ -166,29 +147,20 @@ export async function POST(request: NextRequest) {
 
       // Try to get custom hold music from Convex
       let customAudioUrl: string | null = null;
-      console.log(`🎵 Org settings: holdMusicStorageId=${org.settings?.holdMusicStorageId || 'none'}`);
-      console.log(`🎵 CONVEX_URL: ${process.env.NEXT_PUBLIC_CONVEX_URL ? 'set' : 'NOT SET'}`);
 
       if (org.settings?.holdMusicStorageId) {
         try {
           customAudioUrl = await convex.query(api.holdMusic.getHoldMusicByClerkId, { clerkOrgId: orgId });
-          console.log(`🎵 Got custom audio URL: ${customAudioUrl ? customAudioUrl.substring(0, 50) + '...' : 'null'}`);
         } catch (err) {
-          console.error(`🎵 Error fetching custom audio:`, err);
+          console.error("Error fetching custom hold music:", err);
         }
-      } else {
-        console.log(`🎵 No holdMusicStorageId found in org settings`);
       }
 
       if (customAudioUrl) {
-        // Use Echo twimlet to play custom audio
         const twimlContent = `<Response><Play loop="0">${customAudioUrl}</Play></Response>`;
         holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
-        console.log(`🎵 Using custom audio via Echo twimlet`);
       } else {
-        // Use default Twilio hold music
         holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
-        console.log(`🎵 Using default twimlet`);
       }
 
       // IMPORTANT: startConferenceOnEnter="false" means the caller hears waitUrl music
@@ -209,16 +181,11 @@ export async function POST(request: NextRequest) {
         </Response>
       `.trim();
 
-      console.log(`🎵 Full TwiML being sent to Twilio:`);
-      console.log(twiml);
-
       await client.calls(pstnCallSid).update({
         twiml: twiml,
       });
-
-      console.log(`✅ Call parked successfully - PSTN ${pstnCallSid} in conference: ${conferenceName}`);
     } catch (twilioError) {
-      console.error("Step 3 FAILED - Could not redirect call:", twilioError);
+      console.error("Could not redirect call to conference:", twilioError);
       // Note: DB entry was already created, so call is "parked" in DB but not in Twilio
       return NextResponse.json(
         { error: "Failed to redirect call to conference", details: String(twilioError) },
@@ -235,7 +202,7 @@ export async function POST(request: NextRequest) {
       message: "Call parked in conference with hold music"
     });
   } catch (error) {
-    console.error("❌ Error parking call:", error);
+    console.error("Error parking call:", error);
     return NextResponse.json(
       { error: "Failed to park call", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

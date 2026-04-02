@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
               startConferenceOnEnter: false,
               endConferenceOnExit: false,
               statusCallback: `${appUrl}/api/twilio/parking-status?conference=${encodeURIComponent(conferenceName)}`,
-              statusCallbackEvent: "end leave" as any,
+              statusCallbackEvent: ["end", "leave"],
             },
             conferenceName
           );

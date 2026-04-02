@@ -7,6 +7,7 @@ import { NotesPanel } from "./panels/notes-panel";
 import { AppointmentsPanel } from "./panels/appointments-panel";
 import { PoliciesPanel } from "./panels/policies-panel";
 import { DocumentsPanel } from "./panels/documents-panel";
+import { ESignPanel } from "./panels/e-sign-panel";
 import { SortPanel } from "./panels/sort-panel";
 import { QuotePanel } from "./panels/quote-panel";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -35,6 +36,8 @@ export function ContactPanelDrawer({ type, contact, organizationId, userId, isAd
       return contact ? <DocumentsPanel contact={contact} organizationId={organizationId} userId={userId} onClose={onClose} /> : null;
     case "quotes":
       return contact ? <QuotePanel contact={contact} organizationId={organizationId} userId={userId} onClose={onClose} /> : null;
+    case "e-sign":
+      return contact ? <ESignPanel contact={contact} organizationId={organizationId} userId={userId} onClose={onClose} /> : null;
     case "sort":
       return (
         <SortPanel

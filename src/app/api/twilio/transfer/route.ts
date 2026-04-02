@@ -45,8 +45,9 @@ export async function POST(request: NextRequest) {
 
     // Get Twilio credentials
     let client;
+    let org;
     try {
-      ({ client } = await getOrgTwilioClient(orgId));
+      ({ client, org } = await getOrgTwilioClient(orgId));
     } catch {
       return NextResponse.json(
         { error: "Twilio credentials not configured" },
@@ -54,6 +55,12 @@ export async function POST(request: NextRequest) {
       );
     }
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
+    // Get the org's phone number for the transfer caller ID
+    const phoneNumbers = await convex.query(api.phoneNumbers.getByOrganization, {
+      organizationId: org._id,
+    });
+    const callerNumber = phoneNumbers?.[0]?.phoneNumber || process.env.TWILIO_PHONE_NUMBER || "";
 
     // Step 1: Put original call on hold (caller hears hold music)
     const holdMusicUrl = `${appUrl}/api/twilio/hold-music`;
@@ -82,7 +89,7 @@ export async function POST(request: NextRequest) {
 
     const outboundCall = await client.calls.create({
       to: `client:${targetIdentity}`,
-      from: process.env.TWILIO_PHONE_NUMBER || "transfer",
+      from: callerNumber,
       url: transferRingUrl,
       method: "POST",
       statusCallback: `${appUrl}/api/twilio/transfer-status?transferId=${transferId}`,

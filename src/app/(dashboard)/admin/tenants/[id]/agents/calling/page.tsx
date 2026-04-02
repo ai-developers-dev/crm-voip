@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import {
   Loader2, Plus, Phone, Bot, Settings, ArrowLeft, Trash2,
-  MessageSquare, Users, Calendar, BarChart3, Workflow, Columns3, ClipboardCheck,
+  MessageSquare, Users, Calendar, BarChart3, Workflow, Columns3, ClipboardCheck, FileSignature,
   PhoneOutgoing, PhoneIncoming, Mic, Volume2, Brain, X,
 } from "lucide-react";
 import Link from "next/link";
@@ -181,7 +181,8 @@ export default function TenantAICallingPage() {
             <Link href={`/admin/tenants/${tenant._id}/reports`}><Button variant="ghost" size="sm" className="gap-2"><BarChart3 className="h-4 w-4" />Reports</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/workflows`}><Button variant="ghost" size="sm" className="gap-2"><Workflow className="h-4 w-4" />Workflows</Button></Link>
             <Link href={`/admin/tenants/${tenant._id}/pipelines`}><Button variant="ghost" size="sm" className="gap-2"><Columns3 className="h-4 w-4" />Pipelines</Button></Link>
-            <Link href={`/admin/tenants/${tenant._id}/agents`}><Button variant="secondary" size="sm" className="gap-2"><Bot className="h-4 w-4" />AI Agents</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/e-sign`}><Button variant="ghost" size="sm" className="gap-2"><FileSignature className="h-4 w-4" />E-Sign</Button></Link>
+            <Link href={`/admin/tenants/${tenant._id}/agents`}><Button variant="ghost" size="sm" className="gap-2 border-b-2 border-primary rounded-none"><Bot className="h-4 w-4" />AI Agents</Button></Link>
           </nav>
           <Link href={`/admin/tenants/${tenant._id}/settings`}><Button variant="outline" size="sm"><Settings className="h-4 w-4 mr-2" />Settings</Button></Link>
         </div>

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users,
-  Calendar, BarChart3, Bot, FileText, Zap, ChevronRight, Workflow, Columns3, BrainCircuit, ClipboardCheck,
+  Calendar, BarChart3, Bot, FileText, Zap, ChevronRight, Workflow, Columns3, BrainCircuit, ClipboardCheck, FileSignature,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -136,8 +136,14 @@ export default function TenantAgentsPage() {
                 Pipelines
               </Button>
             </Link>
+            <Link href={`/admin/tenants/${tenant._id}/e-sign`}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <FileSignature className="h-4 w-4" />
+                E-Sign
+              </Button>
+            </Link>
             <Link href={`/admin/tenants/${tenant._id}/agents`}>
-              <Button variant="secondary" size="sm" className="gap-2">
+              <Button variant="ghost" size="sm" className="gap-2 border-b-2 border-primary rounded-none">
                 <Bot className="h-4 w-4" />
                 AI Agents
               </Button>

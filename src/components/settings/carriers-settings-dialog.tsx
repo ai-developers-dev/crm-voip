@@ -438,164 +438,183 @@ export function CarriersSettingsDialog({
                   No carriers configured for this agency type.
                 </p>
               ) : (
-                <div className="rounded-md border p-3 max-h-[400px] overflow-y-auto space-y-3">
-                  {activeCarriers.map((carrier, carrierIndex) => {
+                <div className="max-h-[450px] overflow-y-auto space-y-2">
+                  {activeCarriers.map((carrier) => {
                     const isChecked = selectedCarrierIds.has(carrier._id);
                     const isExpanded = expandedCarrierIds.has(carrier._id);
                     const carrierProducts = productsByCarrier.get(carrier._id) ?? [];
                     const selectedCount = carrierProducts.filter((p) => selectedProductIds.has(p._id)).length;
+                    const hasCredentials = carrierCredentials.get(carrier._id)?.configured;
 
                     return (
-                      <div key={carrier._id} className="rounded-lg border bg-card">
-                        <div className="flex items-center gap-2 py-2.5 px-3 rounded-t-lg hover:bg-surface-container-high/30">
-                          <button
-                            type="button"
-                            onClick={() => toggleExpandCarrier(carrier._id)}
-                            className="shrink-0 p-0.5 rounded hover:bg-surface-container-high"
-                          >
-                            <ChevronRight className={`h-3.5 w-3.5 text-on-surface-variant transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
-                          </button>
-                          <Checkbox
-                            checked={isChecked}
-                            onCheckedChange={() => toggleCarrier(carrier._id)}
-                          />
-                          <span className="text-sm font-medium">{carrier.name}</span>
-                          {isChecked && carrierProducts.length > 0 && (
-                            <span className="text-xs text-on-surface-variant">{selectedCount}/{carrierProducts.length}</span>
-                          )}
+                      <div key={carrier._id} className={`rounded-lg border transition-colors ${isChecked ? "border-primary/30 bg-primary/[0.02]" : "bg-muted/30"}`}>
+                        {/* Carrier header */}
+                        <div
+                          className="flex items-center w-full gap-3 p-3 cursor-pointer"
+                          onClick={() => toggleExpandCarrier(carrier._id)}
+                        >
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => toggleCarrier(carrier._id)}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold">{carrier.name}</span>
+                              {isChecked && carrierProducts.length > 0 && (
+                                <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                                  {selectedCount}/{carrierProducts.length} LOBs
+                                </span>
+                              )}
+                              {hasCredentials && (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-5 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30">
+                                  Portal Connected
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
                         </div>
-                        <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"}`}>
-                          <div className="pl-10 pr-3 space-y-0.5 pb-2 border-t border-border/40 pt-2 mx-3">
-                            {carrierProducts.length === 0 ? (
-                              <p className="text-xs text-on-surface-variant py-1">No LOBs configured.</p>
-                            ) : (
-                              carrierProducts.map((product) => {
-                                const isProductChecked = selectedProductIds.has(product._id);
-                                const rate = isChecked && isProductChecked
-                                  ? getCommissionRate(carrier._id, product._id)
-                                  : null;
-                                return (
-                                  <div
-                                    key={product._id}
-                                    className="flex items-center gap-2 py-1 px-1.5 rounded-md hover:bg-surface-container-high/30"
-                                  >
-                                    <Checkbox
-                                      checked={isProductChecked}
-                                      onCheckedChange={() => toggleProduct(product._id)}
-                                      disabled={!isChecked}
-                                    />
-                                    <span className={`text-sm min-w-0 flex-1 truncate ${!isChecked ? "text-on-surface-variant" : ""}`}>{product.name}</span>
-                                    {rate && (
-                                      <div className="flex items-center gap-1.5 shrink-0">
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-[10px] text-on-surface-variant">New</span>
-                                          <Input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            step="0.1"
-                                            placeholder="0"
-                                            value={rate.commission}
-                                            onChange={(e) =>
-                                              setCommissionRateValue(carrier._id, product._id, "commission", e.target.value)
-                                            }
-                                            className="h-6 text-xs w-14 px-1.5"
-                                          />
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-[10px] text-on-surface-variant">Rnw</span>
-                                          <Input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            step="0.1"
-                                            placeholder="0"
-                                            value={rate.renewal}
-                                            onChange={(e) =>
-                                              setCommissionRateValue(carrier._id, product._id, "renewal", e.target.value)
-                                            }
-                                            className="h-6 text-xs w-14 px-1.5"
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            )}
 
-                            {/* Portal Credentials — collapsible */}
+                        {/* Expanded content */}
+                        <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"}`}>
+                          <div className="px-3 pb-3 space-y-3">
+                            {/* Products / Lines of Business */}
+                            <div className="rounded-md border bg-background">
+                              <div className="px-3 py-2 border-b bg-muted/40">
+                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lines of Business</span>
+                              </div>
+                              {carrierProducts.length === 0 ? (
+                                <p className="text-xs text-muted-foreground p-3">No LOBs configured for this carrier.</p>
+                              ) : (
+                                <div className="divide-y">
+                                  {carrierProducts.map((product) => {
+                                    const isProductChecked = selectedProductIds.has(product._id);
+                                    const rate = isChecked && isProductChecked
+                                      ? getCommissionRate(carrier._id, product._id)
+                                      : null;
+                                    return (
+                                      <div key={product._id} className="flex items-center gap-3 px-3 py-2.5">
+                                        <Checkbox
+                                          checked={isProductChecked}
+                                          onCheckedChange={() => toggleProduct(product._id)}
+                                          disabled={!isChecked}
+                                        />
+                                        <span className={`text-sm flex-1 ${!isChecked ? "text-muted-foreground" : ""}`}>{product.name}</span>
+                                        {rate && (
+                                          <div className="flex items-center gap-3 shrink-0">
+                                            <div className="flex items-center gap-1.5">
+                                              <Label className="text-xs text-muted-foreground w-8">New %</Label>
+                                              <Input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.1"
+                                                placeholder="0"
+                                                value={rate.commission}
+                                                onChange={(e) =>
+                                                  setCommissionRateValue(carrier._id, product._id, "commission", e.target.value)
+                                                }
+                                                className="h-7 text-xs w-16 px-2 text-center"
+                                              />
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                              <Label className="text-xs text-muted-foreground w-8">Rnw %</Label>
+                                              <Input
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                step="0.1"
+                                                placeholder="0"
+                                                value={rate.renewal}
+                                                onChange={(e) =>
+                                                  setCommissionRateValue(carrier._id, product._id, "renewal", e.target.value)
+                                                }
+                                                className="h-7 text-xs w-16 px-2 text-center"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Portal Credentials */}
                             {isChecked && (
-                              <div className="mt-2 pt-2 border-t border-border/40">
+                              <div className="rounded-md border bg-background">
                                 <button
                                   type="button"
                                   onClick={() => toggleExpandCreds(carrier._id)}
-                                  className="flex items-center gap-1.5 w-full text-left hover:bg-surface-container-high/30 rounded px-1 py-0.5 -mx-1"
+                                  className="flex items-center gap-2 w-full px-3 py-2 text-left"
                                 >
-                                  <ChevronRight className={`h-3 w-3 text-on-surface-variant transition-transform duration-200 ${expandedCredsFor.has(carrier._id) ? "rotate-90" : ""}`} />
-                                  <KeyRound className="h-3 w-3 text-on-surface-variant" />
-                                  <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wide">Portal Login</span>
-                                  {(carrierCredentials.get(carrier._id)?.configured) && (
-                                    <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 text-[9px] px-1 py-0">Connected</Badge>
+                                  <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex-1">Portal Credentials</span>
+                                  {hasCredentials && (
+                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Connected</span>
                                   )}
+                                  <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${expandedCredsFor.has(carrier._id) ? "rotate-90" : ""}`} />
                                 </button>
-                                <div className={`overflow-hidden transition-all duration-200 ${expandedCredsFor.has(carrier._id) ? "max-h-[300px] opacity-100 mt-2" : "max-h-0 opacity-0"}`}>
-                                <div className="space-y-1.5">
-                                  <Input
-                                    value={carrierCredentials.get(carrier._id)?.url ?? carrier.portalUrl ?? ""}
-                                    onChange={(e) => updateCredField(carrier._id, "url", e.target.value)}
-                                    placeholder="Portal URL (e.g. https://natgenagency.com/Account/Login.aspx)"
-                                    className="h-7 text-xs"
-                                  />
-                                  <div className="grid grid-cols-2 gap-1.5">
+                                <div className={`overflow-hidden transition-all duration-200 ${expandedCredsFor.has(carrier._id) ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
+                                  <div className="px-3 pb-3 pt-1 space-y-2 border-t">
                                     <Input
-                                      value={carrierCredentials.get(carrier._id)?.username ?? ""}
-                                      onChange={(e) => updateCredField(carrier._id, "username", e.target.value)}
-                                      placeholder={carrierCredentials.get(carrier._id)?.configured ? "••••••••" : "Agent username"}
-                                      className="h-7 text-xs"
+                                      value={carrierCredentials.get(carrier._id)?.url ?? carrier.portalUrl ?? ""}
+                                      onChange={(e) => updateCredField(carrier._id, "url", e.target.value)}
+                                      placeholder="Portal URL (e.g. https://natgenagency.com/Account/Login.aspx)"
+                                      className="h-8 text-xs"
                                     />
-                                    <div className="relative">
+                                    <div className="grid grid-cols-2 gap-2">
                                       <Input
-                                        type={showPasswordFor.has(carrier._id) ? "text" : "password"}
-                                        value={carrierCredentials.get(carrier._id)?.password ?? ""}
-                                        onChange={(e) => updateCredField(carrier._id, "password", e.target.value)}
-                                        placeholder={carrierCredentials.get(carrier._id)?.configured ? "••••••••" : "Password"}
-                                        className="h-7 text-xs pr-7"
+                                        value={carrierCredentials.get(carrier._id)?.username ?? ""}
+                                        onChange={(e) => updateCredField(carrier._id, "username", e.target.value)}
+                                        placeholder={hasCredentials ? "••••••••" : "Agent username"}
+                                        className="h-8 text-xs"
                                       />
-                                      <button
-                                        type="button"
-                                        onClick={() => setShowPasswordFor((prev) => {
-                                          const next = new Set(prev);
-                                          if (next.has(carrier._id)) next.delete(carrier._id); else next.add(carrier._id);
-                                          return next;
-                                        })}
-                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                                      <div className="relative">
+                                        <Input
+                                          type={showPasswordFor.has(carrier._id) ? "text" : "password"}
+                                          value={carrierCredentials.get(carrier._id)?.password ?? ""}
+                                          onChange={(e) => updateCredField(carrier._id, "password", e.target.value)}
+                                          placeholder={hasCredentials ? "••••••••" : "Password"}
+                                          className="h-8 text-xs pr-8"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => setShowPasswordFor((prev) => {
+                                            const next = new Set(prev);
+                                            if (next.has(carrier._id)) next.delete(carrier._id); else next.add(carrier._id);
+                                            return next;
+                                          })}
+                                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                        >
+                                          {showPasswordFor.has(carrier._id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs px-3"
+                                        disabled={!carrierCredentials.get(carrier._id)?.username || !carrierCredentials.get(carrier._id)?.password || savingCredsFor === carrier._id}
+                                        onClick={() => handleSaveCredentials(carrier._id)}
                                       >
-                                        {showPasswordFor.has(carrier._id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                      </button>
+                                        {savingCredsFor === carrier._id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <KeyRound className="h-3.5 w-3.5 mr-1.5" />}
+                                        {hasCredentials ? "Update Credentials" : "Save Credentials"}
+                                      </Button>
+                                      {carrier.name.toLowerCase().includes("national general") && (
+                                        <NatGenLoginTest
+                                          organizationId={organizationId as string}
+                                          carrierId={carrier._id}
+                                          username={carrierCredentials.get(carrier._id)?.username || undefined}
+                                          password={carrierCredentials.get(carrier._id)?.password || undefined}
+                                        />
+                                      )}
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-6 text-[10px] px-2"
-                                      disabled={!carrierCredentials.get(carrier._id)?.username || !carrierCredentials.get(carrier._id)?.password || savingCredsFor === carrier._id}
-                                      onClick={() => handleSaveCredentials(carrier._id)}
-                                    >
-                                      {savingCredsFor === carrier._id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <KeyRound className="h-3 w-3 mr-1" />}
-                                      {carrierCredentials.get(carrier._id)?.configured ? "Update" : "Save"}
-                                    </Button>
-                                    {carrier.name.toLowerCase().includes("national general") && (
-                                      <NatGenLoginTest
-                                        organizationId={organizationId as string}
-                                        carrierId={carrier._id}
-                                        username={carrierCredentials.get(carrier._id)?.username || undefined}
-                                        password={carrierCredentials.get(carrier._id)?.password || undefined}
-                                      />
-                                    )}
-                                  </div>
-                                </div>
                                 </div>
                               </div>
                             )}
