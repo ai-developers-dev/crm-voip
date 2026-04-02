@@ -10,6 +10,7 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "import/no-anonymous-default-export": "off",
+      "react-hooks/purity": "off",
     },
   },
   // Override default ignores of eslint-config-next.
