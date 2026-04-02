@@ -55,7 +55,7 @@ export const useParkingStore = create<ParkingState>()(
 
       removeOptimisticCall: (callId) =>
         set((state) => {
-          const { [callId]: _removed, ...rest } = state.optimisticCalls;
+          const { [callId]: _, ...rest } = state.optimisticCalls;
           return { optimisticCalls: rest };
         }, false, "removeOptimisticCall"),
 
