@@ -32,7 +32,7 @@ async function getAuthTokenForAccount(
       if (org?.settings?.twilioCredentials?.authToken) {
         try {
           return decrypt(org.settings.twilioCredentials.authToken, org._id);
-        } catch (decryptErr) {
+        } catch {
           // Decryption failed - the token may not be encrypted (legacy)
           // Try using it as-is
           return org.settings.twilioCredentials.authToken;

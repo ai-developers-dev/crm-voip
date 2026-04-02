@@ -40,7 +40,7 @@ export async function createSubaccount(
   masterAuth: string,
   friendlyName: string
 ): Promise<{ accountSid: string; authToken: string }> {
-  const result = await twilioFetch<any>(
+  const result = await twilioFetch<Record<string, unknown>>(
     masterSid,
     masterAuth,
     "POST",
@@ -48,8 +48,8 @@ export async function createSubaccount(
     { FriendlyName: friendlyName }
   );
   return {
-    accountSid: result.sid,
-    authToken: result.auth_token,
+    accountSid: result.sid as string,
+    authToken: result.auth_token as string,
   };
 }
 
@@ -61,7 +61,7 @@ export async function createApiKey(
   subAuthToken: string,
   friendlyName: string
 ): Promise<{ sid: string; secret: string }> {
-  const result = await twilioFetch<any>(
+  const result = await twilioFetch<Record<string, unknown>>(
     subAccountSid,
     subAuthToken,
     "POST",
@@ -69,8 +69,8 @@ export async function createApiKey(
     { FriendlyName: friendlyName }
   );
   return {
-    sid: result.sid,
-    secret: result.secret,
+    sid: result.sid as string,
+    secret: result.secret as string,
   };
 }
 
@@ -82,7 +82,7 @@ export async function createTwimlApp(
   subAuthToken: string,
   config: { voiceUrl: string; statusCallbackUrl: string; friendlyName: string }
 ): Promise<{ sid: string }> {
-  const result = await twilioFetch<any>(
+  const result = await twilioFetch<Record<string, unknown>>(
     subAccountSid,
     subAuthToken,
     "POST",
@@ -95,7 +95,7 @@ export async function createTwimlApp(
       StatusCallbackMethod: "POST",
     }
   );
-  return { sid: result.sid };
+  return { sid: result.sid as string };
 }
 
 /**
@@ -175,6 +175,7 @@ export async function searchAvailableNumbers(
   }
 
   const data = await res.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data.available_phone_numbers || []).map((n: any) => ({
     phoneNumber: n.phone_number,
     friendlyName: n.friendly_name,
@@ -197,7 +198,7 @@ export async function purchasePhoneNumber(
   phoneNumber: string,
   config: { voiceUrl: string; smsUrl: string; friendlyName?: string }
 ): Promise<{ sid: string; phoneNumber: string; friendlyName: string }> {
-  const result = await twilioFetch<any>(
+  const result = await twilioFetch<Record<string, unknown>>(
     subAccountSid,
     subAuthToken,
     "POST",
@@ -212,9 +213,9 @@ export async function purchasePhoneNumber(
     }
   );
   return {
-    sid: result.sid,
-    phoneNumber: result.phone_number,
-    friendlyName: result.friendly_name,
+    sid: result.sid as string,
+    phoneNumber: result.phone_number as string,
+    friendlyName: result.friendly_name as string,
   };
 }
 
