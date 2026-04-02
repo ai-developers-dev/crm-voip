@@ -341,7 +341,9 @@ async function saveSessionState(
 /** Load saved cookies from filesystem (fast path) */
 function loadSessionStateFromFile(carrierKey: string, username: string): string | null {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require("fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require("path");
     const hash = credentialHash(username);
     const filePath = path.join("/tmp", "portal-sessions", `${carrierKey}-${hash}.json`);
