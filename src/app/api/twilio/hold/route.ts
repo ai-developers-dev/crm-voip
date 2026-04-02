@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // STEP 1: Fetch the browser SDK call to get the parent call SID
     let browserCall;
-    let pstnCallSid: string;
+    let pstnCallSid = "";
     let parentCall;
 
     try {

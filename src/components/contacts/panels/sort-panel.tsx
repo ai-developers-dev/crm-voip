@@ -117,6 +117,7 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
 
   const contacts = useQuery(api.contacts.getByOrganization, { organizationId }) ?? [];
   const activeTags = useQuery(api.contactTags.getActive, { organizationId });
+  const [showTagPicker, setShowTagPicker] = useState(false);
 
   // Count contacts per field (how many contacts have a value for this field)
   const fieldCounts = useMemo(() => {
@@ -216,9 +217,6 @@ export function SortPanel({ organizationId, onSelectContact, onClose }: SortPane
       </div>
     );
   }
-
-  // Show tag picker in tray
-  const [showTagPicker, setShowTagPicker] = useState(false);
 
   return (
     <div className="flex flex-col h-full">
