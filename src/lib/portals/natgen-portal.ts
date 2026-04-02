@@ -1302,7 +1302,7 @@ export async function runNatGenAutoQuote(
 ): Promise<QuoteResult> {
   // Use existing authenticated session or create a new one
   const { browser, page } = existingSession ?? await launchBrowser();
-  const shouldCloseBrowser = !existingSession; // Only close if we created it
+  const _shouldCloseBrowser = !existingSession; // Only close if we created it
 
   try {
     // Step 1: Login (skip if already authenticated via 2FA flow)
@@ -1645,7 +1645,7 @@ export async function runNatGenAutoQuote(
     console.log(`[auto-quote] Captured ${capturedDriversVehicles.drivers.length} drivers, ${capturedDriversVehicles.vehicles.length} vehicles`);
 
     // Parse into structured format for saving
-    let parsedDrivers = capturedDriversVehicles.drivers.map((d: any) => {
+    const parsedDrivers = capturedDriversVehicles.drivers.map((d: any) => {
       const nameParts = (d.name || "").split(" ");
       return {
         firstName: nameParts[0] || "",
@@ -2609,7 +2609,7 @@ export async function runNatGenAutoQuote(
 
       // Monthly premium — look for patterns
       const monthlyMatch = body.match(/\$\s*([\d,]+(?:\.\d{2})?)\s*(?:\/\s*mo|per\s*month|monthly)/i);
-      let monthly = monthlyMatch ? parseFloat(monthlyMatch[1].replace(/,/g, "")) : null;
+      const monthly = monthlyMatch ? parseFloat(monthlyMatch[1].replace(/,/g, "")) : null;
 
       // Annual/Total premium — look for patterns
       const annualMatch = body.match(/(?:total|annual|full)\s*(?:premium|pay|cost)?\s*:?\s*\$\s*([\d,]+(?:\.\d{2})?)/i);
@@ -2913,7 +2913,7 @@ function formatDob(dob: string): string {
  * Tries each selector in order until one matches a visible element.
  * Returns true if a field was found and filled.
  */
-async function fillField(page: any, selectorString: string, value: string): Promise<boolean> {
+async function _fillField(page: any, selectorString: string, value: string): Promise<boolean> {
   if (!value) return false;
   const selectors = selectorString.split(",").map((s) => s.trim());
   for (const sel of selectors) {
@@ -2937,7 +2937,7 @@ async function fillField(page: any, selectorString: string, value: string): Prom
  * Tries by label first, then by value.
  * Returns true if an option was selected.
  */
-async function selectOption(page: any, selectorString: string, value: string): Promise<boolean> {
+async function _selectOption(page: any, selectorString: string, value: string): Promise<boolean> {
   if (!value) return false;
   const selectors = selectorString.split(",").map((s) => s.trim());
   for (const sel of selectors) {

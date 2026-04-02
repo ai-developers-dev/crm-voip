@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, import/no-anonymous-default-export */
 import { useSyncExternalStore } from "react";
 
 function useSyncExternalStoreWithSelector(

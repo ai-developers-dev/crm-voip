@@ -175,7 +175,6 @@ export async function searchAvailableNumbers(
   }
 
   const data = await res.json();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data.available_phone_numbers || []).map((n: any) => ({
     phoneNumber: n.phone_number,
     friendlyName: n.friendly_name,
