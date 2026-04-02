@@ -76,7 +76,7 @@ export interface CreateAgentConfig {
   analysis_successful_prompt?: string;
 }
 
-export interface UpdateAgentConfig extends Partial<CreateAgentConfig> {}
+export type UpdateAgentConfig = Partial<CreateAgentConfig>;
 
 export interface RetellAgent {
   agent_id: string;
@@ -101,7 +101,7 @@ export interface CreateLlmConfig {
   starting_state?: string;
 }
 
-export interface UpdateLlmConfig extends Partial<CreateLlmConfig> {}
+export type UpdateLlmConfig = Partial<CreateLlmConfig>;
 
 export interface RetellLlm {
   llm_id: string;
@@ -258,7 +258,7 @@ export async function createPhoneCall(
 
 export interface RegisterPhoneCallConfig {
   agent_id: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   retell_llm_dynamic_variables?: Record<string, string>;
 }
 

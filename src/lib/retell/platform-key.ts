@@ -14,7 +14,7 @@ export async function getPlatformRetellApiKey(convex: ConvexHttpClient): Promise
     throw new Error("Platform organization not found");
   }
 
-  const retellApiKey = (platformOrg.settings as any)?.retellApiKey;
+  const retellApiKey = (platformOrg.settings as Record<string, unknown>)?.retellApiKey as string | undefined;
   if (!retellApiKey) {
     throw new Error("AI Calling not configured. Add your API key in Platform Settings.");
   }
@@ -33,7 +33,7 @@ export async function getPlatformRetellApiKey(convex: ConvexHttpClient): Promise
 export async function isPlatformRetellConfigured(convex: ConvexHttpClient): Promise<boolean> {
   try {
     const platformOrg = await convex.query(api.organizations.getPlatformOrg);
-    return !!(platformOrg?.settings as any)?.retellConfigured;
+    return !!(platformOrg?.settings as Record<string, unknown>)?.retellConfigured;
   } catch {
     return false;
   }
