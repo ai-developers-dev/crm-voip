@@ -186,7 +186,12 @@ export async function POST(request: NextRequest) {
       });
     } catch (twilioError) {
       console.error("Could not redirect call to conference:", twilioError);
-      // Note: DB entry was already created, so call is "parked" in DB but not in Twilio
+      // Rollback: DB entry was created but Twilio redirect failed — undo the parking
+      try {
+        await convex.mutation(api.parkingLot.clearByConference, { conferenceName });
+      } catch (rollbackErr) {
+        console.error("Rollback failed:", rollbackErr);
+      }
       return NextResponse.json(
         { error: "Failed to redirect call to conference", details: String(twilioError) },
         { status: 500 }

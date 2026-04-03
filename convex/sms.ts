@@ -12,13 +12,11 @@ import { authorizeOrgMember } from "./lib/auth";
 export const getConversations = query({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
-    const conversations = await ctx.db
+    return await ctx.db
       .query("conversations")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-      .collect();
-
-    // Sort by lastMessageAt descending (most recent first)
-    return conversations.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+      .withIndex("by_organization_last_message", (q) => q.eq("organizationId", args.organizationId))
+      .order("desc")
+      .take(100);
   },
 });
 
