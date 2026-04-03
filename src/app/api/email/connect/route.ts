@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import Nylas from "nylas";
 
 const nylas = new Nylas({
@@ -8,7 +9,12 @@ const nylas = new Nylas({
 
 export async function POST(request: NextRequest) {
   try {
-    const { organizationId, userId, redirectUri, provider, redirectPath } = await request.json();
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { organizationId, userId: bodyUserId, redirectUri, provider, redirectPath } = await request.json();
 
     if (!organizationId) {
       return NextResponse.json(
@@ -30,7 +36,7 @@ export async function POST(request: NextRequest) {
     const authUrl = nylas.auth.urlForOAuth2({
       clientId: process.env.NYLAS_CLIENT_ID!,
       redirectUri: callbackUrl,
-      state: JSON.stringify({ organizationId, userId, redirectPath }),
+      state: JSON.stringify({ organizationId, userId: bodyUserId, redirectPath }),
       provider: selectedProvider,
     });
 

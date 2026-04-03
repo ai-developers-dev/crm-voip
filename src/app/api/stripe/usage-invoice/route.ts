@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { convex } from "@/lib/convex/client";
 import { api } from "../../../../../convex/_generated/api";
 import { getStripeClient } from "@/lib/stripe/client";
@@ -14,6 +15,11 @@ import type { Id } from "../../../../../convex/_generated/dataModel";
  */
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const stripe = getStripeClient();
 

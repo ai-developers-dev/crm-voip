@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { convex } from "@/lib/convex/client";
 import { api } from "../../../../../convex/_generated/api";
 import { getStripeClient } from "@/lib/stripe/client";
@@ -7,6 +8,11 @@ import type { Id } from "../../../../../convex/_generated/dataModel";
 
 export async function POST() {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const stripe = getStripeClient();
 
     // Get current plan and add-ons from Convex

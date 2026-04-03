@@ -1,7 +1,7 @@
 import { mutation, query, internalMutation, internalQuery, MutationCtx, action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal, api } from "./_generated/api";
-import { authorizeOrgMember } from "./lib/auth";
+import { authorizeOrgMember, authorizeOrgAdmin } from "./lib/auth";
 
 // Query to get all active calls for an organization
 export const getActive = query({
@@ -197,7 +197,7 @@ export const updateStatus = internalMutation({
   },
 });
 
-// Public mutation for webhook use (API route can call this)
+// Mutation for webhook use (called from Twilio webhook API routes that validate signatures)
 export const updateStatusFromWebhook = mutation({
   args: {
     twilioCallSid: v.string(),
@@ -817,7 +817,7 @@ export const endByCallSid = mutation({
 export const clearAllActiveCalls = mutation({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
-    await authorizeOrgMember(ctx, args.organizationId);
+    await authorizeOrgAdmin(ctx, args.organizationId);
 
     const calls = await ctx.db
       .query("activeCalls")
@@ -946,6 +946,7 @@ export const getIncomingCallData = query({
 });
 
 // Store voicemail transcription from Twilio webhook
+// Called from webhook API routes that validate Twilio signatures
 export const storeTranscription = mutation({
   args: {
     twilioCallSid: v.string(),
@@ -972,6 +973,7 @@ export const storeTranscription = mutation({
 
 // Store recording URL from Twilio recording status callback.
 // If the call was a voicemail, also creates a voicemails record.
+// Called from webhook API routes that validate Twilio signatures
 export const storeRecording = mutation({
   args: {
     twilioCallSid: v.string(),

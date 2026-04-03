@@ -645,8 +645,8 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
   // Legacy: Answer the first pending incoming call (backward compatibility)
   const answerCall = useCallback(async () => {
-    // Find the first pending incoming call
-    const pendingCall = Array.from(state.calls.values()).find(
+    // Use ref for latest state to avoid stale closures
+    const pendingCall = Array.from(callsRef.current.values()).find(
       c => c.direction === "INCOMING" && c.status === "pending"
     );
 

@@ -546,7 +546,8 @@ export default defineSchema({
     callerName: v.optional(v.string()),
   })
     .index("by_organization", ["organizationId"])
-    .index("by_organization_slot", ["organizationId", "slotNumber"]),
+    .index("by_organization_slot", ["organizationId", "slotNumber"])
+    .index("by_conference_name", ["conferenceName"]),
 
   // Targeted Ringing (for unpark/transfer to specific user)
   // When a call is being directed to a specific user, not broadcast to all
@@ -774,7 +775,7 @@ export default defineSchema({
     .index("by_assigned_user", ["assignedUserId"])
     .index("by_phone_numbers", ["organizationId", "customerPhoneNumber", "businessPhoneNumber"])
     .index("by_contact", ["contactId"])
-    .index("by_last_message", ["organizationId", "lastMessageAt"]),
+    .index("by_organization_last_message", ["organizationId", "lastMessageAt"]),
 
   // ============================================
   // CRM ACTIVITY TABLES

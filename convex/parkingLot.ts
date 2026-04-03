@@ -89,7 +89,7 @@ export const clearByConference = mutation({
     // Find parking slot by conference name
     const slots = await ctx.db
       .query("parkingLots")
-      .filter((q) => q.eq(q.field("conferenceName"), args.conferenceName))
+      .withIndex("by_conference_name", (q) => q.eq("conferenceName", args.conferenceName))
       .collect();
 
     if (slots.length === 0) {

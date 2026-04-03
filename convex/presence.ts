@@ -6,6 +6,8 @@ import { authorizeOrgMember } from "./lib/auth";
 export const getOnlineUsers = query({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
     const presenceRecords = await ctx.db
       .query("presence")
       .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
