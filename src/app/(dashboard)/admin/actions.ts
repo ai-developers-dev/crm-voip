@@ -4,7 +4,11 @@ import { clerkClient, auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { provisionTenant } from "@/lib/twilio/provisioning";
+import {
+  provisionTenant,
+  lookupNumberOnMaster,
+  transferPhoneNumberToSubaccount,
+} from "@/lib/twilio/provisioning";
 import { encrypt, decryptLegacy } from "@/lib/credentials/crypto";
 import { getStripeClient } from "@/lib/stripe/client";
 
@@ -602,6 +606,140 @@ export async function provisionTenantTwilio(organizationId: Id<"organizations">)
     return {
       success: false,
       error: error.message || "Failed to provision Twilio subaccount",
+    };
+  }
+}
+
+/**
+ * Transfer an existing phone number from the platform master account into
+ * a tenant's auto-provisioned subaccount. In-place reassignment via Twilio's
+ * IncomingPhoneNumbers API — the PN SID stays the same.
+ *
+ * Accepts either an E.164 phone number (e.g., "+18556966105") or a PN SID
+ * directly. Updates webhook URLs to the platform's standard routes in the
+ * same API call, then inserts the row into Convex `phoneNumbers`.
+ *
+ * Platform super_admin only.
+ */
+export async function transferNumberFromMaster(
+  organizationId: Id<"organizations">,
+  input: string
+) {
+  try {
+    await requirePlatformAdmin();
+    const convex = await getConvexClient();
+
+    // 1. Verify target tenant exists and has a subaccount to receive the number
+    const tenant = await convex.query(api.organizations.getById, { organizationId });
+    if (!tenant) {
+      return { success: false, error: "Tenant not found" };
+    }
+    const tenantCreds = tenant.settings?.twilioCredentials;
+    if (!tenantCreds?.isConfigured || !tenantCreds.accountSid) {
+      return {
+        success: false,
+        error: "Tenant has no Twilio subaccount. Click 'Auto-Provision Twilio' first.",
+      };
+    }
+
+    // 2. Load platform master credentials
+    const platformOrg = await convex.query(api.organizations.getPlatformOrg);
+    const twilioMaster = platformOrg?.settings?.twilioMaster;
+    if (!twilioMaster?.isConfigured || !platformOrg) {
+      return {
+        success: false,
+        error: "Platform master Twilio credentials are not configured. Set them up in Platform Settings first.",
+      };
+    }
+    const masterAuth = decryptLegacy(twilioMaster.authToken, platformOrg._id);
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    if (!appUrl) {
+      return {
+        success: false,
+        error: "NEXT_PUBLIC_APP_URL environment variable is not set. Required for Twilio webhook callbacks.",
+      };
+    }
+
+    // 3. Normalize input → resolve to a PN SID
+    const trimmed = input.trim();
+    const pnSidRegex = /^PN[a-f0-9]{32}$/i;
+    const phoneRegex = /^\+?\d{10,15}$/;
+
+    let pnSid: string;
+    if (pnSidRegex.test(trimmed)) {
+      pnSid = trimmed;
+    } else if (phoneRegex.test(trimmed)) {
+      const normalized = trimmed.startsWith("+") ? trimmed : `+${trimmed}`;
+      const found = await lookupNumberOnMaster(
+        twilioMaster.accountSid,
+        masterAuth,
+        normalized
+      );
+      if (!found) {
+        return {
+          success: false,
+          error: `Number ${normalized} was not found on the master Twilio account. Confirm it's in your Twilio Console and not already on a subaccount.`,
+        };
+      }
+      pnSid = found.sid;
+    } else {
+      return {
+        success: false,
+        error: "Enter a phone number (e.g., +18556966105) or a Twilio PN SID (PN + 32 hex chars).",
+      };
+    }
+
+    // 4. Duplicate guard — make sure this number isn't already tracked in Convex
+    const existingByNumber = trimmed.startsWith("+") || phoneRegex.test(trimmed)
+      ? await convex.query(api.phoneNumbers.lookupByNumber, {
+          phoneNumber: trimmed.startsWith("+") ? trimmed : `+${trimmed}`,
+        })
+      : null;
+    if (existingByNumber) {
+      return {
+        success: false,
+        error: "This number is already registered in the system for another tenant.",
+      };
+    }
+
+    // 5. Perform the transfer on Twilio (in-place, PN SID preserved)
+    const transferred = await transferPhoneNumberToSubaccount(
+      twilioMaster.accountSid,
+      masterAuth,
+      pnSid,
+      tenantCreds.accountSid,
+      {
+        voiceUrl: `${appUrl}/api/twilio/voice`,
+        smsUrl: `${appUrl}/api/twilio/sms`,
+        statusCallbackUrl: `${appUrl}/api/twilio/status`,
+      }
+    );
+
+    // 6. Insert into Convex phoneNumbers — passes the PN SID format guard
+    await convex.mutation(api.phoneNumbers.create, {
+      organizationId,
+      phoneNumber: transferred.phoneNumber,
+      twilioSid: transferred.sid,
+      friendlyName: transferred.friendlyName || "Main Line",
+      type: "main",
+      routingType: "ring_all",
+      voicemailEnabled: false,
+      isActive: true,
+      purchasedAt: Date.now(),
+      capabilities: { voice: true, sms: true, mms: false },
+    });
+
+    return {
+      success: true,
+      phoneNumber: transferred.phoneNumber,
+      twilioSid: transferred.sid,
+    };
+  } catch (error: any) {
+    console.error("Failed to transfer number from master:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to transfer number",
     };
   }
 }

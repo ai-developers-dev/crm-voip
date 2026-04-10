@@ -235,3 +235,72 @@ export async function releasePhoneNumber(
     throw new Error(`Failed to release number: ${res.status}`);
   }
 }
+
+/**
+ * Look up a phone number on the master account by its E.164 number.
+ * Used when an admin pastes a human-readable number and we need the PN SID.
+ * Returns null if the number is not found on the master account.
+ */
+export async function lookupNumberOnMaster(
+  masterSid: string,
+  masterAuth: string,
+  phoneNumber: string
+): Promise<{ sid: string; phoneNumber: string; friendlyName: string } | null> {
+  const params = new URLSearchParams({ PhoneNumber: phoneNumber });
+  const auth = Buffer.from(`${masterSid}:${masterAuth}`).toString("base64");
+  const res = await fetch(
+    `${TWILIO_API_BASE}/Accounts/${masterSid}/IncomingPhoneNumbers.json?${params}`,
+    { headers: { Authorization: `Basic ${auth}` } }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to look up number: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const list = (data.incoming_phone_numbers || []) as Array<Record<string, unknown>>;
+  if (list.length === 0) return null;
+
+  const first = list[0];
+  return {
+    sid: first.sid as string,
+    phoneNumber: first.phone_number as string,
+    friendlyName: (first.friendly_name as string) || "",
+  };
+}
+
+/**
+ * Transfer an IncomingPhoneNumber from the master account into a subaccount
+ * using Twilio's in-place reassign. The PN SID does not change.
+ *
+ * Also updates voice/SMS/status webhook URLs in the same call so the number
+ * points at the platform's webhook routes after the transfer.
+ */
+export async function transferPhoneNumberToSubaccount(
+  masterSid: string,
+  masterAuth: string,
+  phoneNumberSid: string,
+  targetSubaccountSid: string,
+  webhooks: { voiceUrl: string; smsUrl: string; statusCallbackUrl: string }
+): Promise<{ sid: string; phoneNumber: string; friendlyName: string }> {
+  const result = await twilioFetch<Record<string, unknown>>(
+    masterSid,
+    masterAuth,
+    "POST",
+    `/Accounts/${masterSid}/IncomingPhoneNumbers/${phoneNumberSid}.json`,
+    {
+      AccountSid: targetSubaccountSid,
+      VoiceUrl: webhooks.voiceUrl,
+      VoiceMethod: "POST",
+      SmsUrl: webhooks.smsUrl,
+      SmsMethod: "POST",
+      StatusCallback: webhooks.statusCallbackUrl,
+      StatusCallbackMethod: "POST",
+    }
+  );
+  return {
+    sid: result.sid as string,
+    phoneNumber: result.phone_number as string,
+    friendlyName: (result.friendly_name as string) || "",
+  };
+}

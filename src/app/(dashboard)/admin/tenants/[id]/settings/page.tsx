@@ -33,7 +33,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { updateTenant, UpdateTenantData, addUserToOrganization, removeUserFromOrganization, provisionTenantTwilio } from "../../../actions";
+import { updateTenant, UpdateTenantData, addUserToOrganization, removeUserFromOrganization, provisionTenantTwilio, transferNumberFromMaster } from "../../../actions";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 import { SalesGoalsManager } from "@/components/settings/sales-goals-manager";
 import { ImageUpload } from "@/components/settings/image-upload";
@@ -122,6 +122,43 @@ export default function TenantSettingsPage() {
       setProvisionError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
       setIsProvisioning(false);
+    }
+  };
+
+  // Transfer existing number from master account
+  const [transferInput, setTransferInput] = useState("");
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferSuccess, setTransferSuccess] = useState<string | null>(null);
+
+  const handleTransferNumber = async () => {
+    if (!tenant?._id) return;
+    const trimmed = transferInput.trim();
+    if (!trimmed) return;
+
+    // Client-side format check before the round trip
+    const pnSidRegex = /^PN[a-f0-9]{32}$/i;
+    const phoneRegex = /^\+?\d{10,15}$/;
+    if (!pnSidRegex.test(trimmed) && !phoneRegex.test(trimmed)) {
+      setTransferError("Enter a phone number (e.g., +18556966105) or a Twilio PN SID.");
+      return;
+    }
+
+    setIsTransferring(true);
+    setTransferError(null);
+    setTransferSuccess(null);
+    try {
+      const result = await transferNumberFromMaster(tenant._id, trimmed);
+      if (result.success) {
+        setTransferSuccess(`Transferred ${result.phoneNumber} to ${tenant.name}.`);
+        setTransferInput("");
+      } else {
+        setTransferError(result.error || "Failed to transfer number");
+      }
+    } catch (err) {
+      setTransferError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -475,6 +512,60 @@ export default function TenantSettingsPage() {
                   <CheckCircle className="h-4 w-4 text-emerald-500" />
                   <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Phone system active — auto-provisioned</p>
                 </div>
+
+                {masterTwilioConfigured && (
+                  <div className="rounded-xl border bg-muted/30 p-4 mb-4 space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold">Transfer Existing Number From Master</p>
+                      <p className="text-xs text-on-surface-variant mt-1">
+                        Have a number on your master account? Transfer it in place to this tenant&apos;s subaccount. The same Twilio number keeps its SID and becomes tenant-owned.
+                      </p>
+                    </div>
+
+                    {transferError && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">{transferError}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {transferSuccess && (
+                      <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle className="h-4 w-4" />
+                        <AlertDescription className="text-xs">{transferSuccess}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="+18556966105 or PN SID"
+                        value={transferInput}
+                        onChange={(e) => {
+                          setTransferInput(e.target.value);
+                          setTransferError(null);
+                          setTransferSuccess(null);
+                        }}
+                        disabled={isTransferring}
+                        className="h-9 text-sm font-mono"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleTransferNumber}
+                        disabled={!transferInput.trim() || isTransferring}
+                      >
+                        {isTransferring ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Transferring...
+                          </>
+                        ) : (
+                          `Transfer to ${tenant.name}`
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {tenant?._id && <PhoneNumbersManager organizationId={tenant._id} />}
               </>
             ) : twilioConfigured ? (
