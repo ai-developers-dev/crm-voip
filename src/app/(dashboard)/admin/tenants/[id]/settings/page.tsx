@@ -28,12 +28,12 @@ import {
 import {
   Phone, Users, Settings, CheckCircle, XCircle, Loader2,
   ArrowLeft, Eye, Building2, Pencil, AlertCircle, Mail, Unplug, Trash2, Plus, Briefcase,
-  Music, ImageIcon, UserPlus, MoreHorizontal, Tag, Workflow, MessageSquare
+  Music, ImageIcon, UserPlus, MoreHorizontal, Tag, Workflow, MessageSquare, Zap
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { updateTenant, UpdateTenantData, addUserToOrganization, removeUserFromOrganization } from "../../../actions";
+import { updateTenant, UpdateTenantData, addUserToOrganization, removeUserFromOrganization, provisionTenantTwilio } from "../../../actions";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 import { SalesGoalsManager } from "@/components/settings/sales-goals-manager";
 import { ImageUpload } from "@/components/settings/image-upload";
@@ -63,6 +63,14 @@ export default function TenantSettingsPage() {
     api.organizations.getById,
     tenantId ? { organizationId: tenantId as Id<"organizations"> } : "skip"
   );
+
+  // Platform org (to check if master Twilio is configured)
+  const platformOrg = useQuery(api.organizations.getPlatformOrg);
+  const masterTwilioConfigured = !!platformOrg?.settings?.twilioMaster?.isConfigured;
+
+  // Auto-provision state
+  const [isProvisioning, setIsProvisioning] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
 
   // Get users count
   const users = useQuery(
@@ -99,6 +107,23 @@ export default function TenantSettingsPage() {
   // Phone System & Carriers dialog state
   const [isTwilioDialogOpen, setIsTwilioDialogOpen] = useState(false);
   const [isCarriersDialogOpen, setIsCarriersDialogOpen] = useState(false);
+
+  const handleAutoProvision = async () => {
+    if (!tenant?._id) return;
+    setIsProvisioning(true);
+    setProvisionError(null);
+    try {
+      const result = await provisionTenantTwilio(tenant._id);
+      if (!result.success) {
+        setProvisionError(result.error || "Failed to provision Twilio subaccount");
+      }
+      // Success: the query will auto-refresh and the UI will show PhoneNumbersManager
+    } catch (err) {
+      setProvisionError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setIsProvisioning(false);
+    }
+  };
 
   // Logo upload
   const logoUrl = useQuery(
@@ -464,10 +489,71 @@ export default function TenantSettingsPage() {
             ) : (
               <>
                 <p className="text-sm text-on-surface-variant mb-3">Phone system not set up for this tenant.</p>
-                <Button variant="outline" size="sm" className="w-full" onClick={() => setIsTwilioDialogOpen(true)}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Set Up Manually
-                </Button>
+
+                {provisionError && (
+                  <Alert variant="destructive" className="mb-3">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">{provisionError}</AlertDescription>
+                  </Alert>
+                )}
+
+                {masterTwilioConfigured ? (
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={handleAutoProvision}
+                      disabled={isProvisioning}
+                    >
+                      {isProvisioning ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Provisioning Twilio subaccount...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-4 w-4" />
+                          Auto-Provision Twilio (Recommended)
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-on-surface-variant text-center">
+                      Creates a Twilio subaccount under the platform master. The tenant can then buy phone numbers directly from their dashboard.
+                    </p>
+                    <div className="flex items-center gap-2 py-2">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-on-surface-variant">or</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setIsTwilioDialogOpen(true)}
+                      disabled={isProvisioning}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Set Up Manually (Bring Your Own Twilio)
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Alert className="mb-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        To auto-provision subaccounts, configure master Twilio credentials in{" "}
+                        <Link href="/admin/settings" className="underline font-medium">
+                          Platform Settings
+                        </Link>
+                        .
+                      </AlertDescription>
+                    </Alert>
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => setIsTwilioDialogOpen(true)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Set Up Manually
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </SettingsRow>

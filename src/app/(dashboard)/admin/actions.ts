@@ -519,3 +519,89 @@ export async function deleteTenantFromClerk(organizationId: Id<"organizations">)
     };
   }
 }
+
+/**
+ * Auto-provision a Twilio subaccount for an existing tenant that was created
+ * before the master Twilio credentials were configured.
+ *
+ * Creates: subaccount + API key + TwiML app under the platform master,
+ * encrypts the subaccount auth token and API secret, and stores them in Convex.
+ *
+ * Platform super_admin only.
+ */
+export async function provisionTenantTwilio(organizationId: Id<"organizations">) {
+  try {
+    await requirePlatformAdmin();
+    const convex = await getConvexClient();
+
+    // 1. Verify tenant exists and isn't already provisioned
+    const tenant = await convex.query(api.organizations.getById, { organizationId });
+    if (!tenant) {
+      return { success: false, error: "Tenant not found" };
+    }
+    if (tenant.settings?.twilioCredentials?.isConfigured) {
+      return {
+        success: false,
+        error: "Tenant already has Twilio credentials configured. Remove them first if you want to re-provision.",
+      };
+    }
+
+    // 2. Load platform master Twilio credentials
+    const platformOrg = await convex.query(api.organizations.getPlatformOrg);
+    const twilioMaster = platformOrg?.settings?.twilioMaster;
+    if (!twilioMaster?.isConfigured || !platformOrg) {
+      return {
+        success: false,
+        error: "Platform master Twilio credentials are not configured. Set them up in Platform Settings first.",
+      };
+    }
+
+    // 3. Decrypt master auth token and run provisioning
+    const masterAuth = decrypt(twilioMaster.authToken, platformOrg._id);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    if (!appUrl) {
+      return {
+        success: false,
+        error: "NEXT_PUBLIC_APP_URL environment variable is not set. Required for Twilio webhook callbacks.",
+      };
+    }
+
+    const twilioResult = await provisionTenant(
+      twilioMaster.accountSid,
+      masterAuth,
+      tenant.name,
+      appUrl
+    );
+
+    // 4. Encrypt subaccount credentials before storing
+    const encryptedAuth = encrypt(twilioResult.authToken, organizationId);
+    const encryptedSecret = twilioResult.apiSecret
+      ? encrypt(twilioResult.apiSecret, organizationId)
+      : undefined;
+
+    await convex.mutation(api.organizations.saveAutoProvisionedCredentials, {
+      organizationId,
+      twilioCredentials: {
+        accountSid: twilioResult.accountSid,
+        authToken: encryptedAuth,
+        apiKey: twilioResult.apiKey,
+        apiSecret: encryptedSecret,
+        twimlAppSid: twilioResult.twimlAppSid,
+        isConfigured: true,
+        isAutoProvisioned: true,
+      },
+    });
+
+    return {
+      success: true,
+      subaccountSid: twilioResult.accountSid,
+      message: `Twilio subaccount provisioned for ${tenant.name}`,
+    };
+  } catch (error: any) {
+    console.error("Failed to provision tenant Twilio:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to provision Twilio subaccount",
+    };
+  }
+}
