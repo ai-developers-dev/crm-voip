@@ -47,6 +47,14 @@ export async function POST(request: NextRequest) {
     }
     const { client, org: organization } = result;
 
+    // Cross-tenant guard: request organizationId must match authenticated user's org
+    if (organization._id !== organizationId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: organization mismatch" },
+        { status: 403 }
+      );
+    }
+
     // ── Pre-send opt-out check ──────────────────────────────────────
     if (contactId) {
       const contact = await convex.query(api.contacts.getById, {

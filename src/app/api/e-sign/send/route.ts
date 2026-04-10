@@ -19,8 +19,8 @@ const APP_URL =
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const { userId: clerkUserId, orgId: clerkOrgId } = await auth();
+    if (!clerkUserId || !clerkOrgId) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
@@ -40,12 +40,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Cross-tenant guard: Clerk org must match request organizationId
+    const callerOrg = await convex.query(api.organizations.getCurrent, { clerkOrgId });
+    if (!callerOrg || callerOrg._id !== organizationId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: organization mismatch" },
+        { status: 403 }
+      );
+    }
+
     // Fetch the signature request
     const sigRequest = await convex.query(api.signatureRequests.getById, {
       id: signatureRequestId as Id<"signatureRequests">,
     });
 
-    if (!sigRequest) {
+    if (!sigRequest || sigRequest.organizationId !== organizationId) {
       return NextResponse.json(
         { success: false, error: "Signature request not found" },
         { status: 404 }

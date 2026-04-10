@@ -132,8 +132,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, tokensUsed });
   } catch (error: any) {
-    console.error("AI SMS error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[sms/ai] Processing failed:", error);
+    return NextResponse.json(
+      { success: false, error: "AI processing failed" },
+      { status: 500 }
+    );
   }
 }
 

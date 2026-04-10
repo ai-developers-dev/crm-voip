@@ -555,7 +555,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err: any) {
-    console.error("[field-mapper]", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("[portal-test]", err);
+    return NextResponse.json(
+      { error: "Portal automation failed", code: "PORTAL_ERROR" },
+      { status: 500 }
+    );
   }
 }

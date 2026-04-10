@@ -63,29 +63,40 @@ const phoneNumberValidator = v.object({
 // ======================
 
 // Get all contacts for an organization (sorted by name)
+// Safety cap to prevent OOM on orgs with tens of thousands of contacts.
+// Most UIs render a few hundred; anything above this should use pagination.
+const CONTACTS_QUERY_HARD_CAP = 2000;
+
 export const getByOrganization = query({
   args: {
     organizationId: v.id("organizations"),
     // Optional: filter to only contacts assigned to this user (for agent role)
     assignedToUserId: v.optional(v.id("users")),
+    // Optional: override the default fetch cap (bounded by CONTACTS_QUERY_HARD_CAP)
+    limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
+    const cap = Math.min(args.limit ?? CONTACTS_QUERY_HARD_CAP, CONTACTS_QUERY_HARD_CAP);
+
     let contacts;
     if (args.assignedToUserId) {
-      // Agent view: single query, filter to assigned + unassigned contacts
+      // Agent view: single indexed query, bounded by cap, then filter to
+      // assigned-to-me or unassigned contacts in memory.
       const allOrgContacts = await ctx.db
         .query("contacts")
         .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-        .collect();
+        .take(cap);
       contacts = allOrgContacts.filter(
         (c) => c.assignedUserId === args.assignedToUserId || !c.assignedUserId
       );
     } else {
-      // Admin/supervisor view: all contacts
+      // Admin/supervisor view: all contacts up to the cap
       contacts = await ctx.db
         .query("contacts")
         .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-        .collect();
+        .take(cap);
     }
 
     // Sort by firstName, then lastName

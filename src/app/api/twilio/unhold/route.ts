@@ -32,8 +32,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📞 UNHOLD CALL - Starting unhold flow for ${twilioCallSid}`);
-
     // Get Twilio credentials
     let client;
     let org;
@@ -53,7 +51,6 @@ export async function POST(request: NextRequest) {
     let call;
     try {
       call = await client.calls(twilioCallSid).fetch();
-      console.log(`Call ${twilioCallSid} status: ${call.status}`);
     } catch (twilioError) {
       console.error("Failed to fetch call:", twilioError);
       return NextResponse.json(
@@ -81,7 +78,6 @@ export async function POST(request: NextRequest) {
 
         if (conferences.length > 0) {
           const conference = conferences[0];
-          console.log(`Found conference ${conferenceName} (SID: ${conference.sid})`);
 
           // Get participants
           const participants = await client
@@ -89,12 +85,9 @@ export async function POST(request: NextRequest) {
             .participants
             .list();
 
-          console.log(`Conference has ${participants.length} participants`);
-
           // Redirect each participant (should be 1 - the held caller) to dial the agent
           // Use the call SID directly to update the call with TwiML
           for (const participant of participants) {
-            console.log(`Redirecting participant ${participant.callSid} to agent ${targetIdentity}`);
 
             // Build TwiML to dial the agent's browser client
             const twiml = `
@@ -134,8 +127,6 @@ export async function POST(request: NextRequest) {
 
       await client.calls(twilioCallSid).update({ twiml });
 
-      console.log(`✅ Call ${twilioCallSid} redirected to agent ${targetIdentity}`);
-
       return NextResponse.json({
         success: true,
         message: "Call redirected to agent",
@@ -149,7 +140,7 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error("❌ Error unholding call:", error);
+    console.error("[unhold] Error:", error);
     return NextResponse.json(
       { error: "Failed to unhold call", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

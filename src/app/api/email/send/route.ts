@@ -14,8 +14,8 @@ const nylas = new Nylas({
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId, orgId: clerkOrgId } = await auth();
+    if (!userId || !clerkOrgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -41,12 +41,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Cross-tenant guard: Clerk org must match request organizationId
+    const callerOrg = await convex.query(api.organizations.getCurrent, { clerkOrgId });
+    if (!callerOrg || callerOrg._id !== organizationId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: organization mismatch" },
+        { status: 403 }
+      );
+    }
+
     // Get the email account to use as "from"
     const emailAccount = await convex.query(api.emailAccounts.getByNylasGrant, {
       nylasGrantId,
     });
 
-    if (!emailAccount || emailAccount.status !== "active") {
+    if (!emailAccount || emailAccount.status !== "active" || emailAccount.organizationId !== organizationId) {
       return NextResponse.json(
         { success: false, error: "Email account not found or disconnected" },
         { status: 404 }

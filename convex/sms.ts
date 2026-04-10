@@ -338,6 +338,9 @@ export const updateStatus = mutation({
     errorMessage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Called from webhook-validated route (/api/twilio/sms-status);
+    // skip member check — no authenticated user context available.
+
     const message = await ctx.db
       .query("messages")
       .withIndex("by_twilio_sid", (q) => q.eq("twilioMessageSid", args.twilioMessageSid))
@@ -498,6 +501,9 @@ export const handleOptOut = mutation({
     organizationId: v.id("organizations"),
   },
   handler: async (ctx, args) => {
+    // Called from webhook-validated routes (/api/twilio/sms, /api/twilio/sms-status);
+    // skip member check — no authenticated user context available.
+
     // Normalize phone number (strip non-digits, take last 10)
     const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
 
@@ -529,6 +535,9 @@ export const handleOptIn = mutation({
     organizationId: v.id("organizations"),
   },
   handler: async (ctx, args) => {
+    // Called from webhook-validated routes (/api/twilio/sms, /api/twilio/sms-status);
+    // skip member check — no authenticated user context available.
+
     const normalized = args.phoneNumber.replace(/\D/g, "").slice(-10);
 
     const phoneLookup = await ctx.db

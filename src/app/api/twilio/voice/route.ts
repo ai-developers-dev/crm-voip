@@ -33,8 +33,6 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    console.log(`Voice webhook: ${callSid} from ${from} to ${to} (${direction})`);
-
     const twiml = new VoiceResponse();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
@@ -92,15 +90,11 @@ export async function POST(request: NextRequest) {
     } else {
       // Incoming call - OPTIMIZED: Single HTTP call for phone lookup + available agents
       // This eliminates the 2-3 ring delay caused by sequential HTTP calls to Convex
-      console.log(`[PERF] Starting incoming call processing for: ${to}`);
-      const startTime = Date.now();
 
       // Single combined query - replaces sequential lookupByNumber + getAvailableAgents
       const callData = await convex.query(api.calls.getIncomingCallData, {
         phoneNumber: to,
       });
-
-      console.log(`[PERF] getIncomingCallData took ${Date.now() - startTime}ms`);
 
       if (!callData.found) {
         console.error(`Phone number not configured: ${to}`);
@@ -114,15 +108,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log(`Found organization: ${callData.organizationId}, ${callData.agents.length} available agents`);
-
       // Check if this phone number has an AI agent assigned
       if (callData.aiAgentId) {
         try {
           const retellApiKey = await getPlatformRetellApiKey(convex);
           const agent = await convex.query(api.retellAgents.getById, { id: callData.aiAgentId as Id<"retellAgents"> });
           if (agent && agent.isActive) {
-            console.log(`[AI ROUTING] Routing to AI agent: ${agent.name} (${agent.retellAgentId})`);
             const registration = await registerPhoneCall(retellApiKey, {
               agent_id: agent.retellAgentId,
               metadata: { organizationId: callData.organizationId, callerNumber: from },
@@ -172,19 +163,14 @@ export async function POST(request: NextRequest) {
       if (routingType === "direct" && assignedUserId) {
         // Direct line: only ring the assigned user
         agentsToDial = callData.agents.filter((a) => a._id === assignedUserId);
-        console.log(`[ROUTING] Direct line → ${assignedUserId}, ${agentsToDial.length} matched`);
       } else if (routingType === "ring_group" && ringGroupUserIds && ringGroupUserIds.length > 0) {
         // Ring group: only ring users in the group
         const groupSet = new Set(ringGroupUserIds as string[]);
         agentsToDial = callData.agents.filter((a) => groupSet.has(a._id));
-        console.log(`[ROUTING] Ring group (${ringGroupUserIds.length} members) → ${agentsToDial.length} available`);
-      } else {
-        console.log(`[ROUTING] Ring all → ${agentsToDial.length} agents`);
       }
 
       if (agentsToDial.length === 0) {
         // No agents available for this routing — go to voicemail
-        console.log("No agents available for this routing — sending to voicemail");
         twiml.say(
           { voice: "alice" },
           routingType === "direct"
@@ -215,17 +201,11 @@ export async function POST(request: NextRequest) {
       });
 
       for (const agent of agentsToDial) {
-        console.log(`Adding agent to dial: ${agent.name} (${agent.twilioIdentity})`);
         dial.client(agent.twilioIdentity);
       }
-
-      console.log(`[PERF] Total webhook processing: ${Date.now() - startTime}ms`);
     }
 
-    const twimlString = twiml.toString();
-    console.log("Returning TwiML:", twimlString.substring(0, 200) + "...");
-
-    return new NextResponse(twimlString, {
+    return new NextResponse(twiml.toString(), {
       headers: { "Content-Type": "text/xml" },
     });
   } catch (error) {

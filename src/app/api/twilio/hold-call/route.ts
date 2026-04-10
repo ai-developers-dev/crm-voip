@@ -42,8 +42,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`⏸️ HOLD CALL - Starting hold flow for ${twilioCallSid}`);
-
     // Get Twilio credentials
     let result;
     try {
@@ -62,12 +60,6 @@ export async function POST(request: NextRequest) {
 
     try {
       browserCall = await client.calls(twilioCallSid).fetch();
-      console.log(`Browser call details:`, {
-        sid: browserCall.sid,
-        parentCallSid: browserCall.parentCallSid,
-        direction: browserCall.direction,
-        status: browserCall.status,
-      });
     } catch (twilioError) {
       console.error("Failed to fetch browser call:", twilioError);
       return NextResponse.json(
@@ -80,17 +72,14 @@ export async function POST(request: NextRequest) {
     // For inbound calls, we need the parent call
     if (browserCall.parentCallSid) {
       pstnCallSid = browserCall.parentCallSid;
-      console.log(`Using parent PSTN call: ${pstnCallSid}`);
     } else {
       pstnCallSid = twilioCallSid;
-      console.log(`No parent call - using browser call SID as PSTN: ${pstnCallSid}`);
     }
 
     // Verify the call is still active
     let pstnCall;
     try {
       pstnCall = await client.calls(pstnCallSid).fetch();
-      console.log(`PSTN call status: ${pstnCall.status}`);
     } catch (twilioError) {
       console.error("Failed to fetch PSTN call:", twilioError);
       return NextResponse.json(
@@ -124,10 +113,8 @@ export async function POST(request: NextRequest) {
     if (customAudioUrl) {
       const twimlContent = `<Response><Play loop="0">${customAudioUrl}</Play></Response>`;
       holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
-      console.log(`Using custom hold music`);
     } else {
       holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
-      console.log(`Using default hold music`);
     }
 
     // STEP 4: Redirect the PSTN call to a hold conference
@@ -146,7 +133,6 @@ export async function POST(request: NextRequest) {
 
     try {
       await client.calls(pstnCallSid).update({ twiml });
-      console.log(`✅ Call ${pstnCallSid} placed on hold in conference: ${holdConferenceName}`);
     } catch (updateError) {
       console.error("Failed to redirect call to hold:", updateError);
       return NextResponse.json(
@@ -173,7 +159,7 @@ export async function POST(request: NextRequest) {
       conferenceName: holdConferenceName,
     });
   } catch (error) {
-    console.error("❌ Error holding call:", error);
+    console.error("[hold-call] Error:", error);
     return NextResponse.json(
       { error: "Failed to hold call", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

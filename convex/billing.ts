@@ -8,6 +8,9 @@ export const updateStripeCustomer = mutation({
     stripeCustomerId: v.string(),
   },
   handler: async (ctx, args) => {
+    // Called from server-side routes (/api/stripe/checkout, /admin/actions) using the
+    // server Convex client without a user JWT — skip admin check, route-level Clerk
+    // auth guards access instead.
     const org = await ctx.db.get(args.organizationId);
     if (!org) throw new Error("Organization not found");
 
@@ -43,6 +46,9 @@ export const updateSubscription = mutation({
     trialEndsAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Called from webhook-validated route (/api/stripe/webhook) using the server Convex
+    // client without a user JWT — skip admin check, Stripe signature validation guards
+    // the route instead.
     const org = await ctx.db.get(args.organizationId);
     if (!org) throw new Error("Organization not found");
 

@@ -30,13 +30,6 @@ export async function POST(request: NextRequest) {
     const conferenceSid = formData.get("ConferenceSid") as string;
     const callSid = formData.get("CallSid") as string;
 
-    console.log(`🅿️ PARKING STATUS CALLBACK:`, {
-      event: statusCallbackEvent,
-      conference: conferenceName,
-      conferenceSid,
-      callSid,
-    });
-
     // Handle participant-leave or conference-end events
     if (
       statusCallbackEvent === "participant-leave" ||
@@ -47,13 +40,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Missing conference name" }, { status: 400 });
       }
 
-      console.log(`🅿️ Cleaning up parking slot for conference: ${conferenceName}`);
-
       try {
         await convex.mutation(api.parkingLot.clearByConference, {
           conferenceName,
         });
-        console.log(`✅ Parking slot cleared for conference: ${conferenceName}`);
       } catch (convexError) {
         console.error("Failed to clear parking slot:", convexError);
       }
@@ -61,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("❌ Error handling parking status callback:", error);
+    console.error("[parking-status] Error handling callback:", error);
     return NextResponse.json(
       { error: "Failed to process callback" },
       { status: 500 }

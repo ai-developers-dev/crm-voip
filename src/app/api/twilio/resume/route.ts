@@ -35,8 +35,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📞 UNPARKING call ${twilioCallSid} to ${targetIdentity} (conference: ${conferenceName})`);
-
     // Get Twilio credentials
     let client;
     let org;
@@ -77,7 +75,6 @@ export async function POST(request: NextRequest) {
       }
 
       const conference = conferences[0];
-      console.log(`Found conference: ${conference.sid}`);
 
       // Step 2: Add the target agent to the conference
       // This dials the agent and connects them to the parked caller
@@ -95,14 +92,11 @@ export async function POST(request: NextRequest) {
           endConferenceOnExit: false,
         });
 
-      console.log(`✅ Agent ${targetIdentity} added to conference ${conference.sid} - call will ring on their device`);
-
       // Clear the parking slot immediately (don't wait for conference callback)
       try {
         await convex.mutation(api.parkingLot.clearByConference, {
           conferenceName,
         });
-        console.log(`✅ Parking slot cleared for conference: ${conferenceName}`);
       } catch (clearError) {
         // Non-fatal - the conference callback will also try to clear it
         console.warn("Could not clear parking slot immediately:", clearError);

@@ -16,8 +16,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VoIP CRM",
+  title: {
+    default: "VoIP CRM",
+    template: "%s | VoIP CRM",
+  },
   description: "Multi-tenant VoIP CRM with real-time calling dashboard",
+  icons: {
+    icon: [
+      { url: "/globe.svg", type: "image/svg+xml" },
+    ],
+  },
+  openGraph: {
+    title: "VoIP CRM",
+    description: "Multi-tenant VoIP CRM with real-time calling dashboard",
+    type: "website",
+    siteName: "VoIP CRM",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

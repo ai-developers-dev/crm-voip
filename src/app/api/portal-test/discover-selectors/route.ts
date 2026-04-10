@@ -357,8 +357,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json(results);
   } catch (err: any) {
-    console.error("[discover-selectors] Error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("[portal-test]", err);
+    return NextResponse.json(
+      { error: "Portal automation failed", code: "PORTAL_ERROR" },
+      { status: 500 }
+    );
   }
 }
 

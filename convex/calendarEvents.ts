@@ -101,6 +101,9 @@ export const upsert = mutation({
     userId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
+    // Called from webhook-validated routes (/api/email/calendar-webhook, /api/email/calendar-sync);
+    // skip member check — no authenticated user context available.
+
     const existing = await ctx.db
       .query("calendarEvents")
       .withIndex("by_nylas_event", (q) => q.eq("nylasEventId", args.nylasEventId))
@@ -126,6 +129,9 @@ export const upsert = mutation({
 export const remove = mutation({
   args: { nylasEventId: v.string() },
   handler: async (ctx, args) => {
+    // Called from webhook-validated route (/api/email/calendar-webhook);
+    // skip member check — no authenticated user context available.
+
     const existing = await ctx.db
       .query("calendarEvents")
       .withIndex("by_nylas_event", (q) => q.eq("nylasEventId", args.nylasEventId))

@@ -4,9 +4,14 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/sign/(.*)",          // E-signature public signing pages
-  "/api/twilio/(.*)",    // Twilio webhooks must be public
-  "/api/e-sign/(.*)",    // E-sign API (has its own auth check)
+  "/sign/(.*)",              // E-signature public signing pages
+  "/api/twilio/(.*)",        // Twilio webhooks (signature validated)
+  "/api/e-sign/(.*)",        // E-sign API (has its own auth check)
+  "/api/health",             // Health check for monitoring/uptime
+  "/api/retell/webhook",     // Retell webhook (HMAC signature validated)
+  "/api/email/webhook",      // Nylas webhook (HMAC signature validated)
+  "/api/email/calendar-webhook", // Nylas calendar webhook (HMAC signature validated)
+  "/api/stripe/webhook",     // Stripe webhook (signature validated)
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

@@ -143,6 +143,9 @@ export const create = mutation({
     workflowExecutionId: v.optional(v.id("workflowExecutions")),
   },
   handler: async (ctx, args) => {
+    // Called from webhook-validated routes (/api/retell/call, /api/twilio/voice,
+    // /api/twilio/dial-status) using the server Convex client without a user JWT —
+    // skip member check, webhook signature validation guards these routes instead.
     return await ctx.db.insert("aiCallHistory", {
       ...args,
       createdAt: Date.now(),

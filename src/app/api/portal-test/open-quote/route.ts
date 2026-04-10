@@ -102,6 +102,10 @@ export async function POST(req: Request) {
       url: page.url(),
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "Failed to open quote" }, { status: 500 });
+    console.error("[portal-test]", err);
+    return NextResponse.json(
+      { error: "Portal automation failed", code: "PORTAL_ERROR" },
+      { status: 500 }
+    );
   }
 }

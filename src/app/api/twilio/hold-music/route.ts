@@ -17,12 +17,9 @@ function createTwiML(audioUrl: string): string {
  * This is called by Twilio as the conference waitUrl.
  */
 export async function GET(request: NextRequest) {
-  console.log("🎵 hold-music GET called");
-
   try {
     const url = new URL(request.url);
     const clerkOrgId = url.searchParams.get("clerkOrgId");
-    console.log(`🎵 clerkOrgId: ${clerkOrgId}`);
 
     let audioUrl = DEFAULT_HOLD_MUSIC;
 
@@ -33,19 +30,17 @@ export async function GET(request: NextRequest) {
         });
         if (customUrl) {
           audioUrl = customUrl;
-          console.log(`🎵 Using custom audio`);
         }
       } catch (err) {
-        console.error("🎵 Error fetching custom hold music:", err);
+        console.error("[hold-music] Error fetching custom hold music:", err);
       }
     }
 
-    console.log(`🎵 Playing: ${audioUrl.substring(0, 60)}...`);
     return new NextResponse(createTwiML(audioUrl), {
       headers: { "Content-Type": "text/xml" },
     });
   } catch (err) {
-    console.error("🎵 hold-music error:", err);
+    console.error("[hold-music] Error:", err);
     return new NextResponse(createTwiML(DEFAULT_HOLD_MUSIC), {
       headers: { "Content-Type": "text/xml" },
     });
@@ -53,6 +48,5 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("🎵 hold-music POST called");
   return GET(request);
 }

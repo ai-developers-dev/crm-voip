@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { clerkClient, auth } from "@clerk/nextjs/server";
+import { convex } from "@/lib/convex/client";
+import { api } from "../../../../../convex/_generated/api";
 
 export async function POST(request: Request) {
   try {
@@ -7,6 +9,17 @@ export async function POST(request: Request) {
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify caller is a platform super_admin
+    const platformUser = await convex.query(api.platformUsers.getCurrent, {
+      clerkUserId: userId,
+    });
+    if (!platformUser || !platformUser.isActive || platformUser.role !== "super_admin") {
+      return NextResponse.json(
+        { error: "Forbidden — super_admin role required" },
+        { status: 403 }
+      );
     }
 
     const { orgName } = await request.json();

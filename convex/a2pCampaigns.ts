@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgMember } from "./lib/auth";
 
 // ============================================
 // QUERIES
@@ -60,6 +61,7 @@ export const create = mutation({
     approvedThroughput: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
     const now = Date.now();
     return await ctx.db.insert("a2pCampaigns", {
       ...args,
