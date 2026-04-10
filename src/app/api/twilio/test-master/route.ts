@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { convex } from "@/lib/convex/client";
 import { api } from "../../../../../convex/_generated/api";
+import { encrypt } from "@/lib/credentials/crypto";
 
 /**
  * Test master Twilio credentials by calling the Twilio Accounts API.
- * Verifies the SID format and that the credentials can authenticate.
+ * If `save: true` is passed, also encrypts the auth token and persists
+ * to the platform org's twilioMaster settings.
  * Platform super_admin only.
  */
 export async function POST(request: NextRequest) {
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { accountSid, authToken } = await request.json();
+    const { accountSid, authToken, save } = await request.json();
 
     if (!accountSid || !authToken) {
       return NextResponse.json(
@@ -99,12 +101,44 @@ export async function POST(request: NextRequest) {
 
     const accountData = await twilioResponse.json();
 
+    // If save=true, encrypt the auth token and persist to the platform org
+    if (save) {
+      const platformOrg = await convex.query(api.organizations.getPlatformOrg);
+      if (!platformOrg) {
+        return NextResponse.json(
+          { success: false, error: "Platform org not found" },
+          { status: 500 }
+        );
+      }
+
+      let encryptedAuthToken: string;
+      try {
+        encryptedAuthToken = encrypt(authToken, platformOrg._id);
+      } catch (err) {
+        console.error("[twilio/test-master] Encryption failed:", err);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "CREDENTIAL_ENCRYPTION_KEY is not configured on the server. Set it in Vercel environment variables.",
+          },
+          { status: 500 }
+        );
+      }
+
+      await convex.mutation(api.organizations.updateTwilioMaster, {
+        organizationId: platformOrg._id,
+        accountSid,
+        authToken: encryptedAuthToken,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       accountSid: accountData.sid,
       friendlyName: accountData.friendly_name,
       status: accountData.status,
       type: accountData.type,
+      saved: !!save,
     });
   } catch (err) {
     console.error("[twilio/test-master] Error:", err);

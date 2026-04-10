@@ -58,3 +58,23 @@ export function decrypt(encryptedString: string, orgId: string): string {
 
   return decrypted;
 }
+
+/**
+ * Check whether a string looks like an encrypted payload ("iv:ciphertext:tag").
+ * Used to support legacy plaintext credentials saved before encryption was wired up.
+ */
+export function isEncrypted(value: string): boolean {
+  return value.split(":").length === 3;
+}
+
+/**
+ * Best-effort decrypt: if the value is in the encrypted format, decrypt it.
+ * Otherwise return the value as-is (legacy plaintext support).
+ * Use this only for values that predate the encryption rollout.
+ */
+export function decryptLegacy(value: string, orgId: string): string {
+  if (!isEncrypted(value)) {
+    return value;
+  }
+  return decrypt(value, orgId);
+}

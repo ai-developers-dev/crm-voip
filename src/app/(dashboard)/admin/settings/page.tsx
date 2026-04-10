@@ -61,44 +61,37 @@ export default function AdminSettingsPage() {
   const [savingTwilioMaster, setSavingTwilioMaster] = useState(false);
   const [twilioMasterError, setTwilioMasterError] = useState<string | null>(null);
   const [twilioMasterSuccess, setTwilioMasterSuccess] = useState<string | null>(null);
-  const updateTwilioMaster = useMutation(api.organizations.updateTwilioMaster);
 
   // Client-side SID format validation (Twilio SIDs start with "AC" + 32 hex chars)
   const sidFormatValid = !twilioMasterSid.trim() || /^AC[a-f0-9]{32}$/i.test(twilioMasterSid.trim());
   const authFormatValid = !twilioMasterAuth.trim() || /^[a-f0-9]{32}$/i.test(twilioMasterAuth.trim());
 
   const handleSaveTwilioMaster = async () => {
-    if (!platformOrg?._id || !twilioMasterSid.trim() || !twilioMasterAuth.trim()) return;
+    if (!twilioMasterSid.trim() || !twilioMasterAuth.trim()) return;
     setSavingTwilioMaster(true);
     setTwilioMasterError(null);
     setTwilioMasterSuccess(null);
 
     try {
-      // Test credentials against Twilio's API before saving
-      const testRes = await fetch("/api/twilio/test-master", {
+      // Verify credentials with Twilio AND save (encrypted) in one server round-trip
+      const res = await fetch("/api/twilio/test-master", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           accountSid: twilioMasterSid.trim(),
           authToken: twilioMasterAuth.trim(),
+          save: true,
         }),
       });
-      const testResult = await testRes.json();
+      const result = await res.json();
 
-      if (!testRes.ok || !testResult.success) {
-        setTwilioMasterError(testResult.error || "Failed to verify credentials");
+      if (!res.ok || !result.success) {
+        setTwilioMasterError(result.error || "Failed to save credentials");
         return;
       }
 
-      // Credentials verified — save to Convex
-      await updateTwilioMaster({
-        organizationId: platformOrg._id,
-        accountSid: twilioMasterSid.trim(),
-        authToken: twilioMasterAuth.trim(),
-      });
-
       setTwilioMasterSuccess(
-        `Connected to Twilio account: ${testResult.friendlyName || testResult.accountSid}`
+        `Connected to Twilio account: ${result.friendlyName || result.accountSid}`
       );
       setTwilioMasterSid("");
       setTwilioMasterAuth("");

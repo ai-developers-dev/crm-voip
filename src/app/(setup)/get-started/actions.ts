@@ -4,7 +4,7 @@ import { clerkClient, auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { provisionTenant } from "@/lib/twilio/provisioning";
-import { encrypt, decrypt } from "@/lib/credentials/crypto";
+import { encrypt, decryptLegacy } from "@/lib/credentials/crypto";
 
 async function getConvexClient() {
   const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -103,7 +103,7 @@ export async function createSelfServiceTenant(data: SelfServiceTenantData) {
       const platformOrg = await convex.query(api.organizations.getPlatformOrg);
       const twilioMaster = platformOrg?.settings?.twilioMaster;
       if (twilioMaster?.isConfigured && platformOrg) {
-        const masterAuth = decrypt(twilioMaster.authToken, platformOrg._id);
+        const masterAuth = decryptLegacy(twilioMaster.authToken, platformOrg._id);
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
         const twilioResult = await provisionTenant(

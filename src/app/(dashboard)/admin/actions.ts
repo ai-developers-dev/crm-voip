@@ -5,7 +5,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { provisionTenant } from "@/lib/twilio/provisioning";
-import { encrypt, decrypt } from "@/lib/credentials/crypto";
+import { encrypt, decryptLegacy } from "@/lib/credentials/crypto";
 import { getStripeClient } from "@/lib/stripe/client";
 
 async function getConvexClient() {
@@ -118,7 +118,7 @@ export async function createTenant(data: CreateTenantData) {
       const platformOrg = await convex.query(api.organizations.getPlatformOrg);
       const twilioMaster = platformOrg?.settings?.twilioMaster;
       if (twilioMaster?.isConfigured && platformOrg) {
-        const masterAuth = decrypt(twilioMaster.authToken, platformOrg._id);
+        const masterAuth = decryptLegacy(twilioMaster.authToken, platformOrg._id);
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
         const twilioResult = await provisionTenant(
@@ -557,7 +557,7 @@ export async function provisionTenantTwilio(organizationId: Id<"organizations">)
     }
 
     // 3. Decrypt master auth token and run provisioning
-    const masterAuth = decrypt(twilioMaster.authToken, platformOrg._id);
+    const masterAuth = decryptLegacy(twilioMaster.authToken, platformOrg._id);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
     if (!appUrl) {
       return {
