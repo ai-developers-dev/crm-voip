@@ -59,21 +59,52 @@ export default function AdminSettingsPage() {
   const [twilioMasterSid, setTwilioMasterSid] = useState("");
   const [twilioMasterAuth, setTwilioMasterAuth] = useState("");
   const [savingTwilioMaster, setSavingTwilioMaster] = useState(false);
+  const [twilioMasterError, setTwilioMasterError] = useState<string | null>(null);
+  const [twilioMasterSuccess, setTwilioMasterSuccess] = useState<string | null>(null);
   const updateTwilioMaster = useMutation(api.organizations.updateTwilioMaster);
+
+  // Client-side SID format validation (Twilio SIDs start with "AC" + 32 hex chars)
+  const sidFormatValid = !twilioMasterSid.trim() || /^AC[a-f0-9]{32}$/i.test(twilioMasterSid.trim());
+  const authFormatValid = !twilioMasterAuth.trim() || /^[a-f0-9]{32}$/i.test(twilioMasterAuth.trim());
 
   const handleSaveTwilioMaster = async () => {
     if (!platformOrg?._id || !twilioMasterSid.trim() || !twilioMasterAuth.trim()) return;
     setSavingTwilioMaster(true);
+    setTwilioMasterError(null);
+    setTwilioMasterSuccess(null);
+
     try {
+      // Test credentials against Twilio's API before saving
+      const testRes = await fetch("/api/twilio/test-master", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountSid: twilioMasterSid.trim(),
+          authToken: twilioMasterAuth.trim(),
+        }),
+      });
+      const testResult = await testRes.json();
+
+      if (!testRes.ok || !testResult.success) {
+        setTwilioMasterError(testResult.error || "Failed to verify credentials");
+        return;
+      }
+
+      // Credentials verified — save to Convex
       await updateTwilioMaster({
         organizationId: platformOrg._id,
         accountSid: twilioMasterSid.trim(),
         authToken: twilioMasterAuth.trim(),
       });
+
+      setTwilioMasterSuccess(
+        `Connected to Twilio account: ${testResult.friendlyName || testResult.accountSid}`
+      );
       setTwilioMasterSid("");
       setTwilioMasterAuth("");
     } catch (err) {
       console.error("Failed to save master Twilio credentials:", err);
+      setTwilioMasterError("Failed to save credentials. Please try again.");
     } finally {
       setSavingTwilioMaster(false);
     }
@@ -751,33 +782,80 @@ export default function AdminSettingsPage() {
         >
           <div className="space-y-3">
             <p className="text-sm text-on-surface-variant">
-              Enter your master Twilio credentials. These are used to provision subaccounts and phone numbers for tenants.
+              Enter your master Twilio credentials. These are used to provision subaccounts and phone numbers for tenants. Find them at the top of your{" "}
+              <a
+                href="https://console.twilio.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline"
+              >
+                Twilio Console
+              </a>
+              .
             </p>
             <div className="field-gap">
               <Label className="text-xs">Account SID</Label>
               <Input
                 value={twilioMasterSid}
-                onChange={(e) => setTwilioMasterSid(e.target.value)}
+                onChange={(e) => {
+                  setTwilioMasterSid(e.target.value);
+                  setTwilioMasterError(null);
+                  setTwilioMasterSuccess(null);
+                }}
                 placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className="h-9 text-sm font-mono"
+                className={`h-9 text-sm font-mono ${!sidFormatValid ? "border-destructive" : ""}`}
               />
+              {!sidFormatValid && (
+                <p className="text-xs text-destructive mt-1">
+                  Must start with &quot;AC&quot; followed by 32 hex characters
+                </p>
+              )}
             </div>
             <div className="field-gap">
               <Label className="text-xs">Auth Token</Label>
               <Input
                 type="password"
                 value={twilioMasterAuth}
-                onChange={(e) => setTwilioMasterAuth(e.target.value)}
-                placeholder="Your auth token"
-                className="h-9 text-sm font-mono"
+                onChange={(e) => {
+                  setTwilioMasterAuth(e.target.value);
+                  setTwilioMasterError(null);
+                  setTwilioMasterSuccess(null);
+                }}
+                placeholder="32 hex characters"
+                className={`h-9 text-sm font-mono ${!authFormatValid ? "border-destructive" : ""}`}
               />
+              {!authFormatValid && (
+                <p className="text-xs text-destructive mt-1">
+                  Must be 32 hex characters (click &quot;Show&quot; in Twilio Console)
+                </p>
+              )}
             </div>
+            {twilioMasterError && (
+              <div className="rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
+                {twilioMasterError}
+              </div>
+            )}
+            {twilioMasterSuccess && (
+              <div className="rounded-md bg-emerald-500/10 border border-emerald-500/30 p-2 text-xs text-emerald-700 dark:text-emerald-400">
+                ✓ {twilioMasterSuccess}
+              </div>
+            )}
             <Button
               size="sm"
               onClick={handleSaveTwilioMaster}
-              disabled={!twilioMasterSid || !twilioMasterAuth || savingTwilioMaster}
+              disabled={
+                !twilioMasterSid ||
+                !twilioMasterAuth ||
+                !sidFormatValid ||
+                !authFormatValid ||
+                savingTwilioMaster
+              }
             >
-              {savingTwilioMaster ? "Saving..." : twilioMasterConfigured ? "Update Credentials" : "Save Credentials"}
+              {savingTwilioMaster
+                ? "Verifying with Twilio..."
+                : twilioMasterConfigured
+                  ? "Update Credentials"
+                  : "Save & Test Credentials"}
             </Button>
           </div>
         </SettingsRow>
