@@ -1,5 +1,11 @@
-import { mutation, query, internalQuery } from "./_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { authorizeOrgMember, authorizeOrgAdmin } from "./lib/auth";
+
+// Real Twilio IncomingPhoneNumber SIDs always start with "PN" + 32 hex chars.
+// Reject anything else (placeholders, test data, copy-paste errors) so we
+// never store a phone number that isn't actually owned by the tenant in Twilio.
+const TWILIO_PN_SID_REGEX = /^PN[a-f0-9]{32}$/i;
 
 // Query to get all phone numbers for an organization
 export const getByOrganization = query({
@@ -20,7 +26,9 @@ export const getById = query({
   },
 });
 
-// Create a phone number record
+// Create a phone number record.
+// Only called from /api/twilio/numbers after a real Twilio purchase,
+// so the twilioSid must match the PN SID format.
 export const create = mutation({
   args: {
     organizationId: v.id("organizations"),
@@ -40,10 +48,51 @@ export const create = mutation({
     })),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
+    if (!TWILIO_PN_SID_REGEX.test(args.twilioSid)) {
+      throw new Error(
+        `Invalid Twilio Phone Number SID "${args.twilioSid}". Must start with "PN" followed by 32 hex characters. Numbers can only be added by purchasing them through the app.`
+      );
+    }
+
+    // Prevent duplicate records (same SID already stored)
+    const existing = await ctx.db
+      .query("phoneNumbers")
+      .withIndex("by_phone_number", (q) => q.eq("phoneNumber", args.phoneNumber))
+      .first();
+    if (existing) {
+      throw new Error(`Phone number ${args.phoneNumber} is already registered in the system.`);
+    }
+
     return await ctx.db.insert("phoneNumbers", {
       ...args,
       createdAt: Date.now(),
     });
+  },
+});
+
+// One-time cleanup: delete phone number records whose twilioSid is not a real
+// Twilio PN SID. These were seed/placeholder rows from early development.
+// Internal — only callable via `npx convex run phoneNumbers:cleanupInvalid`.
+export const cleanupInvalid = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("phoneNumbers").collect();
+    const invalid = all.filter((n) => !TWILIO_PN_SID_REGEX.test(n.twilioSid));
+    for (const row of invalid) {
+      await ctx.db.delete(row._id);
+    }
+    return {
+      scanned: all.length,
+      deleted: invalid.length,
+      deletedRows: invalid.map((n) => ({
+        _id: n._id,
+        phoneNumber: n.phoneNumber,
+        twilioSid: n.twilioSid,
+        organizationId: n.organizationId,
+      })),
+    };
   },
 });
 
@@ -90,6 +139,14 @@ export const add = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+
+    if (!TWILIO_PN_SID_REGEX.test(args.twilioSid)) {
+      throw new Error(
+        `Invalid Twilio Phone Number SID "${args.twilioSid}". Must start with "PN" followed by 32 hex characters.`
+      );
+    }
+
     return await ctx.db.insert("phoneNumbers", {
       organizationId: args.organizationId,
       phoneNumber: args.phoneNumber,
@@ -141,10 +198,13 @@ export const update = mutation({
   },
 });
 
-// Mutation to delete a phone number
+// Mutation to delete a phone number record (called after releasing via Twilio)
 export const remove = mutation({
   args: { phoneNumberId: v.id("phoneNumbers") },
   handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.phoneNumberId);
+    if (!row) return;
+    await authorizeOrgMember(ctx, row.organizationId);
     await ctx.db.delete(args.phoneNumberId);
   },
 });
