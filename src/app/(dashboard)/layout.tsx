@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { CallingProvider, useOptionalCallingContext } from "@/components/calling/calling-provider";
 import { GlobalIncomingBanner } from "@/components/calling/global-incoming-banner";
+import { AudioUnlockBanner } from "@/components/calling/audio-unlock-banner";
 import { ActiveCallBar } from "@/components/calling/active-call-bar";
 
 function TenantSwitcher() {
@@ -791,6 +792,11 @@ export default function DashboardLayout({
   // The inner content that will be wrapped conditionally
   const layoutContent = (
     <div className="min-h-screen bg-background">
+      {/* Audio unlock banner - prompts user to click once so the browser
+          autoplay policy lets ringtones play. Hides itself after the
+          first click anywhere on the page. */}
+      <AudioUnlockBanner />
+
       {/* Global incoming call banner - shows on ALL pages */}
       <GlobalIncomingBanner />
 

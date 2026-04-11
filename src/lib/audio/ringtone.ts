@@ -31,6 +31,61 @@ type RingtoneHandle = {
 
 let ringtoneBlobUrl: string | null = null;
 let unlockListenerAttached = false;
+let audioUnlocked = false;
+const unlockSubscribers = new Set<() => void>();
+
+/** Current unlock state. Read-only — updated internally by the primer. */
+export function isAudioUnlocked(): boolean {
+  return audioUnlocked;
+}
+
+/** Subscribe to unlock state changes. Returns an unsubscribe function. */
+export function subscribeAudioUnlock(callback: () => void): () => void {
+  unlockSubscribers.add(callback);
+  return () => {
+    unlockSubscribers.delete(callback);
+  };
+}
+
+function markUnlocked() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  unlockSubscribers.forEach((cb) => {
+    try {
+      cb();
+    } catch (err) {
+      console.warn("[ringtone] unlock subscriber threw:", err);
+    }
+  });
+}
+
+/**
+ * Explicitly try to unlock audio by playing a muted primer. Safe to call
+ * from a click handler — the click serves as the user gesture that
+ * Chrome/Safari require.
+ */
+export function unlockAudioNow(): Promise<boolean> {
+  const url = getRingtoneUrl();
+  if (!url) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    try {
+      const primer = new Audio(url);
+      primer.muted = true;
+      primer.volume = 0;
+      primer
+        .play()
+        .then(() => {
+          primer.pause();
+          primer.currentTime = 0;
+          markUnlocked();
+          resolve(true);
+        })
+        .catch(() => resolve(false));
+    } catch {
+      resolve(false);
+    }
+  });
+}
 
 /**
  * Generate a 2-second WAV containing a 0.5-second US-style ringback beep
@@ -131,6 +186,7 @@ export function ensureAudioContextUnlockOnFirstGesture() {
           .then(() => {
             primer.pause();
             primer.currentTime = 0;
+            markUnlocked();
           })
           .catch(() => {});
       } catch {
@@ -177,7 +233,8 @@ export function playRingtone(): RingtoneHandle {
   audio
     .play()
     .then(() => {
-      // Audio is now playing; nothing else to do.
+      // Successful playback also counts as audio being unlocked.
+      markUnlocked();
     })
     .catch((err) => {
       console.warn(
