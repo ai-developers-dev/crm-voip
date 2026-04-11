@@ -29,8 +29,18 @@ export async function POST(request: NextRequest) {
     // Validate webhook signature (per-subaccount auth token lookup)
     const isValid = await validateTwilioWebhook(request, params, convex);
     if (!isValid) {
-      console.error("Invalid Twilio webhook signature for voice webhook");
-      return new NextResponse("Forbidden", { status: 403 });
+      console.error("[voice] Invalid Twilio webhook signature", { callSid, to });
+      // Return TwiML instead of 403 — Twilio shows "application error" for non-XML responses
+      const twiml = new VoiceResponse();
+      twiml.say(
+        { voice: "alice" },
+        "We're sorry, this number is temporarily unavailable. Please try again later."
+      );
+      twiml.hangup();
+      return new NextResponse(twiml.toString(), {
+        status: 200,
+        headers: { "Content-Type": "text/xml" },
+      });
     }
 
     const twiml = new VoiceResponse();

@@ -304,3 +304,69 @@ export async function transferPhoneNumberToSubaccount(
     friendlyName: (result.friendly_name as string) || "",
   };
 }
+
+/**
+ * Full Twilio IncomingPhoneNumber config — matches the fields available in
+ * the Twilio Console "Voice Configuration" and "Messaging Configuration" tabs.
+ * All fields are optional; only set keys are sent to Twilio.
+ */
+export interface TwilioPhoneNumberConfig {
+  // Voice
+  voiceUrl?: string;
+  voiceMethod?: "POST" | "GET";
+  voiceFallbackUrl?: string;
+  voiceFallbackMethod?: "POST" | "GET";
+  statusCallbackUrl?: string;
+  statusCallbackMethod?: "POST" | "GET";
+  voiceCallerIdLookup?: boolean;
+  voiceReceiveMode?: "voice" | "fax";
+  // Messaging
+  smsUrl?: string;
+  smsMethod?: "POST" | "GET";
+  smsFallbackUrl?: string;
+  smsFallbackMethod?: "POST" | "GET";
+}
+
+/**
+ * Update any subset of an IncomingPhoneNumber's configuration under the
+ * given subaccount. Uses Twilio's POST-to-resource update API.
+ *
+ * Empty strings ARE sent through — Twilio treats an empty string as
+ * "clear this field", which is intentional for the admin config UI.
+ */
+export async function updatePhoneNumberConfig(
+  subAccountSid: string,
+  subAuthToken: string,
+  phoneNumberSid: string,
+  config: TwilioPhoneNumberConfig
+): Promise<{ sid: string; phoneNumber: string; friendlyName: string }> {
+  const body: Record<string, string> = {};
+
+  if (config.voiceUrl !== undefined) body.VoiceUrl = config.voiceUrl;
+  if (config.voiceMethod) body.VoiceMethod = config.voiceMethod;
+  if (config.voiceFallbackUrl !== undefined) body.VoiceFallbackUrl = config.voiceFallbackUrl;
+  if (config.voiceFallbackMethod) body.VoiceFallbackMethod = config.voiceFallbackMethod;
+  if (config.statusCallbackUrl !== undefined) body.StatusCallback = config.statusCallbackUrl;
+  if (config.statusCallbackMethod) body.StatusCallbackMethod = config.statusCallbackMethod;
+  if (config.voiceCallerIdLookup !== undefined) body.VoiceCallerIdLookup = String(config.voiceCallerIdLookup);
+  if (config.voiceReceiveMode) body.VoiceReceiveMode = config.voiceReceiveMode;
+
+  if (config.smsUrl !== undefined) body.SmsUrl = config.smsUrl;
+  if (config.smsMethod) body.SmsMethod = config.smsMethod;
+  if (config.smsFallbackUrl !== undefined) body.SmsFallbackUrl = config.smsFallbackUrl;
+  if (config.smsFallbackMethod) body.SmsFallbackMethod = config.smsFallbackMethod;
+
+  const result = await twilioFetch<Record<string, unknown>>(
+    subAccountSid,
+    subAuthToken,
+    "POST",
+    `/Accounts/${subAccountSid}/IncomingPhoneNumbers/${phoneNumberSid}.json`,
+    body
+  );
+
+  return {
+    sid: result.sid as string,
+    phoneNumber: result.phone_number as string,
+    friendlyName: (result.friendly_name as string) || "",
+  };
+}

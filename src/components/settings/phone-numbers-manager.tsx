@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,12 +18,20 @@ import {
 } from "@/components/ui/dialog";
 import {
   Phone, Search, Loader2, Trash2, Plus, PhoneCall, MessageSquare,
-  ToggleLeft, ToggleRight, AlertCircle, Settings,
+  ToggleLeft, ToggleRight, AlertCircle, Settings, Settings2, RefreshCw,
 } from "lucide-react";
 import { PhoneRoutingDialog } from "./phone-routing-dialog";
+import { PhoneNumberTwilioConfigDialog } from "./phone-number-twilio-config-dialog";
+import { refreshTenantPhoneNumberWebhookUrls } from "@/app/(dashboard)/admin/actions";
 
 interface PhoneNumbersManagerProps {
   organizationId: Id<"organizations">;
+  /**
+   * If true, shows the platform-admin-only "Refresh Webhook URLs" button
+   * and the Twilio config gear icon on each number row. Pass true only from
+   * the admin tenant view, not tenant self-service.
+   */
+  isPlatformAdmin?: boolean;
 }
 
 interface AvailableNumber {
@@ -34,8 +42,43 @@ interface AvailableNumber {
   capabilities?: { voice: boolean; sms: boolean; mms: boolean };
 }
 
-export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps) {
+export function PhoneNumbersManager({ organizationId, isPlatformAdmin = false }: PhoneNumbersManagerProps) {
   const phoneNumbers = useQuery(api.phoneNumbers.getByOrganization, { organizationId });
+
+  // Twilio config dialog state (platform admin only)
+  const [twilioConfigTarget, setTwilioConfigTarget] = useState<Doc<"phoneNumbers"> | null>(null);
+
+  // Refresh webhook URLs state (platform admin only)
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleRefreshWebhookUrls = async () => {
+    setRefreshing(true);
+    setRefreshMessage(null);
+    try {
+      const result = await refreshTenantPhoneNumberWebhookUrls(organizationId);
+      if (result.success) {
+        setRefreshMessage({
+          type: "success",
+          text: result.message || "Webhook URLs refreshed",
+        });
+      } else {
+        setRefreshMessage({
+          type: "error",
+          text: result.error || "Failed to refresh webhook URLs",
+        });
+      }
+      // Auto-clear after 5s
+      setTimeout(() => setRefreshMessage(null), 5000);
+    } catch (err) {
+      setRefreshMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Unexpected error",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Buy number dialog
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
@@ -137,13 +180,43 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h4 className="section-heading">Phone Numbers</h4>
-        <Button variant="outline" size="sm" onClick={() => setBuyDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Buy Number
-        </Button>
+        <div className="flex items-center gap-2">
+          {isPlatformAdmin && phoneNumbers && phoneNumbers.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshWebhookUrls}
+              disabled={refreshing}
+              title="Re-sync every phone number's webhook URLs to match NEXT_PUBLIC_APP_URL"
+            >
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-1" />
+              )}
+              Refresh Webhook URLs
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setBuyDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Buy Number
+          </Button>
+        </div>
       </div>
+
+      {refreshMessage && (
+        <div
+          className={`rounded-md border p-2 text-xs ${
+            refreshMessage.type === "success"
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+              : "border-destructive/30 bg-destructive/10 text-destructive"
+          }`}
+        >
+          {refreshMessage.text}
+        </div>
+      )}
 
       {/* Current phone numbers list */}
       {!phoneNumbers ? (
@@ -190,6 +263,17 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
                 >
                   <Settings className="h-3.5 w-3.5" />
                 </Button>
+                {isPlatformAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => setTwilioConfigTarget(num)}
+                    title="Edit Twilio Config (platform admin)"
+                  >
+                    <Settings2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -343,6 +427,15 @@ export function PhoneNumbersManager({ organizationId }: PhoneNumbersManagerProps
         phoneNumber={routingPhone}
         organizationId={organizationId}
       />
+
+      {/* Twilio Config Dialog — platform admin only */}
+      {isPlatformAdmin && (
+        <PhoneNumberTwilioConfigDialog
+          open={!!twilioConfigTarget}
+          onOpenChange={(open) => { if (!open) setTwilioConfigTarget(null); }}
+          phoneNumber={twilioConfigTarget}
+        />
+      )}
     </div>
   );
 }

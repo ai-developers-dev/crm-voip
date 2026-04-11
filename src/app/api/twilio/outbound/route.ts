@@ -47,8 +47,14 @@ export async function POST(request: NextRequest) {
     // Validate webhook signature (per-subaccount auth token lookup)
     const isValid = await validateTwilioWebhook(request, params, convex);
     if (!isValid) {
-      console.error("Invalid Twilio webhook signature for outbound webhook");
-      return new NextResponse("Forbidden", { status: 403 });
+      console.error("[outbound] Invalid Twilio webhook signature", { callSid });
+      const twiml = new VoiceResponse();
+      twiml.say({ voice: "alice" }, "We're sorry, this call cannot be completed at this time.");
+      twiml.hangup();
+      return new NextResponse(twiml.toString(), {
+        status: 200,
+        headers: { "Content-Type": "text/xml" },
+      });
     }
 
     console.log(`Outbound call webhook: ${callSid} to ${to} from ${from}`);

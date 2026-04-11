@@ -264,3 +264,40 @@ export const updateRouting = mutation({
     await ctx.db.patch(phoneNumberId, patch);
   },
 });
+
+// Mutation to update the Twilio IncomingPhoneNumber config mirror.
+// Called only from the updatePhoneNumberTwilioConfig server action after
+// a successful Twilio API call. Admin-level since this affects call routing.
+export const updateTwilioConfig = mutation({
+  args: {
+    phoneNumberId: v.id("phoneNumbers"),
+    config: v.object({
+      // Voice
+      voiceUrl: v.optional(v.string()),
+      voiceMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      voiceFallbackUrl: v.optional(v.string()),
+      voiceFallbackMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      statusCallbackUrl: v.optional(v.string()),
+      statusCallbackMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      voiceCallerIdLookup: v.optional(v.boolean()),
+      voiceReceiveMode: v.optional(v.union(v.literal("voice"), v.literal("fax"))),
+      // Messaging
+      smsUrl: v.optional(v.string()),
+      smsMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      smsFallbackUrl: v.optional(v.string()),
+      smsFallbackMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.phoneNumberId);
+    if (!row) throw new Error("Phone number not found");
+    await authorizeOrgAdmin(ctx, row.organizationId);
+
+    await ctx.db.patch(args.phoneNumberId, {
+      twilioConfig: {
+        ...args.config,
+        lastSyncedAt: Date.now(),
+      },
+    });
+  },
+});

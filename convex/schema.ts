@@ -403,6 +403,27 @@ export default defineSchema({
       mms: v.boolean(),
     })),
     isActive: v.boolean(),
+    // Twilio IncomingPhoneNumber config — mirrored from Twilio after save.
+    // Source of truth is Twilio; this copy is so the admin UI can show
+    // current values without calling Twilio on every render.
+    twilioConfig: v.optional(v.object({
+      // Voice
+      voiceUrl: v.optional(v.string()),
+      voiceMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      voiceFallbackUrl: v.optional(v.string()),
+      voiceFallbackMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      statusCallbackUrl: v.optional(v.string()),
+      statusCallbackMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      voiceCallerIdLookup: v.optional(v.boolean()),
+      voiceReceiveMode: v.optional(v.union(v.literal("voice"), v.literal("fax"))),
+      // Messaging
+      smsUrl: v.optional(v.string()),
+      smsMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      smsFallbackUrl: v.optional(v.string()),
+      smsFallbackMethod: v.optional(v.union(v.literal("POST"), v.literal("GET"))),
+      // Metadata
+      lastSyncedAt: v.optional(v.number()),
+    })),
     createdAt: v.number(),
   })
     .index("by_organization", ["organizationId"])

@@ -8,6 +8,8 @@ import {
   provisionTenant,
   lookupNumberOnMaster,
   transferPhoneNumberToSubaccount,
+  updatePhoneNumberConfig,
+  type TwilioPhoneNumberConfig,
 } from "@/lib/twilio/provisioning";
 import { encrypt, decryptLegacy } from "@/lib/credentials/crypto";
 import { getStripeClient } from "@/lib/stripe/client";
@@ -740,6 +742,167 @@ export async function transferNumberFromMaster(
     return {
       success: false,
       error: error.message || "Failed to transfer number",
+    };
+  }
+}
+
+/**
+ * Refresh the Twilio webhook URLs for one or all phone numbers.
+ *
+ * Walks `phoneNumbers` rows (one specific row if `phoneNumberId` is passed,
+ * otherwise every row under `organizationId` if passed, otherwise every row
+ * in the system) and rewrites voice/SMS/status URLs on Twilio to match the
+ * current NEXT_PUBLIC_APP_URL.
+ *
+ * Use this after changing the app domain or when the URLs in Twilio have
+ * drifted from what the app expects.
+ *
+ * Platform super_admin only.
+ */
+export async function refreshTenantPhoneNumberWebhookUrls(
+  organizationId: Id<"organizations">
+) {
+  try {
+    await requirePlatformAdmin();
+    const convex = await getConvexClient();
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+    if (!appUrl) {
+      return {
+        success: false,
+        error: "NEXT_PUBLIC_APP_URL environment variable is not set.",
+      };
+    }
+    if (appUrl.endsWith("/")) {
+      return {
+        success: false,
+        error: "NEXT_PUBLIC_APP_URL has a trailing slash. Remove it in Vercel and redeploy.",
+      };
+    }
+
+    // Load the tenant and its subaccount credentials once
+    const org = await convex.query(api.organizations.getById, { organizationId });
+    if (!org) {
+      return { success: false, error: "Tenant not found" };
+    }
+    const tenantCreds = org.settings?.twilioCredentials;
+    if (!tenantCreds?.isConfigured || !tenantCreds.accountSid) {
+      return {
+        success: false,
+        error: "Tenant has no Twilio credentials. Click 'Auto-Provision Twilio' first.",
+      };
+    }
+    const subAuth = decryptLegacy(tenantCreds.authToken, organizationId);
+
+    // Load all phone numbers for this tenant
+    const rows = await convex.query(api.phoneNumbers.getByOrganization, {
+      organizationId,
+    });
+
+    if (rows.length === 0) {
+      return { success: true, updated: [], message: "No phone numbers to refresh" };
+    }
+
+    // Update each number's webhook URLs on Twilio
+    const updated: string[] = [];
+    const failed: Array<{ phoneNumber: string; error: string }> = [];
+
+    for (const row of rows) {
+      try {
+        await updatePhoneNumberConfig(
+          tenantCreds.accountSid,
+          subAuth,
+          row.twilioSid,
+          {
+            voiceUrl: `${appUrl}/api/twilio/voice`,
+            voiceMethod: "POST",
+            smsUrl: `${appUrl}/api/twilio/sms`,
+            smsMethod: "POST",
+            statusCallbackUrl: `${appUrl}/api/twilio/status`,
+            statusCallbackMethod: "POST",
+          }
+        );
+        updated.push(row.phoneNumber);
+      } catch (err) {
+        failed.push({
+          phoneNumber: row.phoneNumber,
+          error: err instanceof Error ? err.message : "Unknown error",
+        });
+      }
+    }
+
+    return {
+      success: failed.length === 0,
+      updated,
+      failed,
+      message: `Refreshed ${updated.length} of ${rows.length} numbers${failed.length > 0 ? ` (${failed.length} failed)` : ""}`,
+    };
+  } catch (error: any) {
+    console.error("Failed to refresh phone number webhook URLs:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to refresh webhook URLs",
+    };
+  }
+}
+
+/**
+ * Update the full Twilio IncomingPhoneNumber config for a single number.
+ * Writes to Twilio AND persists a copy to the Convex phoneNumbers row.
+ *
+ * Platform super_admin only.
+ */
+export async function updatePhoneNumberTwilioConfig(
+  phoneNumberId: Id<"phoneNumbers">,
+  config: TwilioPhoneNumberConfig
+) {
+  try {
+    await requirePlatformAdmin();
+    const convex = await getConvexClient();
+
+    // 1. Load the phone number row and its tenant
+    const row = await convex.query(api.phoneNumbers.getById, { id: phoneNumberId });
+    if (!row) {
+      return { success: false, error: "Phone number not found" };
+    }
+
+    const org = await convex.query(api.organizations.getById, {
+      organizationId: row.organizationId,
+    });
+    const tenantCreds = org?.settings?.twilioCredentials;
+    if (!tenantCreds?.isConfigured || !tenantCreds.accountSid) {
+      return {
+        success: false,
+        error: "Tenant has no configured Twilio credentials",
+      };
+    }
+
+    // 2. Decrypt the subaccount auth token
+    const subAuth = decryptLegacy(tenantCreds.authToken, row.organizationId);
+
+    // 3. Push the config to Twilio
+    await updatePhoneNumberConfig(
+      tenantCreds.accountSid,
+      subAuth,
+      row.twilioSid,
+      config
+    );
+
+    // 4. Persist the same config to Convex
+    await convex.mutation(api.phoneNumbers.updateTwilioConfig, {
+      phoneNumberId,
+      config,
+    });
+
+    return {
+      success: true,
+      phoneNumber: row.phoneNumber,
+    };
+  } catch (error: any) {
+    console.error("Failed to update phone number Twilio config:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to update Twilio config",
     };
   }
 }

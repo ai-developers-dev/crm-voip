@@ -30,8 +30,13 @@ export async function POST(request: NextRequest) {
     // Validate webhook signature (per-subaccount auth token lookup)
     const isValid = await validateTwilioWebhook(request, params, convex);
     if (!isValid) {
-      console.error("Invalid Twilio webhook signature for SMS webhook");
-      return new NextResponse("Forbidden", { status: 403 });
+      console.error("[sms] Invalid Twilio webhook signature", { messageSid, from, to });
+      // Return empty TwiML (no-op) instead of 403 — keeps Twilio from retrying
+      // and doesn't leak anything to the sender
+      return new NextResponse(
+        '<?xml version="1.0" encoding="UTF-8"?><Response/>',
+        { status: 200, headers: { "Content-Type": "text/xml" } }
+      );
     }
 
     console.log(`SMS webhook: ${messageSid} from ${from} to ${to}`);

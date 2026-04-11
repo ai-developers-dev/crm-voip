@@ -566,7 +566,7 @@ export default function TenantSettingsPage() {
                   </div>
                 )}
 
-                {tenant?._id && <PhoneNumbersManager organizationId={tenant._id} />}
+                {tenant?._id && <PhoneNumbersManager organizationId={tenant._id} isPlatformAdmin />}
               </>
             ) : twilioConfigured ? (
               <>
@@ -575,7 +575,7 @@ export default function TenantSettingsPage() {
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit Credentials
                 </Button>
-                {tenant?._id && <PhoneNumbersManager organizationId={tenant._id} />}
+                {tenant?._id && <PhoneNumbersManager organizationId={tenant._id} isPlatformAdmin />}
               </>
             ) : (
               <>

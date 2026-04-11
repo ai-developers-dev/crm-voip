@@ -21,8 +21,14 @@ export async function POST(request: NextRequest) {
     });
     const isValid = await validateTwilioWebhook(request, params, convex);
     if (!isValid) {
-      console.error("Invalid Twilio webhook signature for transfer-ring");
-      return new NextResponse("Forbidden", { status: 403 });
+      console.error("[transfer-ring] Invalid Twilio webhook signature");
+      const twiml = new VoiceResponse();
+      twiml.say({ voice: "alice" }, "This transfer is temporarily unavailable.");
+      twiml.hangup();
+      return new NextResponse(twiml.toString(), {
+        status: 200,
+        headers: { "Content-Type": "text/xml" },
+      });
     }
 
     const { searchParams } = new URL(request.url);
