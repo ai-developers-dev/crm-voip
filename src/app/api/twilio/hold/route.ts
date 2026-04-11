@@ -19,11 +19,18 @@ import { getOrgTwilioClient } from "@/lib/twilio/client";
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId } = await auth();
+    const { userId, orgId, getToken } = await auth();
 
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Forward the caller's Clerk identity to the Convex client. parkByCallSid
+    // calls authorizeOrgMember -> requireAuth, which throws "Not authenticated"
+    // if the Convex client has no JWT attached. Without this, parking dies on
+    // every click with a 500 from the Convex mutation.
+    const convexJwt = await getToken({ template: "convex" });
+    if (convexJwt) convex.setAuth(convexJwt);
 
     const { twilioCallSid, callerNumber, callerName, organizationId, parkedByUserId } = await request.json();
 

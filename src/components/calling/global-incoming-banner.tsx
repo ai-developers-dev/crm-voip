@@ -41,9 +41,16 @@ export function GlobalIncomingBanner() {
   const activeCalls = getActiveCalls?.() ?? [];
   const connectedCallCount = activeCalls.length;
 
-  // If no calling context (e.g., on onboarding pages), render nothing
-  // Also hide on /dashboard - the IncomingCallsArea handles it there
-  if (!callingContext || pathname === "/dashboard") {
+  // If no calling context (e.g., on onboarding pages), render nothing.
+  // Also hide on every route that already mounts <CallingDashboard>, which has
+  // its own <IncomingCallsArea> — otherwise we render the same incoming-call
+  // popup TWICE (once via this fixed-position global banner, once via the
+  // dashboard's inline banner). CallingDashboard is rendered on /dashboard
+  // and on /admin/tenants/[id].
+  const dashboardOwnsBanner =
+    pathname === "/dashboard" ||
+    pathname?.startsWith("/admin/tenants/");
+  if (!callingContext || dashboardOwnsBanner) {
     return null;
   }
 
