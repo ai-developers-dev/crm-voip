@@ -313,6 +313,17 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
   // Initialize device - only depends on stable refs, not state
   const initializeDevice = useCallback(async () => {
+    // BUGFIX: callers (e.g. CallingDashboard) pass maxConcurrentCalls=0 as a
+    // sentinel meaning "do not initialize a Device — another component already
+    // owns the real one". Honour that or we end up with TWO Devices in the
+    // same browser tab, both registered against the same Twilio identity. The
+    // dashboard's Device (max=0) rejects every incoming call before the
+    // CallingProvider's Device (max=N) can accept, instantly busy-ing the
+    // dial leg. Documented as issue #75 in CRM-VOIP-Code-Review-2026-04-07.md.
+    if (maxCallsRef.current <= 0) {
+      return;
+    }
+
     const token = await fetchTokenWithRetry(3);
     if (!token) {
       setState((prev) => ({
