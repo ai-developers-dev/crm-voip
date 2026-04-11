@@ -29,28 +29,58 @@ export async function POST(request: NextRequest) {
 
     console.log(`Ending call ${twilioCallSid} via frontend cleanup`);
 
-    // STEP 1: Actively terminate the PSTN leg on Twilio.
+    // STEP 1: Check whether the call was just PARKED. If so, we must NOT
+    // terminate the parent PSTN leg — the caller is now in a conference
+    // with hold music waiting for an agent to unpark them. Terminating
+    // the parent would kill the conference and drop the parked call.
+    //
+    // When an agent parks a call, hold/route.ts redirects the PSTN parent
+    // into a <Conference> and inserts a parkingLots row + flips the
+    // activeCall state to "parked". The browser's client leg breaks (its
+    // <Dial> was superseded by the redirect) and the Voice SDK fires
+    // `disconnect`, which calls this route with the CHILD SID. Prior to
+    // this check, the "actively terminate the parent" logic below killed
+    // the parent while it was happily sitting in the conference.
+    //
+    // Verified via Twilio MCP on CA9127726708724f007ab053586e57fbdc:
+    // event timeline showed hold music begin playing, then a POST to
+    // /Calls/{sid} terminating the parent a fraction of a second later
+    // (from this route), then a "completed" status callback.
+    let isParked = false;
+    try {
+      const activeCall = await convex.query(api.calls.getByTwilioSid, {
+        twilioCallSid,
+      });
+      if (activeCall && activeCall.state === "parked") {
+        isParked = true;
+        console.log(
+          `[end-call] Call ${twilioCallSid} is parked — skipping PSTN termination`
+        );
+      }
+    } catch (queryErr) {
+      // If the query fails, fall through and attempt termination anyway.
+      // Better to accidentally terminate a parked call than to leave a
+      // zombie PSTN leg alive.
+      console.warn(
+        `[end-call] Could not check parked state for ${twilioCallSid}:`,
+        queryErr
+      );
+    }
+
+    // STEP 2: Actively terminate the PSTN leg on Twilio (unless parked).
     //
     // Previously this route only updated Convex and relied on Twilio's
     // <Dial action> callback to eventually hang up the parent call. In
     // practice the parent leg lingered 20–30s after the agent clicked
-    // hang up — verified via Twilio MCP: parent call duration 35s vs
-    // child (agent) call duration 4s on CAcad0cb6ebe55e742a97fb8d260c9fb05
-    // and again 39s vs 3s on CA6149447ec85e69744c83b55e7e295f42.
-    //
-    // My first attempt at this fix (d053f11) guarded the update behind
-    // `browserCall.status !== "completed"`, but by the time end-call runs
-    // the browser's call.disconnect() has already told Twilio the CHILD
-    // leg is done, so the child's status is already "completed" and we
-    // skipped the parent termination entirely. Root cause of the repeat
-    // 28s zombie parent leg.
+    // hang up — verified via Twilio MCP on CA6149447ec85e69744c83b55e7e295f42
+    // (parent 39s, child 3s) and CAcad0cb6ebe55e742a97fb8d260c9fb05
+    // (parent 35s, child 4s).
     //
     // Fix: fetch only to learn parentCallSid, then unconditionally POST
     // Status=completed to the parent (or the browser SID itself for
-    // outbound browser-to-PSTN calls where there's no parent). Catch any
-    // error — "already terminated" returns a harmless 20404 that we
-    // explicitly ignore.
-    if (orgId) {
+    // outbound browser-to-PSTN calls where there's no parent). 20404
+    // "already terminated" is expected and ignored.
+    if (orgId && !isParked) {
       try {
         const { client } = await getOrgTwilioClient(orgId);
         const browserCall = await client.calls(twilioCallSid).fetch();
@@ -60,8 +90,6 @@ export async function POST(request: NextRequest) {
           await client.calls(sidToEnd).update({ status: "completed" });
           console.log(`Terminated Twilio call ${sidToEnd}`);
         } catch (updateErr) {
-          // 20404 "call not found" or "call already terminated" are expected
-          // when the call ended on its own microseconds before this POST.
           console.warn(
             `[end-call] Twilio termination of ${sidToEnd} failed (likely already ended): ${
               updateErr instanceof Error ? updateErr.message : String(updateErr)
