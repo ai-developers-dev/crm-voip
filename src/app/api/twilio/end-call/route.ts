@@ -35,37 +35,42 @@ export async function POST(request: NextRequest) {
     // <Dial action> callback to eventually hang up the parent call. In
     // practice the parent leg lingered 20–30s after the agent clicked
     // hang up — verified via Twilio MCP: parent call duration 35s vs
-    // child (agent) call duration 4s on CAcad0cb6ebe55e742a97fb8d260c9fb05.
+    // child (agent) call duration 4s on CAcad0cb6ebe55e742a97fb8d260c9fb05
+    // and again 39s vs 3s on CA6149447ec85e69744c83b55e7e295f42.
     //
-    // Call the Twilio REST API directly to end the parent. We look up the
-    // browser SDK call SID (the one the agent's Device knows) and either:
-    //   (a) use its parentCallSid when the browser leg is a child of an
-    //       inbound PSTN dial, OR
-    //   (b) use the SID itself when the browser leg IS the primary call
-    //       (outbound browser-to-PSTN).
-    // Then POST ?Status=completed to that call, which cascades and ends
-    // both legs immediately.
+    // My first attempt at this fix (d053f11) guarded the update behind
+    // `browserCall.status !== "completed"`, but by the time end-call runs
+    // the browser's call.disconnect() has already told Twilio the CHILD
+    // leg is done, so the child's status is already "completed" and we
+    // skipped the parent termination entirely. Root cause of the repeat
+    // 28s zombie parent leg.
+    //
+    // Fix: fetch only to learn parentCallSid, then unconditionally POST
+    // Status=completed to the parent (or the browser SID itself for
+    // outbound browser-to-PSTN calls where there's no parent). Catch any
+    // error — "already terminated" returns a harmless 20404 that we
+    // explicitly ignore.
     if (orgId) {
       try {
         const { client } = await getOrgTwilioClient(orgId);
         const browserCall = await client.calls(twilioCallSid).fetch();
         const sidToEnd = browserCall.parentCallSid || twilioCallSid;
 
-        // Only call update if the call isn't already terminated, to avoid a
-        // 400 from Twilio for "Cannot complete already-completed call".
-        if (
-          browserCall.status !== "completed" &&
-          browserCall.status !== "canceled"
-        ) {
+        try {
           await client.calls(sidToEnd).update({ status: "completed" });
           console.log(`Terminated Twilio call ${sidToEnd}`);
+        } catch (updateErr) {
+          // 20404 "call not found" or "call already terminated" are expected
+          // when the call ended on its own microseconds before this POST.
+          console.warn(
+            `[end-call] Twilio termination of ${sidToEnd} failed (likely already ended): ${
+              updateErr instanceof Error ? updateErr.message : String(updateErr)
+            }`
+          );
         }
       } catch (twilioErr) {
-        // Log and continue — the Convex update below still needs to run.
-        // Missing-call errors (20404) are expected when the call has already
-        // ended on its own.
         console.warn(
-          `[end-call] Twilio termination failed (may be already ended): ${
+          `[end-call] Could not fetch call ${twilioCallSid}: ${
             twilioErr instanceof Error ? twilioErr.message : String(twilioErr)
           }`
         );

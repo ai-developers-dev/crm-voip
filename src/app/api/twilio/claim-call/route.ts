@@ -6,11 +6,22 @@ import { api } from "../../../../../convex/_generated/api";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId } = await auth();
+    const { userId, orgId, getToken } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Forward the agent's Clerk identity to Convex. claimCall calls
+    // authorizeOrgMember -> requireAuth, which throws "Not authenticated"
+    // without a JWT on the client. When that throws, the mutation fails
+    // silently (the browser logs but keeps going), so the activeCall
+    // row never gets answeredAt set. That makes endByCallSid later mark
+    // the call as outcome="missed" in call history even though the agent
+    // actually answered and talked. Root cause of "answered calls showing
+    // as missed" in the call log.
+    const convexJwt = await getToken({ template: "convex" });
+    if (convexJwt) convex.setAuth(convexJwt);
 
     const { twilioCallSid } = await request.json();
 

@@ -3,6 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Device, Call } from "@twilio/voice-sdk";
 import { useUser, useOrganization } from "@clerk/nextjs";
+import {
+  ensureAudioContextUnlockOnFirstGesture,
+  playRingtone,
+} from "@/lib/audio/ringtone";
 
 export type CallStatus = "pending" | "connecting" | "open" | "closed";
 
@@ -62,6 +66,16 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
   const callsRef = useRef<Map<string, CallInfo>>(new Map());
   const focusedCallSidRef = useRef<string | null>(null);
   const maxCallsRef = useRef(maxConcurrentCalls);
+
+  // Ringtone handles keyed by callSid — one active ringtone per incoming
+  // call, stopped when the call is answered, rejected, or cancelled.
+  const ringtoneHandlesRef = useRef<Map<string, { stop: () => void }>>(new Map());
+
+  // Unlock the browser's AudioContext on the first user gesture so
+  // subsequent ringtones can play without being blocked by autoplay policy.
+  useEffect(() => {
+    ensureAudioContextUnlockOnFirstGesture();
+  }, []);
 
   // Refs for reconnection logic
   const reconnectAttemptRef = useRef(0);
@@ -425,9 +439,23 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           };
         });
 
+        // Start the ringtone for this incoming call.
+        const ringtone = playRingtone();
+        ringtoneHandlesRef.current.set(callSid, ringtone);
+
+        const stopRingtoneFor = (reason: string) => {
+          const handle = ringtoneHandlesRef.current.get(callSid);
+          if (handle) {
+            handle.stop();
+            ringtoneHandlesRef.current.delete(callSid);
+            console.log(`[ringtone] stopped (${reason}) for ${callSid}`);
+          }
+        };
+
         // Set up per-call event handlers
         call.on("accept", () => {
           console.log(`Call accepted: ${callSid}`);
+          stopRingtoneFor("accepted");
           updateCallInfo(callSid, {
             status: "open",
             answeredAt: Date.now(),
@@ -436,6 +464,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
         call.on("disconnect", () => {
           console.log(`Call disconnected: ${callSid}`);
+          stopRingtoneFor("disconnected");
           removeCall(callSid);
 
           // Clean up the call in Convex database
@@ -455,11 +484,13 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
         call.on("cancel", () => {
           console.log(`Call cancelled: ${callSid}`);
+          stopRingtoneFor("cancelled");
           removeCall(callSid);
         });
 
         call.on("reject", () => {
           console.log(`Call rejected: ${callSid}`);
+          stopRingtoneFor("rejected");
           removeCall(callSid);
         });
       });
