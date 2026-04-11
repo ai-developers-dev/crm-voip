@@ -56,11 +56,13 @@ export default function AdminSettingsPage() {
 
   // Master Twilio config
   const twilioMasterConfigured = !!(platformOrg?.settings as any)?.twilioMaster?.isConfigured;
+  const savedTwilioMasterSid = (platformOrg?.settings as any)?.twilioMaster?.accountSid as string | undefined;
   const [twilioMasterSid, setTwilioMasterSid] = useState("");
   const [twilioMasterAuth, setTwilioMasterAuth] = useState("");
   const [savingTwilioMaster, setSavingTwilioMaster] = useState(false);
   const [twilioMasterError, setTwilioMasterError] = useState<string | null>(null);
   const [twilioMasterSuccess, setTwilioMasterSuccess] = useState<string | null>(null);
+  const [editingTwilioMaster, setEditingTwilioMaster] = useState(false);
 
   // Client-side SID format validation (Twilio SIDs start with "AC" + 32 hex chars)
   const sidFormatValid = !twilioMasterSid.trim() || /^AC[a-f0-9]{32}$/i.test(twilioMasterSid.trim());
@@ -95,6 +97,7 @@ export default function AdminSettingsPage() {
       );
       setTwilioMasterSid("");
       setTwilioMasterAuth("");
+      setEditingTwilioMaster(false);
     } catch (err) {
       console.error("Failed to save master Twilio credentials:", err);
       setTwilioMasterError("Failed to save credentials. Please try again.");
@@ -786,70 +789,142 @@ export default function AdminSettingsPage() {
               </a>
               .
             </p>
-            <div className="field-gap">
-              <Label className="text-xs">Account SID</Label>
-              <Input
-                value={twilioMasterSid}
-                onChange={(e) => {
-                  setTwilioMasterSid(e.target.value);
-                  setTwilioMasterError(null);
-                  setTwilioMasterSuccess(null);
-                }}
-                placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className={`h-9 text-sm font-mono ${!sidFormatValid ? "border-destructive" : ""}`}
-              />
-              {!sidFormatValid && (
-                <p className="text-xs text-destructive mt-1">
-                  Must start with &quot;AC&quot; followed by 32 hex characters
-                </p>
-              )}
-            </div>
-            <div className="field-gap">
-              <Label className="text-xs">Auth Token</Label>
-              <Input
-                type="password"
-                value={twilioMasterAuth}
-                onChange={(e) => {
-                  setTwilioMasterAuth(e.target.value);
-                  setTwilioMasterError(null);
-                  setTwilioMasterSuccess(null);
-                }}
-                placeholder="32 hex characters"
-                className={`h-9 text-sm font-mono ${!authFormatValid ? "border-destructive" : ""}`}
-              />
-              {!authFormatValid && (
-                <p className="text-xs text-destructive mt-1">
-                  Must be 32 hex characters (click &quot;Show&quot; in Twilio Console)
-                </p>
-              )}
-            </div>
-            {twilioMasterError && (
-              <div className="rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
-                {twilioMasterError}
-              </div>
+
+            {twilioMasterConfigured && !editingTwilioMaster ? (
+              <>
+                <div className="field-gap">
+                  <Label className="text-xs">Account SID</Label>
+                  <Input
+                    value={savedTwilioMasterSid || ""}
+                    readOnly
+                    className="h-9 text-sm font-mono bg-muted"
+                  />
+                </div>
+                <div className="field-gap">
+                  <Label className="text-xs">Auth Token</Label>
+                  <Input
+                    value="•••••••••••••••••••••••••••••••• (encrypted)"
+                    readOnly
+                    className="h-9 text-sm font-mono bg-muted"
+                  />
+                </div>
+                {twilioMasterSuccess && (
+                  <div className="rounded-md bg-emerald-500/10 border border-emerald-500/30 p-2 text-xs text-emerald-700 dark:text-emerald-400">
+                    ✓ {twilioMasterSuccess}
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingTwilioMaster(true);
+                    setTwilioMasterSid("");
+                    setTwilioMasterAuth("");
+                    setTwilioMasterError(null);
+                    setTwilioMasterSuccess(null);
+                  }}
+                >
+                  Replace Credentials
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Decoy fields to absorb Chrome/1Password autofill before it reaches the real inputs */}
+                <input type="text" name="username" autoComplete="username" tabIndex={-1} aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
+                <input type="password" name="password" autoComplete="current-password" tabIndex={-1} aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
+                <div className="field-gap">
+                  <Label className="text-xs">Account SID</Label>
+                  <Input
+                    name="twilio-master-account-sid"
+                    autoComplete="off"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    data-form-type="other"
+                    value={twilioMasterSid}
+                    onChange={(e) => {
+                      setTwilioMasterSid(e.target.value);
+                      setTwilioMasterError(null);
+                      setTwilioMasterSuccess(null);
+                    }}
+                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className={`h-9 text-sm font-mono ${!sidFormatValid ? "border-destructive" : ""}`}
+                  />
+                  {!sidFormatValid && (
+                    <p className="text-xs text-destructive mt-1">
+                      Must start with &quot;AC&quot; followed by 32 hex characters
+                    </p>
+                  )}
+                </div>
+                <div className="field-gap">
+                  <Label className="text-xs">Auth Token</Label>
+                  <Input
+                    type="password"
+                    name="twilio-master-auth-token"
+                    autoComplete="new-password"
+                    data-1p-ignore="true"
+                    data-lpignore="true"
+                    data-form-type="other"
+                    value={twilioMasterAuth}
+                    onChange={(e) => {
+                      setTwilioMasterAuth(e.target.value);
+                      setTwilioMasterError(null);
+                      setTwilioMasterSuccess(null);
+                    }}
+                    placeholder="32 hex characters"
+                    className={`h-9 text-sm font-mono ${!authFormatValid ? "border-destructive" : ""}`}
+                  />
+                  {!authFormatValid && (
+                    <p className="text-xs text-destructive mt-1">
+                      Must be 32 hex characters (click &quot;Show&quot; in Twilio Console)
+                    </p>
+                  )}
+                </div>
+                {twilioMasterError && (
+                  <div className="rounded-md bg-destructive/10 border border-destructive/30 p-2 text-xs text-destructive">
+                    {twilioMasterError}
+                  </div>
+                )}
+                {twilioMasterSuccess && (
+                  <div className="rounded-md bg-emerald-500/10 border border-emerald-500/30 p-2 text-xs text-emerald-700 dark:text-emerald-400">
+                    ✓ {twilioMasterSuccess}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveTwilioMaster}
+                    disabled={
+                      !twilioMasterSid ||
+                      !twilioMasterAuth ||
+                      !sidFormatValid ||
+                      !authFormatValid ||
+                      savingTwilioMaster
+                    }
+                  >
+                    {savingTwilioMaster
+                      ? "Verifying with Twilio..."
+                      : twilioMasterConfigured
+                        ? "Save New Credentials"
+                        : "Save & Test Credentials"}
+                  </Button>
+                  {twilioMasterConfigured && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingTwilioMaster(false);
+                        setTwilioMasterSid("");
+                        setTwilioMasterAuth("");
+                        setTwilioMasterError(null);
+                      }}
+                      disabled={savingTwilioMaster}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </>
             )}
-            {twilioMasterSuccess && (
-              <div className="rounded-md bg-emerald-500/10 border border-emerald-500/30 p-2 text-xs text-emerald-700 dark:text-emerald-400">
-                ✓ {twilioMasterSuccess}
-              </div>
-            )}
-            <Button
-              size="sm"
-              onClick={handleSaveTwilioMaster}
-              disabled={
-                !twilioMasterSid ||
-                !twilioMasterAuth ||
-                !sidFormatValid ||
-                !authFormatValid ||
-                savingTwilioMaster
-              }
-            >
-              {savingTwilioMaster
-                ? "Verifying with Twilio..."
-                : twilioMasterConfigured
-                  ? "Update Credentials"
-                  : "Save & Test Credentials"}
-            </Button>
           </div>
         </SettingsRow>
 
