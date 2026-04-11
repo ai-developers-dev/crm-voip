@@ -78,6 +78,31 @@ export async function POST(request: NextRequest) {
 
       // Step 2: Add the target agent to the conference
       // This dials the agent and connects them to the parked caller
+      //
+      // CRITICAL: endConferenceOnExit MUST be true for the unpark leg.
+      //
+      // When the call was originally parked, the PSTN caller was added to
+      // the conference with endConferenceOnExit=false so the conference
+      // (and the caller's connection) persisted while only the caller was
+      // in it waiting for someone to pick up. That's correct for parking.
+      //
+      // But at unpark time, the agent joins to handle the call. When the
+      // agent later clicks Hang Up in the browser, the agent's participant
+      // leaves the conference. If endConferenceOnExit is false on the
+      // agent leg, the conference stays alive with the caller trapped in
+      // it — the caller's cell phone does NOT hang up and they keep
+      // hearing hold music (or silence) until they hang up themselves.
+      //
+      // Verified on CAc25439b623932faf8c0baa1e21802ed6 via Twilio MCP: the
+      // unpark leg CA0ccf8f2b99dd551be7156be316bf4350 had parent_call_sid
+      // null (outbound-api direction) so my a9c31e8 end-call REST fix
+      // couldn't find the PSTN parent to terminate. Only the conference
+      // itself could kill the caller.
+      //
+      // Setting endConferenceOnExit=true here makes Twilio automatically
+      // end the conference (and all participants, including the PSTN
+      // caller) when the agent leaves. Normal hang-up behavior restored
+      // for unparked calls.
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
       const participant = await client.conferences(conference.sid)
         .participants
@@ -89,7 +114,7 @@ export async function POST(request: NextRequest) {
           statusCallbackEvent: ["initiated", "ringing", "answered", "completed"],
           // Agent starts the conference when they answer
           startConferenceOnEnter: true,
-          endConferenceOnExit: false,
+          endConferenceOnExit: true,
         });
 
       // Clear the parking slot immediately (don't wait for conference callback)
