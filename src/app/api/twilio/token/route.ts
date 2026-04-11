@@ -3,6 +3,7 @@ import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import twilio from "twilio";
 import { api } from "../../../../../convex/_generated/api";
+import { decryptLegacy } from "@/lib/credentials/crypto";
 
 const AccessToken = twilio.jwt.AccessToken;
 const VoiceGrant = AccessToken.VoiceGrant;
@@ -68,13 +69,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Use per-tenant credentials
-    const { accountSid, apiKey, apiSecret, twimlAppSid } = twilioCredentials;
+    const { accountSid, apiKey, apiSecret: storedApiSecret, twimlAppSid } = twilioCredentials;
 
     // Validate required credentials
-    if (!accountSid || !apiKey || !apiSecret || !twimlAppSid) {
+    if (!accountSid || !apiKey || !storedApiSecret || !twimlAppSid) {
       return NextResponse.json(
         { error: "Twilio configuration incomplete. Please add API Key, API Secret, and TwiML App SID in Settings." },
         { status: 400 }
+      );
+    }
+
+    // Decrypt the API secret — it's stored encrypted via `encrypt(apiSecret, organizationId)`
+    // in saveAutoProvisionedCredentials. Without this, the JWT gets signed with an
+    // encrypted string as the HMAC secret and Twilio rejects every token.
+    // decryptLegacy handles both encrypted and pre-encryption plaintext values.
+    let apiSecret: string;
+    try {
+      apiSecret = decryptLegacy(storedApiSecret, org._id);
+    } catch (err) {
+      console.error("[token] Failed to decrypt API secret for org", org._id, err);
+      return NextResponse.json(
+        { error: "Twilio credentials are corrupted. Re-provision the subaccount." },
+        { status: 500 }
       );
     }
 
