@@ -164,7 +164,10 @@ export async function POST(request: NextRequest) {
       }
 
       if (customAudioUrl) {
-        const twimlContent = `<Response><Play loop="0">${customAudioUrl}</Play></Response>`;
+        // Play the uploaded file ONCE as an intro, then loop Twilio's
+        // classical hold music. Previously <Play loop="0">customUrl which
+        // loops the uploaded clip forever (bad when the file is a greeting).
+        const twimlContent = `<Response><Play loop="1">${customAudioUrl}</Play><Play loop="0">http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3</Play></Response>`;
         holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
       } else {
         holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
