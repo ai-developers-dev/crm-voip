@@ -73,12 +73,19 @@ export async function validateTwilioWebhook(
 
   const signature = request.headers.get("X-Twilio-Signature") || "";
 
-  // Get the full URL that Twilio used (use APP_URL for correct hostname)
+  // Get the full URL that Twilio used (use APP_URL for correct hostname).
+  // CRITICAL: Twilio signs the FULL URL including the query string. Several of our
+  // webhook URLs (dial-status, transfer-ring, transfer-status, transfer-result,
+  // parking-status) embed correlation IDs as query params. Stripping them here
+  // produced a different URL than Twilio signed against → signature mismatch on
+  // every callback → silent 403s on every dial completion → caller hears
+  // "application error has occurred". Include pathname + search.
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
-  const urlPath = new URL(request.url).pathname;
+  const reqUrl = new URL(request.url);
+  const urlPathWithQuery = `${reqUrl.pathname}${reqUrl.search}`;
   const fullUrl = appUrl.endsWith("/")
-    ? `${appUrl.slice(0, -1)}${urlPath}`
-    : `${appUrl}${urlPath}`;
+    ? `${appUrl.slice(0, -1)}${urlPathWithQuery}`
+    : `${appUrl}${urlPathWithQuery}`;
 
   return twilio.validateRequest(authToken, signature, fullUrl, params);
 }
