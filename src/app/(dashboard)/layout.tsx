@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth, useUser, useOrganization, useClerk } from "@clerk/nextjs";
+import { useAuth, useUser, useOrganization, useOrganizationList, useClerk } from "@clerk/nextjs";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { useQuery } from "convex/react";
@@ -39,6 +39,7 @@ import { CallingProvider, useOptionalCallingContext } from "@/components/calling
 import { GlobalIncomingBanner } from "@/components/calling/global-incoming-banner";
 import { AudioUnlockBanner } from "@/components/calling/audio-unlock-banner";
 import { ActiveCallBar } from "@/components/calling/active-call-bar";
+import { getTenantNavItems, type TenantRole } from "@/lib/navigation/tenant-nav";
 
 function TenantSwitcher() {
   const [open, setOpen] = useState(false);
@@ -694,6 +695,7 @@ export default function DashboardLayout({
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
   const { organization } = useOrganization();
+  const { userMemberships, setActive } = useOrganizationList({ userMemberships: true });
   const router = useRouter();
   const pathname = usePathname();
 
@@ -749,6 +751,22 @@ export default function DashboardLayout({
       return;
     }
   }, [isLoaded, isSignedIn, organization, isSuperAdmin, router]);
+
+  // Auto-select org for users who belong to exactly one organization.
+  // This skips Clerk's "Choose an organization" screen so tenant users
+  // (who only ever belong to their one tenant) go straight to their
+  // dashboard after sign-in instead of seeing an org chooser + a
+  // "Create new organization" button they should never interact with.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    if (organization) return; // already have an active org
+    if (!userMemberships?.data) return; // still loading
+
+    if (userMemberships.data.length === 1 && setActive) {
+      const orgId = userMemberships.data[0].organization.id;
+      setActive({ organization: orgId }).catch(console.error);
+    }
+  }, [isLoaded, isSignedIn, organization, userMemberships?.data, setActive]);
 
   // Redirect tenant admins to onboarding if needed
   useEffect(() => {
@@ -881,53 +899,24 @@ export default function DashboardLayout({
               </>
             ) : (
               <>
-                <Link href="/stats">
-                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
-                    <BarChart3 className="h-3 w-3" />
-                    Stats
-                  </Badge>
-                </Link>
-                <Link href="/reports">
-                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
-                    <TrendingUp className="h-3 w-3" />
-                    Reports
-                  </Badge>
-                </Link>
-                {currentUser?.role !== "agent" && (
-                  <Link href="/workflows">
-                    <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
-                      <Workflow className="h-3 w-3" />
-                      Workflows
+                {/* Tenant nav — generated from shared TENANT_NAV_ITEMS so it
+                    stays in sync with the platform admin's tenant view at
+                    /admin/tenants/[id]. Role-filtered so agents see a subset. */}
+                {getTenantNavItems((currentUser?.role as TenantRole) || "agent").map((item) => (
+                  <Link key={item.tenantPath} href={item.tenantPath}>
+                    <Badge
+                      variant={pathname === item.tenantPath || (item.tenantPath === "/dashboard" && pathname === "/") ? "default" : "secondary"}
+                      className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all"
+                    >
+                      <item.icon className="h-3 w-3" />
+                      {item.label}
                     </Badge>
                   </Link>
-                )}
-                <Link href="/contacts">
-                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
-                    <Users className="h-3 w-3" />
-                    Contacts
-                  </Badge>
-                </Link>
-                <Link href="/calendar">
-                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
-                    <Calendar className="h-3 w-3" />
-                    Calendar
-                  </Badge>
-                </Link>
-                <Link href="/voicemails">
-                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
-                    <Voicemail className="h-3 w-3" />
-                    Voicemails
-                  </Badge>
-                </Link>
-                <Link href="/e-sign">
-                  <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
-                    <FileSignature className="h-3 w-3" />
-                    E-Sign
-                  </Badge>
-                </Link>
+                ))}
+                {/* Settings — always last, supervisor+ only */}
                 {currentUser?.role !== "agent" && (
                   <Link href="/settings">
-                    <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
+                    <Badge variant={pathname === "/settings" ? "default" : "secondary"} className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <Settings className="h-3 w-3" />
                       Settings
                     </Badge>

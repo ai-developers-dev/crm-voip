@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Eye, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3, ClipboardCheck, FileSignature } from "lucide-react";
+import { ArrowLeft, Eye, Loader2, Settings } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { CallingDashboard } from "@/components/calling/calling-dashboard";
+import { getAdminTenantNavItems } from "@/lib/navigation/tenant-nav";
 
 export default function TenantViewPage() {
   const params = useParams();
@@ -92,74 +93,35 @@ export default function TenantViewPage() {
     );
   }
 
+  const pathname = usePathname();
+  const basePath = `/admin/tenants/${tenant._id}`;
+  const adminNavItems = getAdminTenantNavItems();
+
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
-      {/* Navigation Menu */}
+      {/* Navigation Menu — generated from shared TENANT_NAV_ITEMS so it
+          stays in sync with the tenant's own dashboard top nav. */}
       <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
           <nav className="flex items-center gap-1">
-            <Link href={`/admin/tenants/${tenant._id}`}>
-              <Button variant="ghost" size="sm" className="gap-2 border-b-2 border-primary rounded-none">
-                <Phone className="h-4 w-4" />
-                Calls
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/sms`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                SMS
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/contacts`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Users className="h-4 w-4" />
-                Contacts
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/calendar`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Calendar
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/tasks`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ClipboardCheck className="h-4 w-4" />
-                Tasks
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/reports`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Reports
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/workflows`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Workflow className="h-4 w-4" />
-                Workflows
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/pipelines`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Columns3 className="h-4 w-4" />
-                Pipelines
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/e-sign`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <FileSignature className="h-4 w-4" />
-                E-Sign
-              </Button>
-            </Link>
-            <Link href={`/admin/tenants/${tenant._id}/agents`}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Bot className="h-4 w-4" />
-                AI Agents
-              </Button>
-            </Link>
+            {adminNavItems.map((item) => {
+              const href = `${basePath}${item.adminSubPath}`;
+              const isActive = pathname === href || (item.adminSubPath === "" && pathname === basePath);
+              return (
+                <Link key={item.label} href={href}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`gap-2 ${isActive ? "border-b-2 border-primary rounded-none" : ""}`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Button>
+                </Link>
+              );
+            })}
           </nav>
-          <Link href={`/admin/tenants/${tenant._id}/settings`}>
+          <Link href={`${basePath}/settings`}>
             <Button variant="outline" size="sm">
               <Settings className="h-4 w-4 mr-2" />
               Settings
