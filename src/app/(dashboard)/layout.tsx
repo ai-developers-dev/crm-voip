@@ -944,9 +944,12 @@ export default function DashboardLayout({
       )}
 
       {/* Tenant inline nav bar — matches the admin tenant view at /admin/tenants/[id]
-          exactly: same items, same order, same Button style. Only shown for non-platform
-          users and not on onboarding pages. */}
-      {!isPlatformUser && !pathname?.startsWith("/onboarding") && !pathname?.startsWith("/get-started") && (
+          exactly: same items, same order, same Button style. Shown whenever the active
+          org is a tenant (not the platform org). This covers both real tenant users AND
+          platform admins who switch their active Clerk org to a tenant via the org
+          switcher. Hidden on onboarding/get-started, and on /admin pages (which have
+          their own nav). */}
+      {currentOrg && !currentOrg.isPlatformOrg && !pathname?.startsWith("/onboarding") && !pathname?.startsWith("/get-started") && !pathname?.startsWith("/admin") && (
         <div className="border-b bg-surface-container/30 px-4 py-2">
           <div className="flex items-center justify-between">
             <nav className="flex items-center gap-1 overflow-x-auto">
