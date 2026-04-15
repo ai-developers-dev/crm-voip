@@ -899,21 +899,7 @@ export default function DashboardLayout({
               </>
             ) : (
               <>
-                {/* Tenant nav — generated from shared TENANT_NAV_ITEMS so it
-                    stays in sync with the platform admin's tenant view at
-                    /admin/tenants/[id]. Role-filtered so agents see a subset. */}
-                {getTenantNavItems((currentUser?.role as TenantRole) || "agent").map((item) => (
-                  <Link key={item.tenantPath} href={item.tenantPath}>
-                    <Badge
-                      variant={pathname === item.tenantPath || (item.tenantPath === "/dashboard" && pathname === "/") ? "default" : "secondary"}
-                      className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all"
-                    >
-                      <item.icon className="h-3 w-3" />
-                      {item.label}
-                    </Badge>
-                  </Link>
-                ))}
-                {/* Settings — always last, supervisor+ only */}
+                {/* Tenant header — minimal: just Settings gear for non-agents */}
                 {currentUser?.role !== "agent" && (
                   <Link href="/settings">
                     <Badge variant={pathname === "/settings" ? "default" : "secondary"} className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
@@ -954,6 +940,42 @@ export default function DashboardLayout({
           >
             Update Payment
           </Button>
+        </div>
+      )}
+
+      {/* Tenant inline nav bar — matches the admin tenant view at /admin/tenants/[id]
+          exactly: same items, same order, same Button style. Only shown for non-platform
+          users and not on onboarding pages. */}
+      {!isPlatformUser && !pathname?.startsWith("/onboarding") && !pathname?.startsWith("/get-started") && (
+        <div className="border-b bg-surface-container/30 px-4 py-2">
+          <div className="flex items-center justify-between">
+            <nav className="flex items-center gap-1 overflow-x-auto">
+              {getTenantNavItems((currentUser?.role as TenantRole) || "agent").map((item) => {
+                const isActive = pathname === item.tenantPath ||
+                  (item.tenantPath === "/dashboard" && (pathname === "/" || pathname === "/dashboard"));
+                return (
+                  <Link key={item.tenantPath} href={item.tenantPath}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`gap-2 whitespace-nowrap ${isActive ? "border-b-2 border-primary rounded-none" : ""}`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </nav>
+            {currentUser?.role !== "agent" && (
+              <Link href="/settings">
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       )}
 

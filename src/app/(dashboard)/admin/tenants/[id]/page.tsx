@@ -17,6 +17,7 @@ import { getAdminTenantNavItems } from "@/lib/navigation/tenant-nav";
 export default function TenantViewPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isLoaded: userLoaded } = useUser();
   const tenantId = params.id as string;
 
@@ -93,7 +94,6 @@ export default function TenantViewPage() {
     );
   }
 
-  const pathname = usePathname();
   const basePath = `/admin/tenants/${tenant._id}`;
   const adminNavItems = getAdminTenantNavItems();
 

@@ -54,11 +54,11 @@ const ROLE_RANK: Record<TenantRole, number> = {
   tenant_admin: 2,
 };
 
-/** Filter nav items by role and whether the tenant route exists. */
+/** Filter nav items by role. Shows all items regardless of whether the
+ *  tenant route exists — the menu must match the admin tenant view 1:1. */
 export function getTenantNavItems(role: TenantRole): TenantNavItem[] {
   const rank = ROLE_RANK[role] ?? 0;
   return TENANT_NAV_ITEMS.filter((item) => {
-    if (!item.tenantRouteExists) return false;
     if (item.minRole && ROLE_RANK[item.minRole] > rank) return false;
     return true;
   });
