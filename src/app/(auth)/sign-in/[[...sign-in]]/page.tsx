@@ -20,7 +20,7 @@ export default function SignInPage() {
       {/* Content */}
       <div className="flex flex-1 items-center justify-center p-4">
         <SignIn
-          afterSignInUrl="/dashboard"
+          fallbackRedirectUrl="/dashboard"
           appearance={{
             elements: {
               rootBox: "mx-auto",
