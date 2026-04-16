@@ -148,7 +148,8 @@ async function isOnLoginPage(page: any): Promise<boolean> {
  *  restore cookies from a previous session. Set visible: true for the mapper. */
 async function launchBrowser(options?: { storageState?: string; visible?: boolean }) {
   const browserlessKey = process.env.BROWSERLESS_API_KEY;
-  const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  const isVercel = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+  const isRailway = !!process.env.RAILWAY_ENVIRONMENT;
 
   // Parse storageState if provided (restore cookies/localStorage)
   let storageStateObj: any = undefined;
@@ -177,7 +178,20 @@ async function launchBrowser(options?: { storageState?: string; visible?: boolea
     return { browser, context, page };
   }
 
-  if (isServerless) {
+  if (isRailway) {
+    // Railway — uses Playwright's bundled Chromium from the Docker image.
+    // No `channel: "chrome"` because Chrome isn't installed — Chromium is.
+    const browser = await chromium.launch({
+      headless: true,
+      args: LAUNCH_ARGS,
+    });
+    const context = await browser.newContext(contextOptions);
+    const page = await context.newPage();
+    page.setDefaultTimeout(30_000);
+    return { browser, context, page };
+  }
+
+  if (isVercel) {
     // Vercel/Lambda — use bundled @sparticuz/chromium (no system Chrome available)
     const sparticuz = (await import("@sparticuz/chromium")).default;
     const browser = await chromium.launch({

@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env.local
+.env.development
+.vercel
+CRM-VOIP-Code-Review-*.md
+insurance-quoting-agent
+National General Auto & Home Quoting Screenshots
+*.log
+.DS_Store
