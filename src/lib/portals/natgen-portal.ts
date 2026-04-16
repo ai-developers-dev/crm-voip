@@ -368,27 +368,43 @@ async function saveSessionState(
   }
 }
 
-/** Load saved cookies from filesystem (fast path) */
+/** Load saved cookies from filesystem (fast path). Falls back to the
+ *  legacy "test-login" key so cookies saved by older test-login code
+ *  still unlock the quote flow on first run after upgrade. */
 function loadSessionStateFromFile(carrierKey: string, username: string): string | null {
-  try {
-    const fs = require("fs");
-    const path = require("path");
-    const hash = credentialHash(username);
-    const filePath = path.join("/tmp", "portal-sessions", `${carrierKey}-${hash}.json`);
-    if (fs.existsSync(filePath)) {
-      const stat = fs.statSync(filePath);
-      if (Date.now() - stat.mtimeMs > SESSION_STATE_EXPIRY) {
-        console.log("[session] Filesystem cookies expired (>25 days), ignoring");
-        return null;
+  const tryRead = (hashKey: string): string | null => {
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const filePath = path.join("/tmp", "portal-sessions", `${carrierKey}-${hashKey}.json`);
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
+        if (Date.now() - stat.mtimeMs > SESSION_STATE_EXPIRY) {
+          console.log("[session] Filesystem cookies expired (>25 days), ignoring");
+          return null;
+        }
+        return fs.readFileSync(filePath, "utf-8");
       }
-      console.log("[session] Loaded cookies from filesystem");
-      return fs.readFileSync(filePath, "utf-8");
-    }
-  } catch {}
+    } catch {}
+    return null;
+  };
+
+  const state = tryRead(credentialHash(username));
+  if (state) {
+    console.log("[session] Loaded cookies from filesystem");
+    return state;
+  }
+  const legacy = tryRead(credentialHash("test-login"));
+  if (legacy) {
+    console.log("[session] Loaded cookies from filesystem via legacy 'test-login' key");
+    return legacy;
+  }
   return null;
 }
 
-/** Load saved cookies from Convex DB */
+/** Load saved cookies from Convex DB. Falls back to the legacy
+ *  "test-login" key so cookies saved by older test-login code still
+ *  unlock the quote flow on first run after upgrade. */
 async function loadSessionStateFromDB(
   carrierKey: string,
   username: string,
@@ -396,14 +412,26 @@ async function loadSessionStateFromDB(
 ): Promise<string | null> {
   try {
     const { api } = await import("../../../convex/_generated/api");
+    const realHash = credentialHash(username);
     const state = await convex.query(api.portalSessions.getStorageState, {
       carrierKey,
-      credentialHash: credentialHash(username),
+      credentialHash: realHash,
     });
     if (state) {
       console.log("[session] Loaded cookies from Convex DB");
+      return state;
     }
-    return state;
+
+    const legacyHash = credentialHash("test-login");
+    const legacy = await convex.query(api.portalSessions.getStorageState, {
+      carrierKey,
+      credentialHash: legacyHash,
+    });
+    if (legacy) {
+      console.log("[session] Loaded cookies from Convex DB via legacy 'test-login' key — will re-save under real username after successful login");
+      return legacy;
+    }
+    return null;
   } catch (e) {
     console.warn("[session] Could not load from Convex:", e);
     return null;

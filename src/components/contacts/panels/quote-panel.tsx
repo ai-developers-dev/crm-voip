@@ -250,13 +250,19 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
       setView("status");
       setSubmitting(false);
 
-      // Fire the quote agent in the background (don't await)
+      // Fire the quote agent in the background (don't await).
+      // Abort after 90s so the UI doesn't hang silently if the server stalls —
+      // the 2FA path normally returns well under 60s.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90_000);
       fetch("/api/quotes/run-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organizationId }),
         credentials: "include",
+        signal: controller.signal,
       }).then(async (agentRes) => {
+        clearTimeout(timeoutId);
         const data = await agentRes.json();
         if (data.status === "needs_2fa") {
           setTwoFaState({ type: "needs_2fa", sessionId: data.sessionId, prompt: data.message });
@@ -264,7 +270,12 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
           setAgentError(data.error);
         }
       }).catch((err) => {
-        setAgentError(err.message || "Quote agent failed");
+        clearTimeout(timeoutId);
+        if (err?.name === "AbortError") {
+          setAgentError("Login took longer than 90 seconds. Check Railway logs or retry.");
+        } else {
+          setAgentError(err.message || "Quote agent failed");
+        }
       });
     } catch (err) {
       console.error("Failed to submit quote:", err);
@@ -274,6 +285,74 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
       setSubmitting(false);
     }
   };
+
+  // ── Shared 2FA panel (rendered in both status + selection views) ───
+  // Hoisted so the status view can show the code input the moment the
+  // server returns needs_2fa — previously it only rendered in the
+  // selection view's footer, which the user had already left.
+  const twoFaPanel = (twoFaState.type === "idle" || twoFaState.type === "verified") ? null : (
+    <div className="rounded-lg border bg-amber-50/60 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/30 p-3 space-y-2">
+      {twoFaState.type === "checking" && (
+        <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          {twoFaState.message}
+        </div>
+      )}
+      {twoFaState.type === "needs_2fa" && (
+        <>
+          <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 font-medium">
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>{twoFaState.prompt}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="one-time-code"
+              placeholder="Enter verification code"
+              value={twoFaCode}
+              onChange={(e) => setTwoFaCode(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && twoFaCode.trim()) handle2faSubmit(); }}
+              className="h-8 text-sm flex-1"
+              autoFocus
+            />
+            <Button size="sm" className="h-8 text-xs" onClick={handle2faSubmit} disabled={!twoFaCode.trim()}>
+              Verify
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {
+              if (twoFaState.type === "needs_2fa") {
+                fetch("/api/quotes/run-agent", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "cleanup", sessionId: twoFaState.sessionId }),
+                }).catch(() => {});
+              }
+              setTwoFaState({ type: "idle" });
+              setTwoFaCode("");
+            }}>
+              Cancel
+            </Button>
+          </div>
+        </>
+      )}
+      {twoFaState.type === "submitting_2fa" && (
+        <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Submitting verification code...
+        </div>
+      )}
+      {twoFaState.type === "error" && (
+        <div className="flex items-start gap-2 text-xs text-destructive">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span className="flex-1">{twoFaState.message}</span>
+          <button onClick={() => setTwoFaState({ type: "idle" })} className="text-on-surface-variant hover:text-on-surface text-[10px] shrink-0">
+            Retry
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   // ── Status View ────────────────────────────────────────────────────
   if (view === "status") {
@@ -295,6 +374,10 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="p-4 space-y-4">
+            {/* 2FA input — visible as soon as server returns needs_2fa,
+                regardless of whether the run has started in Convex yet */}
+            {twoFaPanel}
+
             {/* Starting message — show when just submitted but run hasn't started */}
             {submitTime > 0 && !isRelevantRun && (
               <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
@@ -594,68 +677,10 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
       </div>
       )}
 
-      {/* 2FA Verification */}
-      {twoFaState.type !== "idle" && twoFaState.type !== "verified" && (
-        <div className="shrink-0 border-t px-4 py-3 space-y-2">
-          {twoFaState.type === "checking" && (
-            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              {twoFaState.message}
-            </div>
-          )}
-          {twoFaState.type === "needs_2fa" && (
-            <div className="space-y-2">
-              <div className="flex items-start gap-2 text-xs text-amber-600">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>{twoFaState.prompt}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  autoComplete="one-time-code"
-                  placeholder="Enter verification code"
-                  value={twoFaCode}
-                  onChange={(e) => setTwoFaCode(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && twoFaCode.trim()) handle2faSubmit(); }}
-                  className="h-8 text-sm flex-1"
-                  autoFocus
-                />
-                <Button size="sm" className="h-8 text-xs" onClick={handle2faSubmit} disabled={!twoFaCode.trim()}>
-                  Verify
-                </Button>
-                <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => {
-                  if (twoFaState.type === "needs_2fa") {
-                    fetch("/api/portal-test", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "cleanup", sessionId: twoFaState.sessionId }),
-                    }).catch(() => {});
-                  }
-                  setTwoFaState({ type: "idle" });
-                  setTwoFaCode("");
-                }}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-          {twoFaState.type === "submitting_2fa" && (
-            <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Submitting verification code...
-            </div>
-          )}
-          {twoFaState.type === "error" && (
-            <div className="flex items-start gap-2 text-xs text-destructive">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <span className="flex-1">{twoFaState.message}</span>
-              <button onClick={() => setTwoFaState({ type: "idle" })} className="text-on-surface-variant hover:text-on-surface text-[10px] shrink-0">
-                Retry
-              </button>
-            </div>
-          )}
+      {/* 2FA Verification — shared with status view */}
+      {twoFaPanel && (
+        <div className="shrink-0 border-t px-4 py-3">
+          {twoFaPanel}
         </div>
       )}
 
