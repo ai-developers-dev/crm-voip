@@ -84,7 +84,8 @@ export async function POST(req: Request) {
       if (!sessionId || !code) {
         return NextResponse.json({ status: "error", message: "Missing sessionId or code." });
       }
-      const result = await submitLoginTest2FA(sessionId, code.trim());
+      await authenticateConvex();
+      const result = await submitLoginTest2FA(sessionId, code.trim(), convex);
       return NextResponse.json(result);
     }
 

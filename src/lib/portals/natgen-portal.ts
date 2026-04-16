@@ -225,6 +225,7 @@ interface PortalTestSession {
   browser: any;
   page: any;
   createdAt: number;
+  username: string;
 }
 
 // Module-level session store for in-progress login tests
@@ -622,7 +623,7 @@ export async function startLoginTest(creds: PortalCredentials): Promise<
         await delay(1500);
       }
 
-      TEST_SESSIONS.set(sessionId, { browser, page, createdAt: Date.now() });
+      TEST_SESSIONS.set(sessionId, { browser, page, createdAt: Date.now(), username: creds.username });
       return {
         status: "needs_2fa",
         sessionId,
@@ -661,7 +662,11 @@ export async function startLoginTest(creds: PortalCredentials): Promise<
   }
 }
 
-export async function submitLoginTest2FA(sessionId: string, code: string): Promise<
+export async function submitLoginTest2FA(
+  sessionId: string,
+  code: string,
+  convex?: any, // ConvexHttpClient — persist cookies so the quote agent can reuse them
+): Promise<
   | { status: "logged_in"; message: string }
   | { status: "error"; message: string }
 > {
@@ -740,13 +745,16 @@ export async function submitLoginTest2FA(sessionId: string, code: string): Promi
       pageText.includes("expired") ||
       currentUrl.includes("login");
 
-    // Save cookies before closing — so future loginForQuoting calls can skip 2FA
+    // Save cookies before closing — so future loginForQuoting calls can skip 2FA.
+    // Key: save under the actual username so loginForQuoting finds them on lookup.
     if (!failed) {
       try {
         const ctx = page.context();
-        await saveSessionState(ctx, "natgen", "test-login");
-        console.log("[test-login] Saved cookies after successful 2FA");
-      } catch {}
+        await saveSessionState(ctx, "natgen", session.username, convex);
+        console.log(`[test-login] Saved cookies under username "${session.username}" after successful 2FA`);
+      } catch (e) {
+        console.warn("[test-login] Could not save cookies:", e);
+      }
     }
 
     await browser.close().catch(() => {});
