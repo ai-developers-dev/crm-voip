@@ -175,6 +175,43 @@ export function CarriersSettingsDialog({
     });
   }, [existingCarriers]);
 
+  // Fetch decrypted usernames for configured carriers so the form shows
+  // what's saved (password stays blank — user re-enters if changing)
+  useEffect(() => {
+    if (!open || !existingCarriers) return;
+    const configured = (existingCarriers as any[]).filter((tc) => tc.portalConfigured);
+    if (configured.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      for (const tc of configured) {
+        try {
+          const res = await fetch(
+            `/api/natgen-credentials?organizationId=${organizationId}&carrierId=${tc.carrierId}`
+          );
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (cancelled || !data?.username) continue;
+          setCarrierCredentials((prev) => {
+            const next = new Map(prev);
+            const current = next.get(tc.carrierId);
+            if (current?.username) return prev;
+            next.set(tc.carrierId, {
+              url: current?.url || data.portalUrl || tc.portalUrl || "",
+              username: data.username,
+              password: "",
+              configured: true,
+            });
+            return next;
+          });
+        } catch {}
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, existingCarriers, organizationId]);
+
   // Expand/collapse state for carrier tree
   const [expandedCarrierIds, setExpandedCarrierIds] = useState<Set<string>>(new Set());
   const toggleExpandCarrier = (id: string) => {

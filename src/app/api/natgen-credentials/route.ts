@@ -2,8 +2,42 @@ import { NextResponse } from "next/server";
 import { convex } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "../../../../convex/_generated/api";
-import { encrypt } from "@/lib/credentials/crypto";
+import { encrypt, decrypt } from "@/lib/credentials/crypto";
 import type { Id } from "../../../../convex/_generated/dataModel";
+
+export async function GET(req: Request) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const organizationId = searchParams.get("organizationId");
+    const carrierId = searchParams.get("carrierId");
+    if (!organizationId || !carrierId) {
+      return NextResponse.json({ error: "Missing organizationId or carrierId" }, { status: 400 });
+    }
+
+    const carriers = await convex.query(api.tenantCommissions.getCarriersWithCredentials, {
+      organizationId: organizationId as Id<"organizations">,
+    });
+    const carrier = carriers.find((c: any) => c.carrierId === carrierId);
+    if (!carrier) {
+      return NextResponse.json({ username: null, portalUrl: null });
+    }
+
+    let username: string | null = null;
+    try {
+      username = decrypt(carrier.portalUsername, organizationId);
+    } catch {}
+
+    return NextResponse.json({ username, portalUrl: carrier.portalUrl ?? null });
+  } catch (err: any) {
+    console.error("[natgen-credentials GET]", err);
+    return NextResponse.json({ error: err.message ?? "Failed to load credentials" }, { status: 500 });
+  }
+}
 
 
 export async function POST(req: Request) {
