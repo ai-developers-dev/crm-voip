@@ -30,7 +30,18 @@ async function getPortalKey(
   quoteType: string,
   convex: ConvexHttpClient,
 ): Promise<string | null> {
-  // Check for saved field mappings FIRST — these take priority over hardcoded drivers
+  // Prefer the hardcoded driver when one exists — it carries the portal-
+  // specific SPA handling (ctlError cleanup, garaging popup dismissal,
+  // prefill parsing, premium scrape) that the generic mapping runner can't
+  // replicate from captured selectors alone. Mappings remain the path for
+  // carriers without a dedicated driver.
+  const name = carrierName.toLowerCase();
+  if (name.includes("national general") || name.includes("natgen")) {
+    console.log(`[run-agent] Using hardcoded NatGen driver for ${carrierName} (${quoteType})`);
+    return "natgen";
+  }
+
+  // No hardcoded driver — fall back to saved field mappings
   try {
     const mapping = await convex.query(api.portalFieldMappings.getByCarrierAndType, {
       carrierId: carrierId as Id<"agencyCarriers">,
@@ -41,10 +52,6 @@ async function getPortalKey(
       return `mappings:${mapping._id}`;
     }
   } catch {}
-
-  // Fall back to hardcoded drivers
-  const name = carrierName.toLowerCase();
-  if (name.includes("national general") || name.includes("natgen")) return "natgen";
 
   return null;
 }
