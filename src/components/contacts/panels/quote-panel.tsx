@@ -415,6 +415,21 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
               </div>
             )}
 
+            {/* Quoting Steps — rendered right under the run status so the
+                user sees progress without scrolling past the results. */}
+            {contactLeads.length > 0 && (
+              isRunning ||
+              (leadQuotes?.length ?? 0) > 0 ||
+              latestLead?.status === "quoting" ||
+              latestLead?.status === "quoted" ||
+              latestLead?.status === "error"
+            ) && (
+              <div>
+                <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Quoting Steps</h4>
+                <QuotingSteps status={latestLead?.status || "new"} hasResults={(leadQuotes?.length ?? 0) > 0} currentStage={latestRun?.currentStage ?? undefined} />
+              </div>
+            )}
+
             {/* Lead Status */}
             {contactLeads.map((lead: any) => (
               <div key={lead._id} className="space-y-2">
@@ -514,13 +529,6 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
               </div>
             )}
 
-            {/* Quoting Steps Progress — only show while running */}
-            {contactLeads.length > 0 && isRunning && (
-              <div>
-                <h4 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wide mb-2">Quoting Steps</h4>
-                <QuotingSteps status={latestLead?.status || "new"} hasResults={(leadQuotes?.length ?? 0) > 0} currentStage={latestRun?.currentStage ?? undefined} />
-              </div>
-            )}
           </div>
         </div>
 
