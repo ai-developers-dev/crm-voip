@@ -92,6 +92,7 @@ export async function POST(req: Request) {
     const configuredCarriers = await convex.query(api.tenantCommissions.getCarriersWithCredentials, {
       organizationId: organizationId as Id<"organizations">,
     });
+    console.log(`[run-agent] Found ${configuredCarriers.length} configured carrier(s) for org ${organizationId}`);
 
     // Decrypt credentials and match to portal drivers
     const carriersToRun: Array<{
@@ -100,11 +101,16 @@ export async function POST(req: Request) {
       portalKey: string;
       credentials: PortalCredentials;
     }> = [];
+    const skipReasons: string[] = [];
+    let decryptFailures = 0;
 
     for (const tc of configuredCarriers) {
       const portalKey = await getPortalKey(tc.carrierName, tc.carrierId, quoteType, convex);
       // Accept hardcoded drivers OR mapping-driven carriers
-      if (!portalKey || (!PORTAL_DRIVERS[portalKey] && !portalKey.startsWith("mappings:"))) continue;
+      if (!portalKey || (!PORTAL_DRIVERS[portalKey] && !portalKey.startsWith("mappings:"))) {
+        skipReasons.push(`${tc.carrierName}: no driver or field mapping for ${quoteType}`);
+        continue;
+      }
 
       try {
         carriersToRun.push({
@@ -117,8 +123,10 @@ export async function POST(req: Request) {
             portalUrl: tc.portalUrl || undefined,
           },
         });
-      } catch {
-        console.error(`[run-agent] Failed to decrypt credentials for ${tc.carrierName}`);
+      } catch (e: any) {
+        decryptFailures++;
+        skipReasons.push(`${tc.carrierName}: decrypt failed (${e.message})`);
+        console.error(`[run-agent] Failed to decrypt credentials for ${tc.carrierName}:`, e.message);
       }
     }
 
@@ -154,9 +162,23 @@ export async function POST(req: Request) {
     }
 
     if (carriersToRun.length === 0) {
-      return NextResponse.json({
-        error: "No carrier portal credentials found. Add NatGen credentials in Admin → Tenant → Settings → Carriers, or test via AI Agents → Insurance Quoting.",
-      }, { status: 400 });
+      console.error("[run-agent] No runnable carriers. Diagnostics:", {
+        orgId: organizationId,
+        configuredCount: configuredCarriers.length,
+        decryptFailures,
+        skipReasons,
+      });
+
+      let errorMsg: string;
+      if (configuredCarriers.length === 0) {
+        errorMsg = "No portal credentials saved for this tenant. Open Settings → Carriers and save NatGen (or another supported carrier) credentials for this organization.";
+      } else if (decryptFailures > 0 && decryptFailures === configuredCarriers.length) {
+        errorMsg = "Saved credentials could not be decrypted. The CREDENTIAL_ENCRYPTION_KEY on the server has changed since they were saved — re-enter credentials in Settings → Carriers to fix.";
+      } else {
+        errorMsg = `No runnable carriers for quote type "${quoteType}". Details: ${skipReasons.join("; ")}`;
+      }
+
+      return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
     // Single-browser login: attempt login first, handle 2FA if needed
