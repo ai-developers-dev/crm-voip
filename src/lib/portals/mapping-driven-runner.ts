@@ -79,13 +79,36 @@ function resolveFieldValue(field: any, lead: InsuranceLeadData): string | undefi
   return undefined;
 }
 
+// ── Selector normalization ──────────────────────────────────────────────
+// ASP.NET portals (NatGen) generate element IDs with dots, like
+// "vehicle.0.ddlRentedToOthers". Dots are valid in HTML `id` attributes
+// but when combined with `#` in a CSS selector they parse as ID + class.
+// `.0` then fails because CSS classes can't start with a digit, and
+// `querySelector` throws SyntaxError. Rewrite dotted-ID selectors to the
+// attribute form `[id="…"]` which has no escaping quirks.
+function normalizeIdSelector(sel: string): string {
+  if (!sel.startsWith("#") || sel.length < 2) return sel;
+  const body = sel.slice(1);
+  // If the body contains a dot followed by a digit, treat the entire body
+  // as a single HTML id (ASP.NET-style). Plain `#id.class` selectors never
+  // have a class that starts with a digit, so this disambiguates safely.
+  if (/\.\d/.test(body)) {
+    return `[id="${body}"]`;
+  }
+  return sel;
+}
+
+function normalizeSelectorList(selector: string): string[] {
+  return selector.split(",").map((s) => normalizeIdSelector(s.trim())).filter(Boolean);
+}
+
 // ── Field Interaction ───────────────────────────────────────────────────
 
 /** Fill a text input using Playwright, with evaluate fallback */
 async function fillField(page: any, selector: string, value: string): Promise<boolean> {
   if (!value || !selector) return false;
   // Try comma-separated selectors
-  const selectors = selector.split(",").map((s) => s.trim());
+  const selectors = normalizeSelectorList(selector);
   for (const sel of selectors) {
     try {
       const el = await page.$(sel);
@@ -120,7 +143,7 @@ async function fillField(page: any, selector: string, value: string): Promise<bo
 /** Select a dropdown option — supports comma-separated selectors */
 async function selectDropdown(page: any, selector: string, value: string): Promise<boolean> {
   if (!value || !selector) return false;
-  const selectors = selector.split(",").map((s) => s.trim());
+  const selectors = normalizeSelectorList(selector);
   for (const sel of selectors) {
     try {
       const el = await page.$(sel);
@@ -155,7 +178,7 @@ async function selectDropdown(page: any, selector: string, value: string): Promi
 
 /** Select dropdown and trigger ASP.NET __doPostBack */
 async function selectWithPostback(page: any, selector: string, value: string): Promise<boolean> {
-  const selectors = selector.split(",").map((s) => s.trim());
+  const selectors = normalizeSelectorList(selector);
   for (const sel of selectors) {
     try {
       const result = await page.evaluate(
@@ -195,7 +218,7 @@ async function selectWithPostback(page: any, selector: string, value: string): P
 /** Click a button/link — supports comma-separated selectors */
 async function clickButton(page: any, selector: string): Promise<boolean> {
   if (!selector) return false;
-  const selectors = selector.split(",").map((s) => s.trim());
+  const selectors = normalizeSelectorList(selector);
   for (const sel of selectors) {
     try {
       const el = await page.$(sel);
@@ -222,8 +245,9 @@ async function clickNextOrContinue(page: any): Promise<boolean> {
 /** Click a radio button by selector */
 async function clickRadio(page: any, selector: string): Promise<boolean> {
   if (!selector) return false;
+  const normalized = normalizeSelectorList(selector)[0] || selector;
   try {
-    const el = await page.$(selector);
+    const el = await page.$(normalized);
     if (el) { await el.click(); return true; }
   } catch {}
   // Fallback: evaluate
@@ -232,7 +256,7 @@ async function clickRadio(page: any, selector: string): Promise<boolean> {
       const el = document.querySelector(sel) as HTMLInputElement | null;
       if (el) { el.checked = true; el.click(); return true; }
       return false;
-    }, selector);
+    }, normalized);
   } catch { return false; }
 }
 
@@ -381,7 +405,9 @@ async function actionBatchFill(page: any, lead: InsuranceLeadData, fields: any[]
     const rawValue = resolveFieldValue(field, lead);
     if (!rawValue) continue;
     const value = applyTransform(rawValue, field.transform);
-    fieldData.push({ selector: field.selector, value, tag: field.tag });
+    // Normalize the selector so dotted ASP.NET IDs survive CSS parsing
+    const normalized = normalizeSelectorList(field.selector).join(",");
+    fieldData.push({ selector: normalized, value, tag: field.tag });
   }
 
   await page.evaluate((data: Array<{ selector: string; value: string; tag: string }>) => {
@@ -512,10 +538,11 @@ export async function runQuoteFromMappings(
           const value = applyTransform(rawValue, field.transform);
 
           // Check if this field has an onchange postback (ASP.NET pattern)
+          const normalizedSel = normalizeSelectorList(field.selector)[0] || field.selector;
           const hasPostback = await page.evaluate((sel: string) => {
             const el = document.querySelector(sel) as HTMLSelectElement | null;
             return el?.getAttribute("onchange")?.includes("__doPostBack") || false;
-          }, field.selector).catch(() => false);
+          }, normalizedSel).catch(() => false);
 
           if (hasPostback) {
             console.log(`[runner] Select with postback: ${field.selector} → ${value}`);
