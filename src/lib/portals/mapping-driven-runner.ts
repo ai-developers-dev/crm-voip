@@ -80,21 +80,19 @@ function resolveFieldValue(field: any, lead: InsuranceLeadData): string | undefi
 }
 
 // ── Selector normalization ──────────────────────────────────────────────
-// ASP.NET portals (NatGen) generate element IDs with dots, like
-// "vehicle.0.ddlRentedToOthers". Dots are valid in HTML `id` attributes
-// but when combined with `#` in a CSS selector they parse as ID + class.
-// `.0` then fails because CSS classes can't start with a digit, and
-// `querySelector` throws SyntaxError. Rewrite dotted-ID selectors to the
-// attribute form `[id="…"]` which has no escaping quirks.
+// NatGen's SPA framework generates element IDs with dots, like
+// "vehicle.0.ddlRentedToOthers" or "driver.0.DriverHouseholdMember".
+// Dots are valid in HTML `id` but break CSS selectors — `#vehicle.0.foo`
+// parses as ID + classes, and `.0` is invalid (classes can't start with
+// a digit). Two-prong approach:
+//   1. Prefer `document.getElementById(id)` when the selector is just an
+//      ID reference — no CSS parsing involved.
+//   2. Fall back to attribute form `[id="..."]` for Playwright's page.$()
+//      which doesn't let us bypass CSS.
 function normalizeIdSelector(sel: string): string {
   if (!sel.startsWith("#") || sel.length < 2) return sel;
   const body = sel.slice(1);
-  // If the body contains a dot followed by a digit, treat the entire body
-  // as a single HTML id (ASP.NET-style). Plain `#id.class` selectors never
-  // have a class that starts with a digit, so this disambiguates safely.
-  if (/\.\d/.test(body)) {
-    return `[id="${body}"]`;
-  }
+  if (/\.\d/.test(body)) return `[id="${body}"]`;
   return sel;
 }
 
@@ -102,78 +100,85 @@ function normalizeSelectorList(selector: string): string[] {
   return selector.split(",").map((s) => normalizeIdSelector(s.trim())).filter(Boolean);
 }
 
+/** Extract the raw HTML `id` if a selector is `#foo` or `[id="foo"]`. */
+function extractIdFromSelector(sel: string): string | null {
+  if (sel.startsWith("#") && sel.length > 1) return sel.slice(1);
+  const m = sel.match(/^\[id=["']?([^"'\]]+)["']?\]$/);
+  return m ? m[1] : null;
+}
+
 // ── Field Interaction ───────────────────────────────────────────────────
 
-/** Fill a text input using Playwright, with evaluate fallback */
+/** Fill a text input using the SPA-safe pattern from the hardcoded driver:
+ *  native setter + input/change/blur events + clear ctlError class. Prefers
+ *  getElementById for dotted IDs since Playwright's CSS engine can't reach
+ *  them even via [id="…"] on every framework variant. */
 async function fillField(page: any, selector: string, value: string): Promise<boolean> {
   if (!value || !selector) return false;
-  // Try comma-separated selectors
-  const selectors = normalizeSelectorList(selector);
-  for (const sel of selectors) {
-    try {
-      const el = await page.$(sel);
-      if (!el) continue;
-      const visible = await el.isVisible().catch(() => false);
-      if (!visible) continue;
-      await el.fill(value);
-      await delay(50);
-      return true;
-    } catch {}
-  }
-  // Fallback: evaluate
-  try {
-    return await page.evaluate(
-      ({ sels, val }: { sels: string[]; val: string }) => {
-        for (const sel of sels) {
-          const el = document.querySelector(sel) as HTMLInputElement | null;
+  const rawSelectors = selector.split(",").map((s) => s.trim()).filter(Boolean);
+  const normSelectors = rawSelectors.map(normalizeIdSelector);
+  const ids = rawSelectors.map(extractIdFromSelector);
+
+  return await page
+    .evaluate(
+      ({ ids, sels, val }: { ids: (string | null)[]; sels: string[]; val: string }) => {
+        for (let i = 0; i < sels.length; i++) {
+          const id = ids[i];
+          const sel = sels[i];
+          const el = (id ? document.getElementById(id) : document.querySelector(sel)) as HTMLInputElement | null;
           if (!el) continue;
-          const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-          if (setter) setter.call(el, val); else el.value = val;
+          // Skip hidden fields — portal forms often have many
+          if (el.offsetParent === null && el.type !== "hidden") continue;
+          const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+          const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+          if (setter) setter.call(el, val); else (el as any).value = val;
           el.dispatchEvent(new Event("input", { bubbles: true }));
           el.dispatchEvent(new Event("change", { bubbles: true }));
+          el.dispatchEvent(new Event("blur", { bubbles: true }));
+          el.classList.remove("ctlError");
           return true;
         }
         return false;
       },
-      { sels: selectors, val: value },
-    );
-  } catch { return false; }
+      { ids, sels: normSelectors, val: value },
+    )
+    .catch(() => false);
 }
 
-/** Select a dropdown option — supports comma-separated selectors */
+/** Select a dropdown option — SPA-safe (native setter + all events). */
 async function selectDropdown(page: any, selector: string, value: string): Promise<boolean> {
   if (!value || !selector) return false;
-  const selectors = normalizeSelectorList(selector);
-  for (const sel of selectors) {
-    try {
-      const el = await page.$(sel);
-      if (!el) continue;
-      // Try by value, then label, then partial match
-      try { await page.selectOption(sel, value); return true; } catch {}
-      try { await page.selectOption(sel, { label: value }); return true; } catch {}
-      // Evaluate fallback with partial match
-      const matched = await page.evaluate(
-        ({ s, v }: { s: string; v: string }) => {
-          const select = document.querySelector(s) as HTMLSelectElement | null;
-          if (!select) return false;
+  const rawSelectors = selector.split(",").map((s) => s.trim()).filter(Boolean);
+  const normSelectors = rawSelectors.map(normalizeIdSelector);
+  const ids = rawSelectors.map(extractIdFromSelector);
+
+  return await page
+    .evaluate(
+      ({ ids, sels, v }: { ids: (string | null)[]; sels: string[]; v: string }) => {
+        for (let i = 0; i < sels.length; i++) {
+          const id = ids[i];
+          const sel = sels[i];
+          const select = (id ? document.getElementById(id) : document.querySelector(sel)) as HTMLSelectElement | null;
+          if (!select || select.disabled) continue;
           const opt = Array.from(select.options).find(
             (o) => o.value === v || o.text === v ||
               o.text.toLowerCase().includes(v.toLowerCase()) ||
               o.value.toLowerCase().includes(v.toLowerCase())
           );
-          if (opt) {
-            select.value = opt.value;
-            select.dispatchEvent(new Event("change", { bubbles: true }));
-            return true;
-          }
-          return false;
-        },
-        { s: sel, v: value },
-      );
-      if (matched) return true;
-    } catch {}
-  }
-  return false;
+          if (!opt) continue;
+          const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+          if (setter) setter.call(select, opt.value); else select.value = opt.value;
+          select.dispatchEvent(new Event("input", { bubbles: true }));
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+          select.dispatchEvent(new Event("blur", { bubbles: true }));
+          select.classList.remove("ctlError");
+          return true;
+        }
+        return false;
+      },
+      { ids, sels: normSelectors, v: value },
+    )
+    .catch(() => false);
 }
 
 /** Select dropdown and trigger ASP.NET __doPostBack */
@@ -398,39 +403,54 @@ async function actionScrapePremium(page: any): Promise<QuoteResult> {
 async function actionBatchFill(page: any, lead: InsuranceLeadData, fields: any[]): Promise<void> {
   console.log(`[runner] Action: Batch fill ${fields.length} fields`);
 
-  // Build a data map from field mappings
-  const fieldData: Array<{ selector: string; value: string; tag: string }> = [];
+  // Build a data map from field mappings.
+  // Prefer the raw element `id` where possible so we can use
+  // `document.getElementById()` in the browser and bypass CSS parsing.
+  const fieldData: Array<{ id: string | null; selector: string; value: string; tag: string }> = [];
   for (const field of fields) {
     if (field.type === "button" || field.type === "submit") continue;
     const rawValue = resolveFieldValue(field, lead);
     if (!rawValue) continue;
     const value = applyTransform(rawValue, field.transform);
-    // Normalize the selector so dotted ASP.NET IDs survive CSS parsing
-    const normalized = normalizeSelectorList(field.selector).join(",");
-    fieldData.push({ selector: normalized, value, tag: field.tag });
+    const firstSel = (field.selector || "").split(",").map((s: string) => s.trim()).filter(Boolean)[0] || "";
+    const id = extractIdFromSelector(firstSel);
+    const normalized = normalizeIdSelector(firstSel);
+    fieldData.push({ id, selector: normalized, value, tag: field.tag });
   }
 
-  await page.evaluate((data: Array<{ selector: string; value: string; tag: string }>) => {
-    function setVal(sel: string, val: string) {
-      const el = document.querySelector(sel) as HTMLInputElement | null;
-      if (!el || !val) return;
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  await page.evaluate((data: Array<{ id: string | null; selector: string; value: string; tag: string }>) => {
+    function findEl(d: { id: string | null; selector: string }) {
+      if (d.id) return document.getElementById(d.id);
+      try { return document.querySelector(d.selector); } catch { return null; }
+    }
+    function setVal(el: HTMLInputElement, val: string) {
+      const proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
       if (setter) setter.call(el, val); else el.value = val;
       el.dispatchEvent(new Event("input", { bubbles: true }));
       el.dispatchEvent(new Event("change", { bubbles: true }));
+      el.dispatchEvent(new Event("blur", { bubbles: true }));
+      el.classList.remove("ctlError");
     }
-    function setSel(sel: string, val: string) {
-      const el = document.querySelector(sel) as HTMLSelectElement | null;
-      if (!el || !val) return;
+    function setSel(el: HTMLSelectElement, val: string) {
       const opt = Array.from(el.options).find(
-        (o) => o.value === val || o.text === val || o.text.toLowerCase().includes(val.toLowerCase())
+        (o) => o.value === val || o.text === val ||
+          o.text.toLowerCase().includes(val.toLowerCase()) ||
+          o.value.toLowerCase().includes(val.toLowerCase())
       );
-      if (opt) el.value = opt.value;
+      if (!opt) return;
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+      if (setter) setter.call(el, opt.value); else el.value = opt.value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
       el.dispatchEvent(new Event("change", { bubbles: true }));
+      el.dispatchEvent(new Event("blur", { bubbles: true }));
+      el.classList.remove("ctlError");
     }
-    for (const { selector, value, tag } of data) {
-      if (tag === "select") setSel(selector, value);
-      else setVal(selector, value);
+    for (const d of data) {
+      const el = findEl(d);
+      if (!el || !d.value) continue;
+      if (d.tag === "select") setSel(el as HTMLSelectElement, d.value);
+      else setVal(el as HTMLInputElement, d.value);
     }
   }, fieldData);
   await delay(300);
