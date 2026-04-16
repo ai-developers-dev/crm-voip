@@ -143,11 +143,12 @@ async function isOnLoginPage(page: any): Promise<boolean> {
   }
 }
 
-/** Launch a browser — uses Browserless.io if API key is set, otherwise local Chrome.
- *  Pass storageState JSON string to restore cookies from a previous session.
- *  Set visible: true to show the browser window (for mapper/debugging). */
+/** Launch a browser — Browserless.io if API key is set, @sparticuz/chromium on
+ *  Vercel/Lambda, otherwise local Chrome. Pass storageState JSON string to
+ *  restore cookies from a previous session. Set visible: true for the mapper. */
 async function launchBrowser(options?: { storageState?: string; visible?: boolean }) {
   const browserlessKey = process.env.BROWSERLESS_API_KEY;
+  const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
   // Parse storageState if provided (restore cookies/localStorage)
   let storageStateObj: any = undefined;
@@ -170,6 +171,20 @@ async function launchBrowser(options?: { storageState?: string; visible?: boolea
       `wss://chrome.browserless.io?token=${browserlessKey}&stealth`,
       { timeout: 60_000 }
     );
+    const context = await browser.newContext(contextOptions);
+    const page = await context.newPage();
+    page.setDefaultTimeout(30_000);
+    return { browser, context, page };
+  }
+
+  if (isServerless) {
+    // Vercel/Lambda — use bundled @sparticuz/chromium (no system Chrome available)
+    const sparticuz = (await import("@sparticuz/chromium")).default;
+    const browser = await chromium.launch({
+      headless: true,
+      args: [...sparticuz.args, ...LAUNCH_ARGS],
+      executablePath: await sparticuz.executablePath(),
+    });
     const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
     page.setDefaultTimeout(30_000);
