@@ -115,6 +115,27 @@ export const getByCarrierAndType = query({
   },
 });
 
+// One-shot repair: strip " insurance" suffix + lowercase all quoteType values.
+// Field-mapper UI saved some as "auto insurance" but agent looks up "auto".
+export const normalizeQuoteTypes = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("portalFieldMappings").collect();
+    const updated: Array<{ id: string; from: string; to: string }> = [];
+    for (const m of all) {
+      const cleaned = m.quoteType
+        .toLowerCase()
+        .replace(/\s+insurance$/i, "")
+        .trim();
+      if (cleaned !== m.quoteType) {
+        await ctx.db.patch(m._id, { quoteType: cleaned });
+        updated.push({ id: m._id, from: m.quoteType, to: cleaned });
+      }
+    }
+    return { updatedCount: updated.length, updated };
+  },
+});
+
 // Get by ID (for the mapping-driven runner)
 export const getById = query({
   args: { mappingId: v.id("portalFieldMappings") },
