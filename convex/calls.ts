@@ -765,6 +765,20 @@ export const end = mutation({
         status: "available",
         updatedAt: Date.now(),
       });
+      // Flip presence immediately so the next inbound call sees this agent
+      // as available — otherwise presence stays "on_call" until the next
+      // 30s heartbeat and the voice webhook plays "all agents busy".
+      const presence = await ctx.db
+        .query("presence")
+        .withIndex("by_user", (q) => q.eq("userId", call.assignedUserId!))
+        .first();
+      if (presence) {
+        await ctx.db.patch(presence._id, {
+          status: "available",
+          currentCallId: undefined,
+          lastHeartbeat: Date.now(),
+        });
+      }
     }
 
     // Delete active call
@@ -823,6 +837,19 @@ export const endByCallSid = mutation({
         status: "available",
         updatedAt: Date.now(),
       });
+      // Same presence flip as calls:end — otherwise the next inbound call
+      // sees this agent as "on_call" until the next client heartbeat.
+      const presence = await ctx.db
+        .query("presence")
+        .withIndex("by_user", (q) => q.eq("userId", call.assignedUserId!))
+        .first();
+      if (presence) {
+        await ctx.db.patch(presence._id, {
+          status: "available",
+          currentCallId: undefined,
+          lastHeartbeat: Date.now(),
+        });
+      }
     }
 
     // Delete active call

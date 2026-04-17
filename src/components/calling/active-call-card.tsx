@@ -59,8 +59,11 @@ export function ActiveCallCard({
   const [isMuted, setIsMuted] = useState(false);
   const [duration, setDuration] = useState(0);
 
-  // Convex mutation to end call
+  // Convex mutations to end call. We try by Convex _id first; if the parent
+  // only has the Twilio CallSid (e.g. unparked/targeted ring where no
+  // activeCalls row exists yet), we fall back to endByCallSid.
   const endCallMutation = useMutation(api.calls.end);
+  const endByCallSidMutation = useMutation(api.calls.endByCallSid);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -150,9 +153,22 @@ export function ActiveCallCard({
         activeCall.disconnect();
       }
 
-      // Update database
+      // Update database. `_id` may be a real Convex id (activeCalls row) or
+      // a fallback Twilio CallSid (unparked / targeted-ring cases where no
+      // row exists yet). Route accordingly so the mutation actually runs —
+      // otherwise presence stays "on_call" and the next inbound call gets
+      // "all agents busy".
+      const looksLikeTwilioSid = call._id.startsWith("CA") && call._id.length >= 34;
       try {
-        await endCallMutation({ callId: call._id as Id<"activeCalls"> });
+        if (looksLikeTwilioSid) {
+          await endByCallSidMutation({ twilioCallSid: call._id });
+        } else if (call.twilioCallSid && !call.twilioCallSid.startsWith("out-")) {
+          // Prefer endByCallSid when we have a real Twilio SID, since it
+          // handles the "activeCall row doesn't exist" case gracefully.
+          await endByCallSidMutation({ twilioCallSid: call.twilioCallSid });
+        } else {
+          await endCallMutation({ callId: call._id as Id<"activeCalls"> });
+        }
       } catch (error) {
         console.error("Failed to end call in database:", error);
       }
@@ -162,7 +178,7 @@ export function ActiveCallCard({
         onEndCall();
       }
     },
-    [activeCall, call._id, endCallMutation, onEndCall]
+    [activeCall, call._id, call.twilioCallSid, endCallMutation, endByCallSidMutation, onEndCall]
   );
 
   // Get status display
