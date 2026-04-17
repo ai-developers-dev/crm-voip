@@ -235,6 +235,19 @@ export default function AdminSettingsPage() {
   const updatePlatformUserRole = useMutation(api.platformUsers.updateRole);
   const removePlatformUser = useMutation(api.platformUsers.remove);
 
+  // Call dispositions (platform master list)
+  const platformDispositions = useQuery(api.callDispositions.listPlatform);
+  const createDisposition = useMutation(api.callDispositions.platformCreate);
+  const updateDisposition = useMutation(api.callDispositions.platformUpdate);
+  const removeDisposition = useMutation(api.callDispositions.platformRemove);
+  const [dispositionDialog, setDispositionDialog] = useState<
+    { mode: "add" | "edit"; item?: any } | null
+  >(null);
+  const [dispositionLabel, setDispositionLabel] = useState("");
+  const [dispositionCategory, setDispositionCategory] = useState<
+    "contacted" | "not_contacted" | "outcome" | ""
+  >("");
+
   // Section expand state
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const toggleSection = (key: string) => setExpandedSection((prev) => (prev === key ? null : key));
@@ -1172,9 +1185,201 @@ export default function AdminSettingsPage() {
           </div>
         </SettingsRow>
 
+        {/* ====== CALL DISPOSITIONS (Phone System) ====== */}
+        <SettingsRow
+          icon={<Phone className="h-4 w-4 text-emerald-600" />}
+          label="Call Dispositions"
+          summary={`${platformDispositions?.filter((d: any) => d.isActive).length ?? 0} active`}
+          action={
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => {
+                setDispositionLabel("");
+                setDispositionCategory("");
+                setDispositionDialog({ mode: "add" });
+              }}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add
+            </Button>
+          }
+          isExpanded={expandedSection === "dispositions"}
+          onToggle={() => toggleSection("dispositions")}
+        >
+          {platformDispositions === undefined ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-on-surface-variant" />
+            </div>
+          ) : platformDispositions.length === 0 ? (
+            <p className="text-xs text-on-surface-variant text-center py-4">
+              No dispositions yet. Add the ones agents should pick from after a call.
+            </p>
+          ) : (
+            <div className="space-y-0.5">
+              {platformDispositions.map((d: any) => (
+                <div
+                  key={d._id}
+                  className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-surface-container-high/50 group -mx-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm font-medium truncate">{d.label}</span>
+                    {d.category && (
+                      <span className="text-[10px] uppercase tracking-wide text-on-surface-variant">
+                        {d.category.replace("_", " ")}
+                      </span>
+                    )}
+                    <Badge
+                      variant={d.isActive ? "default" : "secondary"}
+                      className="text-[10px] px-1.5 py-0 shrink-0"
+                    >
+                      {d.isActive ? "Active" : "Off"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        setDispositionLabel(d.label);
+                        setDispositionCategory(d.category ?? "");
+                        setDispositionDialog({ mode: "edit", item: d });
+                      }}
+                    >
+                      <Pencil className="h-2.5 w-2.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() =>
+                        updateDisposition({ id: d._id, isActive: !d.isActive })
+                      }
+                    >
+                      {d.isActive ? (
+                        <ToggleRight className="h-2.5 w-2.5" />
+                      ) : (
+                        <ToggleLeft className="h-2.5 w-2.5" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      onClick={() => removeDisposition({ id: d._id })}
+                    >
+                      <Trash2 className="h-2.5 w-2.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SettingsRow>
+
       </div>{/* end settings rows */}
 
       {/* ====== DIALOGS ====== */}
+
+      {/* Disposition Add/Edit */}
+      <Dialog
+        open={!!dispositionDialog}
+        onOpenChange={(open) => {
+          if (!open) setDispositionDialog(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dispositionDialog?.mode === "edit"
+                ? "Edit Disposition"
+                : "Add Disposition"}
+            </DialogTitle>
+            <DialogDescription>
+              Shown to agents after every call. Tenants can toggle which are enabled.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!dispositionLabel.trim()) return;
+              setIsSubmitting(true);
+              try {
+                const category = dispositionCategory || undefined;
+                if (dispositionDialog?.mode === "edit" && dispositionDialog.item) {
+                  await updateDisposition({
+                    id: dispositionDialog.item._id,
+                    label: dispositionLabel.trim(),
+                    category: category as any,
+                  });
+                } else {
+                  await createDisposition({
+                    label: dispositionLabel.trim(),
+                    category: category as any,
+                  });
+                }
+                setDispositionDialog(null);
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+          >
+            <div className="py-3 space-y-3">
+              <div>
+                <Label htmlFor="dispositionLabel">Label *</Label>
+                <Input
+                  id="dispositionLabel"
+                  value={dispositionLabel}
+                  onChange={(e) => setDispositionLabel(e.target.value)}
+                  placeholder="e.g. Left Voicemail"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <Label htmlFor="dispositionCategory">Category</Label>
+                <Select
+                  value={dispositionCategory || "none"}
+                  onValueChange={(v) =>
+                    setDispositionCategory(v === "none" ? "" : (v as any))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No category</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="not_contacted">Not contacted</SelectItem>
+                    <SelectItem value="outcome">Outcome</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDispositionDialog(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!dispositionLabel.trim() || isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : dispositionDialog?.mode === "edit" ? (
+                  "Save"
+                ) : (
+                  "Add"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Agency Type Add/Edit */}
       <Dialog open={!!agencyTypeDialog} onOpenChange={(open) => { if (!open) setAgencyTypeDialog(null); }}>

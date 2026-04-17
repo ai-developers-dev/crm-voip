@@ -1005,6 +1005,14 @@ export default function SettingsPage() {
             <HoldMusicUpload organizationId={convexOrg._id} />
           </SettingsRow>
         )}
+
+        {convexOrg?._id && (
+          <TenantDispositionsRow
+            organizationId={convexOrg._id}
+            isExpanded={expandedRow === "call-dispositions"}
+            onToggle={() => toggleRow("call-dispositions")}
+          />
+        )}
       </div>
 
       {/* Edit Organization Dialog */}
@@ -1336,5 +1344,75 @@ export default function SettingsPage() {
         />
       )}
     </PageContainer>
+  );
+}
+
+/**
+ * Per-tenant opt-in toggles for platform-defined call dispositions. Shown in
+ * the tenant Settings page. Defaults to "all platform-active dispositions
+ * enabled" when no overrides exist, so a new tenant doesn't end up with an
+ * empty disposition picker on the first call.
+ */
+function TenantDispositionsRow({
+  organizationId,
+  isExpanded,
+  onToggle,
+}: {
+  organizationId: import("../../../../convex/_generated/dataModel").Id<"organizations">;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const dispositions = useQuery(api.callDispositions.listTenant, { organizationId });
+  const setEnabled = useMutation(api.callDispositions.tenantSetEnabled);
+
+  const enabledCount = (dispositions ?? []).filter((d: any) => d.enabled).length;
+  const total = dispositions?.length ?? 0;
+
+  return (
+    <SettingsRow
+      icon={<Phone className="h-4 w-4 text-emerald-600" />}
+      label="Call Dispositions"
+      summary={`${enabledCount} of ${total} enabled`}
+      isExpanded={isExpanded}
+      onToggle={onToggle}
+    >
+      {dispositions === undefined ? (
+        <p className="text-xs text-on-surface-variant py-2">Loading…</p>
+      ) : dispositions.length === 0 ? (
+        <p className="text-xs text-on-surface-variant py-2">
+          Your platform admin hasn't configured any dispositions yet.
+        </p>
+      ) : (
+        <div className="space-y-1">
+          {dispositions.map((d: any) => (
+            <label
+              key={d._id}
+              className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-surface-container-high/50 cursor-pointer -mx-2"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm truncate">{d.label}</span>
+                {d.category && (
+                  <span className="text-[10px] uppercase tracking-wide text-on-surface-variant">
+                    {d.category.replace("_", " ")}
+                  </span>
+                )}
+              </div>
+              <input
+                type="checkbox"
+                checked={d.enabled}
+                onChange={(e) =>
+                  setEnabled({
+                    organizationId,
+                    dispositionId: d._id,
+                    enabled: e.target.checked,
+                  })
+                }
+                className="h-4 w-4 accent-primary"
+              />
+            </label>
+          ))}
+        </div>
+      )}
+    </SettingsRow>
   );
 }

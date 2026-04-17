@@ -467,7 +467,8 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           stopRingtoneFor("disconnected");
           removeCall(callSid);
 
-          // Clean up the call in Convex database
+          // Clean up the call in Convex database. End-call returns the
+          // new callHistoryId which the disposition dialog listens for.
           fetch("/api/twilio/end-call", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -475,7 +476,13 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           })
             .then((response) => response.json())
             .then((result) => {
-              console.log("Call cleanup result:", result);
+              if (result?.callHistoryId && typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("crm:call-ended", {
+                    detail: { callHistoryId: result.callHistoryId },
+                  }),
+                );
+              }
             })
             .catch((error) => {
               console.error("Error cleaning up call:", error);
@@ -607,8 +614,39 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           };
         });
 
+        // Surface the far-end ringing state so the UI can show "Dialing…"
+        // distinctly from "Connected". Without this the bar sits on the
+        // initial "connecting" status indefinitely.
+        call.on("ringing", () => {
+          updateCallInfo(callSid, { status: "connecting" });
+        });
+        call.on("accept", () => {
+          updateCallInfo(callSid, { status: "open", answeredAt: Date.now() });
+        });
+
         call.on("disconnect", () => {
           removeCall(callSid);
+          // Same cleanup as incoming: mark the call ended in Convex so the
+          // row moves from activeCalls to callHistory and returns an id
+          // the UI can open a disposition dialog against.
+          fetch("/api/twilio/end-call", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ twilioCallSid: callSid }),
+          })
+            .then((response) => response.json())
+            .then((result) => {
+              if (result?.callHistoryId && typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("crm:call-ended", {
+                    detail: { callHistoryId: result.callHistoryId },
+                  }),
+                );
+              }
+            })
+            .catch((error) => {
+              console.error("Error cleaning up outbound call:", error);
+            });
         });
 
         return call;

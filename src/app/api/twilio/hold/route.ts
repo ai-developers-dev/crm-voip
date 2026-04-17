@@ -70,14 +70,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!browserCall.parentCallSid) {
+    // Inbound dual-leg: browser SDK leg is the CHILD, caller's PSTN leg is
+    // the PARENT. Outbound: browser SDK leg is the PARENT, dialed PSTN leg
+    // is the CHILD. Handle both.
+    if (browserCall.parentCallSid) {
+      pstnCallSid = browserCall.parentCallSid;
+    } else {
+      const children = await client.calls.list({
+        parentCallSid: twilioCallSid,
+        limit: 5,
+      }).catch(() => [] as Array<{ sid: string; direction: string }>);
+      const pstnChild = children.find((c) => c.direction.startsWith("outbound"));
+      if (pstnChild?.sid) {
+        pstnCallSid = pstnChild.sid;
+      }
+    }
+
+    if (!pstnCallSid) {
       return NextResponse.json(
-        { error: "No parent call found - cannot park this call" },
+        { error: "Could not locate the PSTN leg for this call" },
         { status: 400 }
       );
     }
-
-    pstnCallSid = browserCall.parentCallSid;
 
     // Verify parent call is still active
     try {

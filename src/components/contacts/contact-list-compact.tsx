@@ -10,9 +10,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, Plus, Phone, User, Loader2, Users, ChevronDown, Mail, Building2, MapPin, Pencil, Trash2, Tag, Check, X, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatPhoneDisplay } from "@/lib/utils/phone";
+import { formatPhoneDisplay, formatToE164 } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils";
 import { tagColors } from "@/lib/style-constants";
+import { useOptionalCallingContext } from "@/components/calling/calling-provider";
 
 type Contact = Doc<"contacts">;
 type ContactTag = Doc<"contactTags">;
@@ -180,16 +181,9 @@ function ContactCard({
       >
         <div className="px-3 pb-3 pt-1 mx-2.5">
           <div className="space-y-1.5 text-[14px]">
-            {/* All phone numbers */}
+            {/* All phone numbers — each row is click-to-call */}
             {contact.phoneNumbers.map((p, i) => (
-              <div key={i} className="flex items-center gap-2 text-on-surface-variant">
-                <Phone className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{formatPhoneDisplay(p.number)}</span>
-                <span className="text-[11px] uppercase tracking-wide opacity-60">{p.type}</span>
-                {p.isPrimary && (
-                  <span className="text-[11px] bg-primary/10 text-primary px-1 rounded">primary</span>
-                )}
-              </div>
+              <PhoneRow key={i} number={p.number} type={p.type} isPrimary={p.isPrimary} />
             ))}
 
             {/* Email */}
@@ -414,6 +408,57 @@ function ContactCard({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Click-to-call row inside the expanded contact card. Shows the formatted
+ * number + type + (primary) badge, and dials that specific number on click
+ * via the CallingContext. Disabled when the Twilio Device isn't ready.
+ */
+function PhoneRow({
+  number,
+  type,
+  isPrimary,
+}: {
+  number: string;
+  type: string;
+  isPrimary?: boolean;
+}) {
+  const callingContext = useOptionalCallingContext();
+  const canCall = !!callingContext?.isReady && !!number;
+
+  const handleCall = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!callingContext) return;
+    const e164 = formatToE164(number);
+    try {
+      await callingContext.makeCall(e164);
+    } catch (err) {
+      console.error("Click-to-call failed:", err);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCall}
+      disabled={!canCall}
+      className={cn(
+        "w-full flex items-center gap-2 text-on-surface-variant rounded px-1 py-0.5 -mx-1 text-left transition-colors",
+        canCall
+          ? "hover:bg-primary/10 hover:text-primary cursor-pointer"
+          : "cursor-not-allowed opacity-70",
+      )}
+      title={canCall ? `Call ${number}` : "Phone system not ready"}
+    >
+      <Phone className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{formatPhoneDisplay(number)}</span>
+      <span className="text-[11px] uppercase tracking-wide opacity-60">{type}</span>
+      {isPrimary && (
+        <span className="text-[11px] bg-primary/10 text-primary px-1 rounded">primary</span>
+      )}
+    </button>
   );
 }
 

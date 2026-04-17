@@ -9,11 +9,13 @@ import {
   PhoneIncoming,
   PhoneOutgoing,
   PhoneMissed,
-  User,
+  Phone,
   Clock,
   ExternalLink,
 } from "lucide-react";
 import { callDirectionColors } from "@/lib/style-constants";
+import { useOptionalCallingContext } from "./calling-provider";
+import { toE164 } from "@/lib/phone";
 
 interface DailyCallLogProps {
   organizationId: Id<"organizations">;
@@ -29,6 +31,7 @@ function formatDuration(seconds: number): string {
 export function DailyCallLog({ organizationId }: DailyCallLogProps) {
   const router = useRouter();
   const callLog = useQuery(api.callStats.getDailyCallLog, { organizationId });
+  const callingContext = useOptionalCallingContext();
 
   if (callLog === undefined) {
     return (
@@ -57,6 +60,21 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
         const callerDisplay = isInbound
           ? call.contactName || call.fromName || call.from
           : call.contactName || call.toName || call.to;
+
+        const callbackNumber = isInbound ? call.from : call.to;
+        const canCallBack =
+          isMissed && !!callbackNumber && !!callingContext?.isReady;
+
+        const handleCallBack = async (e: React.MouseEvent) => {
+          e.stopPropagation();
+          if (!callingContext || !callbackNumber) return;
+          const e164 = toE164(callbackNumber) ?? callbackNumber;
+          try {
+            await callingContext.makeCall(e164);
+          } catch (err) {
+            console.error("Call-back failed:", err);
+          }
+        };
 
         return (
           <div
@@ -108,6 +126,18 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
                       : call.outcome}
               </div>
             </div>
+
+            {/* Call back — missed calls only */}
+            {canCallBack && (
+              <button
+                type="button"
+                onClick={handleCallBack}
+                title={`Call back ${callbackNumber}`}
+                className="shrink-0 rounded-full bg-green-500 hover:bg-green-600 text-white h-7 w-7 flex items-center justify-center transition-colors"
+              >
+                <Phone className="h-3.5 w-3.5" />
+              </button>
+            )}
 
             {/* Duration */}
             <div className="shrink-0 text-xs text-on-surface-variant text-right">

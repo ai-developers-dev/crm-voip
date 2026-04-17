@@ -18,6 +18,7 @@ import type * as aiCallHistory from "../aiCallHistory.js";
 import type * as appointments from "../appointments.js";
 import type * as billing from "../billing.js";
 import type * as calendarEvents from "../calendarEvents.js";
+import type * as callDispositions from "../callDispositions.js";
 import type * as callStats from "../callStats.js";
 import type * as calls from "../calls.js";
 import type * as carrierCommissions from "../carrierCommissions.js";
@@ -92,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   billing: typeof billing;
   calendarEvents: typeof calendarEvents;
+  callDispositions: typeof callDispositions;
   callStats: typeof callStats;
   calls: typeof calls;
   carrierCommissions: typeof carrierCommissions;

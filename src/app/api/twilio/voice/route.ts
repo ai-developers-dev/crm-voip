@@ -55,10 +55,13 @@ export async function POST(request: NextRequest) {
       // Outbound call from browser to PSTN
       // Determine caller ID: use org's configured phone number, not browser client identity
       let callerId = process.env.TWILIO_PHONE_NUMBER || "";
+      // Parse org/user identity for the outbound record.
+      const clientIdentity = from.replace("client:", "");
+      const clerkOrgId = clientIdentity.split("-user_")[0];
+      const userClerkId = clientIdentity.startsWith(`${clerkOrgId}-`)
+        ? clientIdentity.slice(clerkOrgId.length + 1)
+        : undefined;
       try {
-        // Parse org ID from client identity: "client:org_xxx-user_xxx"
-        const clientIdentity = from.replace("client:", "");
-        const clerkOrgId = clientIdentity.split("-user_")[0];
         if (clerkOrgId) {
           const org = await convex.query(api.organizations.getCurrent, { clerkOrgId });
           if (org) {
@@ -81,6 +84,17 @@ export async function POST(request: NextRequest) {
           headers: { "Content-Type": "text/xml" },
         });
       }
+
+      // Fire-and-forget: create the outbound activeCalls row keyed by the
+      // browser leg's CallSid. Uses the webhook-safe variant so this works
+      // with no Clerk session (we're a Twilio-signed callback).
+      convex.mutation(api.calls.createOrGetOutgoingFromWebhook, {
+        twilioCallSid: callSid,
+        from: callerId,
+        to,
+        userClerkId,
+        userClerkOrgId: clerkOrgId,
+      }).catch((err) => console.error("Failed to create outbound call record:", err));
 
       const dial = twiml.dial({
         callerId,

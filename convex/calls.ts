@@ -242,6 +242,73 @@ export const createOrGetIncomingFromWebhook = mutation({
   },
 });
 
+// Webhook-safe outbound variant. Gated by `from` (the org's own phone number
+// the call is dialed from) existing in phoneNumbers — same trust boundary as
+// the inbound version. userClerkId is optional; when present we attribute
+// the call to that user for metrics.
+export const createOrGetOutgoingFromWebhook = mutation({
+  args: {
+    twilioCallSid: v.string(),
+    from: v.string(), // the org's Twilio number we dialed out of
+    to: v.string(),   // the PSTN destination
+    toName: v.optional(v.string()),
+    userClerkId: v.optional(v.string()),
+    userClerkOrgId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const phoneConfig = await ctx.db
+      .query("phoneNumbers")
+      .withIndex("by_phone_number", (q) => q.eq("phoneNumber", args.from))
+      .first();
+    if (!phoneConfig) return null;
+    const organizationId = phoneConfig.organizationId;
+
+    const existing = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+    if (existing) return existing._id;
+
+    // Resolve the originating user by matching clerkUserId + org.
+    let userId: import("./_generated/dataModel").Id<"users"> | undefined;
+    if (args.userClerkId) {
+      const userRow = await ctx.db
+        .query("users")
+        .withIndex("by_clerk_user_id", (q) => q.eq("clerkUserId", args.userClerkId!))
+        .collect()
+        .then((rows) => rows.find((u) => u.organizationId === organizationId));
+      if (userRow) userId = userRow._id;
+    }
+
+    // Try to resolve the destination number to a known contact.
+    const normalizedTo = args.to.replace(/\D/g, "").slice(-10);
+    const phoneLookup = await ctx.db
+      .query("contactPhoneLookup")
+      .withIndex("by_org_phone", (q) =>
+        q.eq("organizationId", organizationId).eq("normalizedPhone", normalizedTo),
+      )
+      .first();
+    const matchingContact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
+    const toName = args.toName
+      ?? (matchingContact
+        ? `${matchingContact.firstName}${matchingContact.lastName ? " " + matchingContact.lastName : ""}`
+        : undefined);
+
+    return await ctx.db.insert("activeCalls", {
+      organizationId,
+      twilioCallSid: args.twilioCallSid,
+      direction: "outbound",
+      from: args.from,
+      to: args.to,
+      toName,
+      state: "connecting",
+      startedAt: Date.now(),
+      isRecording: false,
+      assignedUserId: userId,
+    });
+  },
+});
+
 // Internal mutation to update call status from Twilio callback
 export const updateStatus = internalMutation({
   args: {
@@ -791,7 +858,7 @@ export const end = mutation({
     const talkTimeSeconds = call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0;
 
     // Move to history
-    await ctx.db.insert("callHistory", {
+    const callHistoryId = await ctx.db.insert("callHistory", {
       organizationId: call.organizationId,
       twilioCallSid: call.twilioCallSid,
       direction: call.direction,
@@ -842,7 +909,7 @@ export const end = mutation({
     // Delete active call
     await ctx.db.delete(args.callId);
 
-    return { success: true };
+    return { success: true, callHistoryId };
   },
 });
 
@@ -856,14 +923,25 @@ export const endByCallSid = mutation({
       .first();
 
     if (!call) {
-      return { success: true, alreadyCleaned: true };
+      // Cleanup might be called after the call already moved to history.
+      // Try to locate the existing callHistory row so the caller can still
+      // open the disposition dialog against it.
+      const existingHistory = await ctx.db
+        .query("callHistory")
+        .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+        .first();
+      return {
+        success: true,
+        alreadyCleaned: true,
+        callHistoryId: existingHistory?._id,
+      };
     }
     await authorizeOrgMember(ctx, call.organizationId);
 
     const talkTimeSeconds = call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0;
 
     // Move to history
-    await ctx.db.insert("callHistory", {
+    const callHistoryId = await ctx.db.insert("callHistory", {
       organizationId: call.organizationId,
       twilioCallSid: call.twilioCallSid,
       direction: call.direction,
@@ -913,7 +991,7 @@ export const endByCallSid = mutation({
     // Delete active call
     await ctx.db.delete(call._id);
 
-    return { success: true };
+    return { success: true, callHistoryId };
   },
 });
 

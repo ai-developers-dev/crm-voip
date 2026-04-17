@@ -521,6 +521,7 @@ export default defineSchema({
     // Notes
     notes: v.optional(v.string()),
     disposition: v.optional(v.string()),
+    dispositionId: v.optional(v.id("callDispositions")),
 
     // Contact linking
     contactId: v.optional(v.id("contacts")),
@@ -531,7 +532,37 @@ export default defineSchema({
     .index("by_user_date", ["handledByUserId", "startedAt"])
     .index("by_contact", ["contactId"])
     .index("by_twilio_sid", ["twilioCallSid"])
-    .index("by_org_outcome_date", ["organizationId", "outcome", "startedAt"]),
+    .index("by_org_outcome_date", ["organizationId", "outcome", "startedAt"])
+    .index("by_org_needs_disposition", ["organizationId", "dispositionId"]),
+
+  // Platform-defined call dispositions. Super-admin maintains the master list;
+  // tenants opt in via tenantCallDispositions. Stored label is copied onto
+  // callHistory.disposition for cheap reporting without joins.
+  callDispositions: defineTable({
+    label: v.string(),
+    category: v.optional(
+      v.union(
+        v.literal("contacted"),
+        v.literal("not_contacted"),
+        v.literal("outcome"),
+      ),
+    ),
+    sortOrder: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_active_sort", ["isActive", "sortOrder"]),
+
+  // Tenant's enable/disable flags for the platform dispositions they want to
+  // expose to their agents. Default (no row) = enabled, so a fresh tenant
+  // sees every active platform disposition without explicit opt-in.
+  tenantCallDispositions: defineTable({
+    organizationId: v.id("organizations"),
+    dispositionId: v.id("callDispositions"),
+    enabled: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_org_disposition", ["organizationId", "dispositionId"]),
 
   // Voicemails (stored recordings with transcriptions)
   voicemails: defineTable({

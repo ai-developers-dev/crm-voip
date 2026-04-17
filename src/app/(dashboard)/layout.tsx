@@ -39,6 +39,8 @@ import { CallingProvider, useOptionalCallingContext } from "@/components/calling
 import { GlobalIncomingBanner } from "@/components/calling/global-incoming-banner";
 import { AudioUnlockBanner } from "@/components/calling/audio-unlock-banner";
 import { ActiveCallBar } from "@/components/calling/active-call-bar";
+import { DialpadPopover } from "@/components/calling/dialpad-popover";
+import { DispositionDialog } from "@/components/calling/disposition-dialog";
 import { getTenantNavItems, type TenantRole } from "@/lib/navigation/tenant-nav";
 
 function TenantSwitcher() {
@@ -964,14 +966,19 @@ export default function DashboardLayout({
                 );
               })}
             </nav>
-            {currentUser?.role !== "agent" && (
-              <Link href="/settings">
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-              </Link>
-            )}
+            <div className="flex items-center gap-2">
+              {currentUser?.role !== "agent" && (
+                <Link href="/settings">
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                </Link>
+              )}
+              {/* Dialpad: click to open, type a number, hit Call. The
+                  ActiveCallBar below takes over for dialing/connected state. */}
+              <DialpadPopover />
+            </div>
           </div>
         </div>
       )}
@@ -984,6 +991,11 @@ export default function DashboardLayout({
           call, regardless of which page the user navigated to. */}
       <GlobalIncomingBanner />
       <ActiveCallBar />
+
+      {/* Disposition dialog — listens for `crm:call-ended` window events
+          dispatched when any call disconnects. Required before the agent
+          can do anything else. */}
+      <DispositionDialog />
 
       {/* Main content */}
       <main className="flex-1">{children}</main>
