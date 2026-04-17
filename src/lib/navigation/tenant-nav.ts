@@ -35,7 +35,7 @@ export interface TenantNavItem {
  */
 export const TENANT_NAV_ITEMS: TenantNavItem[] = [
   { label: "Calls",      icon: Phone,          tenantPath: "/dashboard",  adminSubPath: "",            tenantRouteExists: true },
-  { label: "SMS",         icon: MessageSquare,  tenantPath: "/sms",        adminSubPath: "/sms",        tenantRouteExists: false },
+  { label: "SMS",         icon: MessageSquare,  tenantPath: "/sms",        adminSubPath: "/sms",        tenantRouteExists: true },
   { label: "Contacts",    icon: Users,          tenantPath: "/contacts",   adminSubPath: "/contacts",   tenantRouteExists: true },
   { label: "Calendar",    icon: Calendar,       tenantPath: "/calendar",   adminSubPath: "/calendar",   tenantRouteExists: true },
   { label: "Tasks",       icon: ClipboardCheck, tenantPath: "/tasks",      adminSubPath: "/tasks",      tenantRouteExists: false },
@@ -44,7 +44,7 @@ export const TENANT_NAV_ITEMS: TenantNavItem[] = [
   { label: "Workflows",   icon: Workflow,        tenantPath: "/workflows",  adminSubPath: "/workflows",  minRole: "supervisor",    tenantRouteExists: true },
   { label: "Pipelines",   icon: Columns3,       tenantPath: "/pipelines",  adminSubPath: "/pipelines",  minRole: "supervisor",    tenantRouteExists: false },
   { label: "E-Sign",      icon: FileSignature,  tenantPath: "/e-sign",     adminSubPath: "/e-sign",     tenantRouteExists: true },
-  { label: "AI Agents",   icon: Bot,            tenantPath: "/ai-agents",  adminSubPath: "/agents",     minRole: "supervisor",    tenantRouteExists: false },
+  { label: "AI Agents",   icon: Bot,            tenantPath: "/ai-agents",  adminSubPath: "/agents",     minRole: "supervisor",    tenantRouteExists: true },
   { label: "Voicemails",  icon: Voicemail,       tenantPath: "/voicemails", adminSubPath: "/voicemails", tenantRouteExists: true },
 ];
 

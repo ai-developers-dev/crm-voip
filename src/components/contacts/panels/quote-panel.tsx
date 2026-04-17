@@ -149,6 +149,7 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
     | { type: "error"; message: string }
   >({ type: "idle" });
   const [twoFaCode, setTwoFaCode] = useState("");
+  const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
 
   const tenantCarrierIds = new Set(selectedCarriers?.map((tc: any) => tc.carrierId) ?? []);
   const availableCarriers = (carriers ?? []).filter(
@@ -569,8 +570,22 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
           {/* Show existing quote link if any */}
           {contactLeads.length > 0 && (() => {
             const latestSuccessQuote = (leadQuotes || []).filter((q: any) => q.status === "success").sort((a: any, b: any) => b.quotedAt - a.quotedAt)[0];
+            const isExpanded = latestSuccessQuote && expandedQuoteId === latestSuccessQuote._id;
+            const coverageEntries = latestSuccessQuote?.coverageDetails && typeof latestSuccessQuote.coverageDetails === "object"
+              ? Object.entries(latestSuccessQuote.coverageDetails as Record<string, unknown>)
+              : [];
             return (
-              <div className="w-full rounded-lg border border-green-200 bg-green-50/30 p-3">
+              <div
+                className={cn(
+                  "w-full rounded-lg border border-green-200 bg-green-50/30 p-3 transition-colors",
+                  latestSuccessQuote && "cursor-pointer hover:bg-green-50/60"
+                )}
+                onClick={() => {
+                  if (latestSuccessQuote) {
+                    setExpandedQuoteId(isExpanded ? null : latestSuccessQuote._id);
+                  }
+                }}
+              >
                 {latestSuccessQuote ? (
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
@@ -581,25 +596,87 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-on-surface-variant">
                       <span>{new Date(latestSuccessQuote.quotedAt).toLocaleDateString()}</span>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (!confirm("Remove this quote and lead data?")) return;
-                          for (const lead of contactLeads) {
-                            await removeLead({ id: lead._id });
-                          }
-                        }}
-                        className="text-destructive hover:underline"
-                      >
-                        Remove
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-primary">{isExpanded ? "Hide details" : "View details"} →</span>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm("Remove this quote and lead data?")) return;
+                            for (const lead of contactLeads) {
+                              await removeLead({ id: lead._id });
+                            }
+                          }}
+                          className="text-destructive hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
+                    {isExpanded && (
+                      <div
+                        className="mt-2 pt-2 border-t border-green-200/60 text-[11px] text-on-surface-variant space-y-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {latestSuccessQuote.quoteId && (
+                          <p><span className="font-semibold">Quote #:</span> {latestSuccessQuote.quoteId}</p>
+                        )}
+                        {latestSuccessQuote.monthlyPremium && (
+                          <p><span className="font-semibold">Monthly:</span> ${Number(latestSuccessQuote.monthlyPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        )}
+                        {latestSuccessQuote.annualPremium && (
+                          <p><span className="font-semibold">Annual:</span> ${Number(latestSuccessQuote.annualPremium).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        )}
+                        {latestSuccessQuote.type && (
+                          <p><span className="font-semibold">Type:</span> {latestSuccessQuote.type}</p>
+                        )}
+                        {latestSuccessQuote.portal && (
+                          <p><span className="font-semibold">Portal:</span> {latestSuccessQuote.portal}</p>
+                        )}
+                        {coverageEntries.length > 0 && (
+                          <div>
+                            <p className="font-semibold mt-2">Coverages:</p>
+                            <ul className="pl-4 list-disc space-y-0.5">
+                              {coverageEntries.map(([k, v]) => (
+                                <li key={k}>
+                                  <span className="font-medium">{k}:</span>{" "}
+                                  {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {latestSuccessQuote.quoteId && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch("/api/portal-test/open-quote", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    organizationId,
+                                    quoteNumber: latestSuccessQuote.quoteId,
+                                  }),
+                                });
+                                const data = await res.json();
+                                if (data.error) console.error("Open quote failed:", data.error);
+                              } catch (e) {
+                                console.error("Open quote error:", e);
+                              }
+                            }}
+                            className="mt-2 text-primary text-[11px] font-medium hover:underline"
+                          >
+                            Open in carrier portal →
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-on-surface-variant">Quote in progress...</span>
                     <button
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         for (const lead of contactLeads) {
                           await removeLead({ id: lead._id });
                         }
