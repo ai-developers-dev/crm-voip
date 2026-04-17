@@ -11,7 +11,7 @@ import { NextRequest } from "next/server";
 import twilio from "twilio";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../convex/_generated/api";
-import { decrypt } from "@/lib/credentials/crypto";
+import { decrypt, isEncrypted } from "@/lib/credentials/crypto";
 
 /**
  * Get the correct auth token for a given Twilio AccountSid.
@@ -30,12 +30,22 @@ async function getAuthTokenForAccount(
         accountSid,
       });
       if (org?.settings?.twilioCredentials?.authToken) {
-        try {
-          return decrypt(org.settings.twilioCredentials.authToken, org._id);
-        } catch {
-          // Decryption failed - the token may not be encrypted (legacy)
-          // Try using it as-is
-          return org.settings.twilioCredentials.authToken;
+        const stored = org.settings.twilioCredentials.authToken;
+        if (isEncrypted(stored)) {
+          try {
+            return decrypt(stored, org._id);
+          } catch (err) {
+            // Encrypted payload exists but master key can't decrypt it (likely
+            // rotated without re-encrypting). Returning the ciphertext would
+            // guarantee a signature mismatch, so fall through to env fallback.
+            console.error(
+              `[webhook-auth] authToken decrypt failed for org ${org._id}; re-encrypt with current CREDENTIAL_ENCRYPTION_KEY:`,
+              (err as Error).message
+            );
+          }
+        } else {
+          // Legacy plaintext token
+          return stored;
         }
       }
     } catch (lookupErr) {
