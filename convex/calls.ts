@@ -463,6 +463,25 @@ export const parkByCallSid = mutation({
       }
     }
 
+    // Flip the parker's presence status to "available" immediately. Without
+    // this, presence stays "on_call" until the next client heartbeat (up to
+    // 30s), and the voice webhook's agent-availability filter drops them —
+    // the next inbound call plays "all agents are currently busy".
+    const parkerUserId = args.parkedByUserId || call?.assignedUserId;
+    if (parkerUserId) {
+      const parkerPresence = await ctx.db
+        .query("presence")
+        .withIndex("by_user", (q) => q.eq("userId", parkerUserId))
+        .first();
+      if (parkerPresence) {
+        await ctx.db.patch(parkerPresence._id, {
+          status: "available",
+          currentCallId: undefined,
+          lastHeartbeat: Date.now(),
+        });
+      }
+    }
+
     return {
       success: true,
       slotNumber,
