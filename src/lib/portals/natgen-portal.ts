@@ -2747,6 +2747,19 @@ export async function runNatGenAutoQuote(
       monthlyPremium: result.monthly ?? undefined,
       annualPremium: result.annual ?? (result.monthly ? Math.round(result.monthly * 12) : undefined),
       coverageDetails: {
+        // Structured fields — these are the coverages the agent selected
+        // for this quote, from STANDARD_AUTO_COVERAGES. Stored directly so
+        // the UI can show specific line items (collision, comp, BI, etc.)
+        // without needing to scrape them from the rendered portal page.
+        bodilyInjury: STANDARD_AUTO_COVERAGES.bodilyInjury,
+        propertyDamage: STANDARD_AUTO_COVERAGES.propertyDamage,
+        medicalPayments: STANDARD_AUTO_COVERAGES.medicalPayments,
+        uninsuredMotorist: STANDARD_AUTO_COVERAGES.uninsuredMotorist,
+        collisionDeductible: STANDARD_AUTO_COVERAGES.collisionDeductible,
+        comprehensiveDeductible: STANDARD_AUTO_COVERAGES.comprehensiveDeductible,
+        coverageLevel: STANDARD_AUTO_COVERAGES.coverageLevel,
+        // Scraped lines from the Premium Summary page — keep as a fallback
+        // for future parsing improvements, but hide from the UI.
         coverages: result.coverageLines,
         rawText: result.fullText.slice(0, 1000),
       },
@@ -2931,7 +2944,13 @@ export async function runNatGenHomeQuote(
       quoteId: result.quoteId ?? undefined,
       monthlyPremium: result.monthly ?? undefined,
       annualPremium: result.annual ?? (result.monthly ? Math.round(result.monthly * 12) : undefined),
-      coverageDetails: { rawText: result.fullText.slice(0, 1000) },
+      coverageDetails: {
+        // Home quote — standard defaults the agent posts
+        allPerilsDeductible: STANDARD_HOME_COVERAGES.allPerilsDeductible,
+        windstormDeductible: STANDARD_HOME_COVERAGES.windstormDeductible,
+        coverageLevel: STANDARD_HOME_COVERAGES.coverageLevel,
+        rawText: result.fullText.slice(0, 1000),
+      },
     };
 
   } catch (err: any) {

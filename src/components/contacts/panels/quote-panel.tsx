@@ -571,9 +571,6 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
           {contactLeads.length > 0 && (() => {
             const latestSuccessQuote = (leadQuotes || []).filter((q: any) => q.status === "success").sort((a: any, b: any) => b.quotedAt - a.quotedAt)[0];
             const isExpanded = latestSuccessQuote && expandedQuoteId === latestSuccessQuote._id;
-            const coverageEntries = latestSuccessQuote?.coverageDetails && typeof latestSuccessQuote.coverageDetails === "object"
-              ? Object.entries(latestSuccessQuote.coverageDetails as Record<string, unknown>)
-              : [];
             return (
               <div
                 className={cn(
@@ -632,19 +629,40 @@ export function QuotePanel({ contact, organizationId, userId, onClose }: QuotePa
                         {latestSuccessQuote.portal && (
                           <p><span className="font-semibold">Portal:</span> {latestSuccessQuote.portal}</p>
                         )}
-                        {coverageEntries.length > 0 && (
-                          <div>
-                            <p className="font-semibold mt-2">Coverages:</p>
-                            <ul className="pl-4 list-disc space-y-0.5">
-                              {coverageEntries.map(([k, v]) => (
-                                <li key={k}>
-                                  <span className="font-medium">{k}:</span>{" "}
-                                  {typeof v === "object" ? JSON.stringify(v) : String(v)}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                        {(() => {
+                          const cd = (latestSuccessQuote.coverageDetails ?? {}) as Record<string, unknown>;
+                          // Only render known, human-readable coverage fields.
+                          // `coverages` (empty array) and `rawText` (portal dump)
+                          // used to leak through as "coverages: []" and a huge
+                          // rawText blob — hide those.
+                          const candidateRows: Array<[string, unknown]> = [
+                            ["Coverage Level", cd.coverageLevel],
+                            ["Bodily Injury", cd.bodilyInjury],
+                            ["Property Damage", cd.propertyDamage],
+                            ["Medical Payments", cd.medicalPayments],
+                            ["Uninsured Motorist", cd.uninsuredMotorist],
+                            ["Collision Deductible", cd.collisionDeductible],
+                            ["Comprehensive Deductible", cd.comprehensiveDeductible],
+                            ["All Perils Deductible", cd.allPerilsDeductible],
+                            ["Windstorm Deductible", cd.windstormDeductible],
+                          ];
+                          const rows = candidateRows.filter(
+                            ([, v]) => v !== undefined && v !== null && v !== ""
+                          );
+                          if (rows.length === 0) return null;
+                          return (
+                            <div>
+                              <p className="font-semibold mt-2">Coverages:</p>
+                              <ul className="pl-4 list-disc space-y-0.5">
+                                {rows.map(([label, value]) => (
+                                  <li key={label}>
+                                    <span className="font-medium">{label}:</span> {String(value)}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })()}
                         {latestSuccessQuote.quoteId && (
                           <button
                             onClick={async () => {
