@@ -815,12 +815,6 @@ export default function DashboardLayout({
           first click anywhere on the page. */}
       <AudioUnlockBanner />
 
-      {/* Global incoming call banner - shows on ALL pages */}
-      <GlobalIncomingBanner />
-
-      {/* Active call bar - shows mini controls when on a call but not on /dashboard */}
-      <ActiveCallBar />
-
       {/* Header */}
       <header className="sticky top-0 z-40 bg-surface">
         <div className="flex h-14 items-center justify-between px-4">
@@ -981,6 +975,15 @@ export default function DashboardLayout({
           </div>
         </div>
       )}
+
+      {/* Persistent calling strip — shown on every dashboard page just below
+          the tenant nav. `GlobalIncomingBanner` renders any ringing call
+          (it auto-hides on /dashboard and /admin/tenants/* because those
+          pages embed their own incoming-call UI). `ActiveCallBar` renders
+          the compact mute/hold/hang-up controls whenever there is an active
+          call, regardless of which page the user navigated to. */}
+      <GlobalIncomingBanner />
+      <ActiveCallBar />
 
       {/* Main content */}
       <main className="flex-1">{children}</main>

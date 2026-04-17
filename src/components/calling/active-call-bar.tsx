@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +36,6 @@ function formatDuration(seconds: number): string {
  */
 export function ActiveCallBar() {
   const callingContext = useOptionalCallingContext();
-  const pathname = usePathname();
   const [callDuration, setCallDuration] = useState(0);
 
   // Extract values from context (with defaults for when context is null)
@@ -74,12 +72,12 @@ export function ActiveCallBar() {
     return null;
   }
 
-  // Don't show on the calls page (full controls are already there)
-  // This includes /dashboard and /admin/tenants/[id] (admin viewing tenant's calls)
-  // Also don't show if no active calls
-  const isCallsPage = pathname === "/dashboard" ||
-    (pathname?.startsWith("/admin/tenants/") && !pathname?.includes("/contacts") && !pathname?.includes("/sms") && !pathname?.includes("/settings") && !pathname?.includes("/calendar") && !pathname?.includes("/reports"));
-  if (isCallsPage || activeCalls.length === 0 || !focusedCall) {
+  // Render on every dashboard page — the user wants a consistent calling
+  // strip just below the menu regardless of which page they're on. The
+  // dashboard's per-agent ActiveCallCard still renders inside the agent
+  // grid for richer detail; this bar is the cross-page anchor for quick
+  // controls (mute, hold, hang up) and a link back to /dashboard.
+  if (activeCalls.length === 0 || !focusedCall) {
     return null;
   }
 
@@ -111,7 +109,7 @@ export function ActiveCallBar() {
       : focusedCall.to;
 
   return (
-    <div className="fixed top-14 left-0 right-0 z-50 bg-green-600 text-white neu-ambient">
+    <div className="sticky top-14 z-40 bg-green-600 text-white border-b border-green-700 neu-ambient">
       <div className="flex items-center justify-between px-4 py-2">
         {/* Call info */}
         <div className="flex items-center gap-3">
