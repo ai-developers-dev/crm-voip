@@ -116,7 +116,6 @@ export function CallingProvider({
   const twilioDevice = useTwilioDevice(maxConcurrentCalls);
 
   // Convex mutations
-  const createOrGetIncomingCall = useMutation(api.calls.createOrGetIncoming);
   const heartbeat = useMutation(api.presence.heartbeat);
 
   // Track call count in a ref so heartbeat doesn't restart on every call change
@@ -155,36 +154,13 @@ export function CallingProvider({
     return () => clearInterval(interval);
   }, [currentUser?._id, convexOrg?._id, heartbeat]);
 
-  // Track which call SIDs have been synced to avoid redundant mutations
-  const syncedCallSidsRef = useRef<Set<string>>(new Set());
-
-  // Handle incoming Twilio calls - sync to Convex (once per call SID)
-  useEffect(() => {
-    if (!convexOrg?._id) return;
-
-    const allCalls = twilioDevice.getAllCalls();
-    const currentSids = new Set<string>();
-
-    for (const callInfo of allCalls) {
-      currentSids.add(callInfo.callSid);
-      if (callInfo.direction === "INCOMING" && !syncedCallSidsRef.current.has(callInfo.callSid)) {
-        syncedCallSidsRef.current.add(callInfo.callSid);
-        createOrGetIncomingCall({
-          organizationId: convexOrg._id,
-          twilioCallSid: callInfo.callSid,
-          from: callInfo.from,
-          to: callInfo.to,
-        }).catch(console.error);
-      }
-    }
-
-    // Clean up SIDs for calls that no longer exist
-    for (const sid of syncedCallSidsRef.current) {
-      if (!currentSids.has(sid)) {
-        syncedCallSidsRef.current.delete(sid);
-      }
-    }
-  }, [twilioDevice.callCount, convexOrg?._id, createOrGetIncomingCall]);
+  // NOTE: we intentionally do NOT create an activeCalls row from the browser.
+  // The voice webhook creates the authoritative PSTN-leg record via
+  // api.calls.createOrGetIncomingFromWebhook. Creating per-agent-leg rows
+  // here produced duplicate call log entries (one per ring_all agent) with
+  // the wrong "from" value — the Twilio number instead of the real caller.
+  // claimCall falls back to matching by org+state="ringing" when the agent
+  // leg's SID doesn't match, so the PSTN record is enough.
 
   const contextValue: CallingContextValue = useMemo(() => ({
     // Connection state

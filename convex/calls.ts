@@ -184,6 +184,64 @@ export const createOrGetIncoming = mutation({
   },
 });
 
+// Webhook-safe variant: called from the Twilio voice webhook, which runs
+// server-side with no Clerk session. Gated by phone-number ownership —
+// args.to must be a phone number registered to the returned org. Prevents
+// random callers from creating activeCalls rows in other orgs.
+export const createOrGetIncomingFromWebhook = mutation({
+  args: {
+    twilioCallSid: v.string(),
+    from: v.string(),
+    to: v.string(), // the dialed Twilio number we own
+  },
+  handler: async (ctx, args) => {
+    // Lookup the phone number → derive org
+    const phoneConfig = await ctx.db
+      .query("phoneNumbers")
+      .withIndex("by_phone_number", (q) => q.eq("phoneNumber", args.to))
+      .first();
+    if (!phoneConfig) {
+      // Unknown number — do not create a record. Voice webhook already hangs
+      // up on unknown numbers, but we double-check here so this mutation is
+      // safe to expose unauthenticated.
+      return null;
+    }
+    const organizationId = phoneConfig.organizationId;
+
+    // Dedup by Twilio CallSid
+    const existing = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+    if (existing) return existing._id;
+
+    // Caller-ID lookup (same O(1) path as the authed variant)
+    const normalizedFrom = args.from.replace(/\D/g, "").slice(-10);
+    const phoneLookup = await ctx.db
+      .query("contactPhoneLookup")
+      .withIndex("by_org_phone", (q) =>
+        q.eq("organizationId", organizationId).eq("normalizedPhone", normalizedFrom)
+      )
+      .first();
+    const matchingContact = phoneLookup ? await ctx.db.get(phoneLookup.contactId) : null;
+    const fromName = matchingContact
+      ? `${matchingContact.firstName}${matchingContact.lastName ? " " + matchingContact.lastName : ""}`
+      : undefined;
+
+    return await ctx.db.insert("activeCalls", {
+      organizationId,
+      twilioCallSid: args.twilioCallSid,
+      direction: "inbound",
+      from: args.from,
+      fromName,
+      to: args.to,
+      state: "ringing",
+      startedAt: Date.now(),
+      isRecording: false,
+    });
+  },
+});
+
 // Internal mutation to update call status from Twilio callback
 export const updateStatus = internalMutation({
   args: {

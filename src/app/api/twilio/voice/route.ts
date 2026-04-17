@@ -154,10 +154,14 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Fire-and-forget: Create call record (don't block TwiML response)
-      const orgId = callData.organizationId as Id<"organizations">;
-      convex.mutation(api.calls.createOrGetIncoming, {
-        organizationId: orgId,
+      // Fire-and-forget: Create call record (don't block TwiML response).
+      // Uses the webhook-safe variant — the authed createOrGetIncoming was
+      // throwing "Not authenticated" here because server-to-server webhook
+      // calls have no Clerk session, and that left the PSTN-leg record
+      // missing so the agent-leg client records (one per ring_all agent)
+      // were the only thing hitting callHistory — producing duplicate rows
+      // with wrong "from" numbers.
+      convex.mutation(api.calls.createOrGetIncomingFromWebhook, {
         twilioCallSid: callSid,
         from,
         to,
