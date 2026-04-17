@@ -27,6 +27,30 @@ so its `voice_url` is what Twilio actually hits on incoming calls.
 | sms_url | `https://crm-voip-eight.vercel.app/api/twilio/sms` | `https://crm-voip-production.up.railway.app/api/twilio/sms` |
 | sms_method | POST | POST (unchanged) |
 
+### 3. Phone Number `PN0e612645d67e43a24888a8c16c9adc1a` (+1 217-931-7000, Kover King)
+
+**Lives on the Kover King subaccount** — needs that subaccount's own
+auth token. Fetch the subaccount SID from Convex (`organizations.settings.twilioCredentials.accountSid`),
+then fetch the subaccount's auth token via the parent account.
+
+| Field | Was (Vercel) | Now (Railway) |
+|---|---|---|
+| voice_url | `https://crm-voip-eight.vercel.app/api/twilio/voice` | `https://crm-voip-production.up.railway.app/api/twilio/voice` |
+| sms_url | `https://crm-voip-eight.vercel.app/api/twilio/sms` | `https://crm-voip-production.up.railway.app/api/twilio/sms` |
+| voice_application_sid | (none) | (none) — direct voice_url routing |
+
+Rollback:
+```bash
+SUBACC=${KOVER_KING_SUBACCOUNT_SID}
+SUBTOKEN=$(curl -s -u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN" \
+  "https://api.twilio.com/2010-04-01/Accounts/$SUBACC.json" \
+  | python3 -c "import json,sys;print(json.load(sys.stdin)['auth_token'])")
+curl -s -u "$SUBACC:$SUBTOKEN" -X POST \
+  "https://api.twilio.com/2010-04-01/Accounts/$SUBACC/IncomingPhoneNumbers/PN0e612645d67e43a24888a8c16c9adc1a.json" \
+  --data-urlencode "VoiceUrl=https://crm-voip-eight.vercel.app/api/twilio/voice" \
+  --data-urlencode "SmsUrl=https://crm-voip-eight.vercel.app/api/twilio/sms"
+```
+
 ### Unchanged
 
 - Phone number `PN9955d35c993970c6204e7e76d7aa0516` (+1 877-519-6150) — still
