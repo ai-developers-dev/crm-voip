@@ -50,26 +50,38 @@ export async function GET(request: NextRequest) {
 
   const basicAuth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
 
+  console.log(`[recording-stream] fetching ${mp3Url} for callId=${callHistoryId}`);
+
   const twilioRes = await fetch(mp3Url, {
     headers: { Authorization: `Basic ${basicAuth}` },
   });
 
-  if (!twilioRes.ok || !twilioRes.body) {
+  if (!twilioRes.ok) {
     const body = await twilioRes.text().catch(() => "");
     console.error(
-      `[recording-stream] Twilio returned ${twilioRes.status} for ${mp3Url}: ${body.slice(0, 200)}`
+      `[recording-stream] Twilio ${twilioRes.status} for ${mp3Url}: ${body.slice(0, 200)}`
     );
     return NextResponse.json(
-      { error: "Failed to fetch recording" },
+      { error: "Failed to fetch recording", twilioStatus: twilioRes.status },
       { status: 502 }
     );
   }
 
-  return new NextResponse(twilioRes.body, {
+  // Buffer the audio so we can send a correct Content-Length. The browser's
+  // <audio controls> shows 0:00/0:00 if it can't determine total duration,
+  // which happens when Content-Length is missing and the stream arrives in
+  // chunks. For typical call recordings (<5MB) this is fine.
+  const audioBuffer = Buffer.from(await twilioRes.arrayBuffer());
+  console.log(
+    `[recording-stream] delivered ${audioBuffer.length} bytes to callId=${callHistoryId}`
+  );
+
+  return new NextResponse(audioBuffer, {
     status: 200,
     headers: {
-      "Content-Type": twilioRes.headers.get("content-type") || "audio/mpeg",
-      "Content-Length": twilioRes.headers.get("content-length") || "",
+      "Content-Type": "audio/mpeg",
+      "Content-Length": String(audioBuffer.length),
+      "Accept-Ranges": "bytes",
       "Cache-Control": "private, max-age=3600",
     },
   });
