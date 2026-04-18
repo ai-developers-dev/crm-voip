@@ -851,6 +851,14 @@ export default function DashboardLayout({
             )}
           </div>
           <div className="flex items-center gap-3">
+            {/* Dialpad — lives in the global header so it's visible on every
+                dashboard page regardless of route. Previously it sat in the
+                tenant inline nav, which /admin/tenants/[id]/* pages hide in
+                favor of their own nav bars, so platform admins accessing a
+                tenant never saw it. Keeps it in one place. */}
+            {currentOrg?._id && !currentOrg.isPlatformOrg && (
+              !isPlatformUser || pathname?.startsWith("/admin/tenants/")
+            ) && <DialpadPopover />}
             {/* Connection status indicator */}
             {/* ConnectionStatus removed — not useful for users */}
             {/* Notification bell:
@@ -973,10 +981,6 @@ export default function DashboardLayout({
               })}
             </nav>
             <div className="flex items-center gap-2">
-              {/* Dialpad: click to open, type a number, hit Call. The
-                  ActiveCallBar below takes over for dialing/connected state.
-                  Rendered just LEFT of Settings as requested. */}
-              <DialpadPopover />
               {currentUser?.role !== "agent" && (
                 <Link href="/settings">
                   <Button variant="outline" size="sm">

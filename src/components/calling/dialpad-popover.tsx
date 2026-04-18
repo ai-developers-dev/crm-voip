@@ -34,13 +34,6 @@ export function DialpadPopover() {
   const [input, setInput] = useState("");
   const [dialing, setDialing] = useState(false);
 
-  if (typeof window !== "undefined") {
-    console.log("[dialpad] render", {
-      hasContext: !!callingContext,
-      isReady: callingContext?.isReady,
-    });
-  }
-
   // `isReady` is the device-registered state; without it `makeCall` errors out.
   const isReady = callingContext?.isReady ?? false;
 
