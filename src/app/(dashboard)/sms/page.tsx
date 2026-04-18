@@ -5,7 +5,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Settings } from "lucide-react";
+import { Loader2, Settings, ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState, useCallback, useEffect } from "react";
 
@@ -19,6 +20,8 @@ export default function SMSPage() {
 
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [showNewConversationDialog, setShowNewConversationDialog] = useState(false);
+  // Mobile view toggle — conversations list vs. thread. Ignored on `lg+`.
+  const [activeMobileView, setActiveMobileView] = useState<"list" | "thread">("list");
 
   const org = useQuery(
     api.organizations.getByClerkId,
@@ -55,6 +58,8 @@ export default function SMSPage() {
 
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     setSelectedConversation(conversation);
+    // On mobile, advance to the thread pane so the user sees the messages.
+    setActiveMobileView("thread");
   }, []);
 
   const handleSendMessage = useCallback(async (messageBody: string, mediaUrls?: string[]) => {
@@ -158,7 +163,12 @@ export default function SMSPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 flex-shrink-0">
+        <div
+          className={cn(
+            "w-full lg:w-80 lg:flex-shrink-0",
+            activeMobileView === "list" ? "block" : "hidden lg:block",
+          )}
+        >
           <ConversationList
             conversations={conversations || []}
             selectedConversationId={selectedConversation?._id}
@@ -166,7 +176,21 @@ export default function SMSPage() {
             onNewConversation={() => setShowNewConversationDialog(true)}
           />
         </div>
-        <div className="flex-1 flex flex-col">
+        <div
+          className={cn(
+            "flex-1 flex-col",
+            activeMobileView === "thread" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          {/* Mobile-only back-to-list control */}
+          <button
+            type="button"
+            onClick={() => setActiveMobileView("list")}
+            className="lg:hidden flex items-center gap-2 px-4 py-2 border-b text-sm text-muted-foreground hover:bg-accent"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to conversations
+          </button>
           {selectedConversation && messages ? (
             <>
               <MessageThread
