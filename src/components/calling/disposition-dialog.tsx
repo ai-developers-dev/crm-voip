@@ -47,15 +47,20 @@ export function DispositionDialog() {
       const detail = (e as CustomEvent).detail as {
         callHistoryId?: Id<"callHistory">;
       } | undefined;
+      console.log("[dispo-dbg] crm:call-ended received, detail:", detail);
       if (detail?.callHistoryId) {
+        console.log("[dispo-dbg] opening dialog for callHistoryId:", detail.callHistoryId);
         setCallHistoryId(detail.callHistoryId);
         setSelected(null);
         setNotes("");
+      } else {
+        console.warn("[dispo-dbg] event fired but no callHistoryId — dialog stays closed");
       }
     };
     window.addEventListener("crm:call-ended", handler);
+    console.log("[dispo-dbg] listener mounted. orgId:", organizationId);
     return () => window.removeEventListener("crm:call-ended", handler);
-  }, []);
+  }, [organizationId]);
 
   if (!callHistoryId || !organizationId) return null;
 

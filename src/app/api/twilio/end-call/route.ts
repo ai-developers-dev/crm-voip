@@ -111,6 +111,8 @@ export async function POST(request: NextRequest) {
       twilioCallSid,
     });
 
+    console.log("[end-call-dbg] endByCallSid result:", { twilioCallSid, result });
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error ending call:", error);
