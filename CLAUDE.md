@@ -15,8 +15,13 @@ Multi-tenant SaaS VoIP CRM with real-time calling dashboard, drag-and-drop call 
 - `/src/app/(dashboard)/` - Protected dashboard routes
 - `/src/app/api/twilio/` - Twilio webhook handlers
 - `/src/components/calling/` - VoIP UI components
+- `/src/components/ui/` - Shared UI kit (shadcn-based). **All dialogs, forms, and popovers must compose from this.**
 - `/src/hooks/` - Custom hooks (useTwilioDevice)
 - `/convex/` - Database schema and functions
+
+## Design System
+
+**Before touching any dialog, popover, form, input, select, checkbox, radio, or badge, read [docs/design-system.md](docs/design-system.md).** It defines the forbidden-class list, the "no bespoke styling" rule, and the Enter Sale template every dialog must follow. The reference implementation is [src/components/contacts/sale-form-dialog.tsx](src/components/contacts/sale-form-dialog.tsx). Consistency across dialogs/popups/forms is treated as a hard requirement — pre-commit regression grep in the doc.
 
 ## Sub-Agents Available
 
