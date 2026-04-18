@@ -214,7 +214,7 @@ function TenantSwitcher() {
         </button>
 
         {open && (
-          <div className="absolute left-0 mt-2 w-80 rounded-2xl bg-surface-container-lowest neu-ambient z-50">
+          <div className="absolute left-0 mt-2 w-64 md:w-80 rounded-md border bg-popover shadow-md z-50">
             {/* Tenant List */}
             <div className="max-h-72 overflow-y-auto py-2">
               {tenants && tenants.length > 0 ? (
@@ -850,7 +850,7 @@ export default function DashboardLayout({
               </>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* Dialpad — lives in the global header so it's visible on every
                 dashboard page regardless of route. Previously it sat in the
                 tenant inline nav, which /admin/tenants/[id]/* pages hide in
@@ -876,7 +876,7 @@ export default function DashboardLayout({
                 <Link href="/admin">
                   <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                     <Building2 className="h-3 w-3" />
-                    Admin
+                    <span className="hidden md:inline">Admin</span>
                   </Badge>
                 </Link>
                 {!pathname?.startsWith("/admin/tenants/") && (
@@ -884,7 +884,7 @@ export default function DashboardLayout({
                   <Link href="/admin/support">
                     <Badge variant="outline" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-colors relative">
                       <MessageCircle className="h-3 w-3" />
-                      Support
+                      <span className="hidden md:inline">Support</span>
                       {(supportUnread ?? 0) > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
                           {supportUnread}
@@ -895,13 +895,13 @@ export default function DashboardLayout({
                   <Link href="/admin/billing">
                     <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <CreditCard className="h-3 w-3" />
-                      Billing
+                      <span className="hidden md:inline">Billing</span>
                     </Badge>
                   </Link>
                   <Link href="/admin/settings">
                     <Badge variant="secondary" className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <Settings className="h-3 w-3" />
-                      Settings
+                      <span className="hidden md:inline">Settings</span>
                     </Badge>
                   </Link>
                 </>
@@ -914,7 +914,7 @@ export default function DashboardLayout({
                   <Link href="/settings">
                     <Badge variant={pathname === "/settings" ? "default" : "secondary"} className="gap-1.5 cursor-pointer hover:bg-surface-container-high transition-all">
                       <Settings className="h-3 w-3" />
-                      Settings
+                      <span className="hidden md:inline">Settings</span>
                     </Badge>
                   </Link>
                 )}

@@ -392,8 +392,10 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             </div>
           </div>
 
-          {/* Parking lot sidebar */}
-          <aside className="w-64 overflow-auto bg-surface-container-lowest">
+          {/* Parking lot sidebar — hidden below lg. Parking requires drag-
+              and-drop which isn't practical on phones anyway; drag-drop
+              devs/ops users will have desktop viewports. */}
+          <aside className="hidden lg:block w-64 overflow-auto bg-surface-container-lowest">
             {effectiveOrgId && <ParkingLot organizationId={effectiveOrgId!} />}
           </aside>
         </div>
