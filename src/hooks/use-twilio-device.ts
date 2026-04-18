@@ -584,9 +584,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           },
         });
 
-        console.log("[outbound-dbg] connect returned, parameters:", call.parameters);
         const callSid = call.parameters?.CallSid || `out-${Date.now()}`;
-        console.log("[outbound-dbg] initial callSid used:", callSid);
 
         // Add to state
         const callInfo: CallInfo = {
@@ -620,19 +618,20 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         // distinctly from "Connected". Without this the bar sits on the
         // initial "connecting" status indefinitely.
         call.on("ringing", () => {
-          console.log("[outbound-dbg] ringing. parameters:", call.parameters);
           updateCallInfo(callSid, { status: "connecting" });
         });
         call.on("accept", () => {
-          console.log("[outbound-dbg] accept. parameters:", call.parameters);
           updateCallInfo(callSid, { status: "open", answeredAt: Date.now() });
         });
 
         call.on("disconnect", () => {
-          console.log("[outbound-dbg] disconnect. parameters:", call.parameters);
           removeCall(callSid);
+          // `call.parameters.CallSid` isn't populated when Device.connect()
+          // returns — Twilio assigns it via signaling a moment later. By
+          // disconnect time it's there, so prefer it over the temp fallback
+          // used at setup; otherwise end-call can't find the activeCalls row
+          // and the disposition dialog never opens.
           const resolvedSid = call.parameters?.CallSid || callSid;
-          console.log("[outbound-dbg] end-call POST with SID:", resolvedSid);
           fetch("/api/twilio/end-call", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -640,20 +639,16 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           })
             .then((response) => response.json())
             .then((result) => {
-              console.log("[outbound-dbg] end-call response:", result);
               if (result?.callHistoryId && typeof window !== "undefined") {
-                console.log("[outbound-dbg] dispatching crm:call-ended with", result.callHistoryId);
                 window.dispatchEvent(
                   new CustomEvent("crm:call-ended", {
                     detail: { callHistoryId: result.callHistoryId },
                   }),
                 );
-              } else {
-                console.warn("[outbound-dbg] No callHistoryId in end-call response — dialog will NOT open");
               }
             })
             .catch((error) => {
-              console.error("[outbound-dbg] end-call error:", error);
+              console.error("Error cleaning up outbound call:", error);
             });
         });
 

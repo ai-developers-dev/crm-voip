@@ -40,6 +40,8 @@ type CommunicationItem = {
   outcome?: string;
   duration?: number;
   recordingUrl?: string;
+  callHistoryId?: Id<"callHistory">;
+  dispositionLabel?: string;
   // SMS fields
   body?: string;
   status?: string;
@@ -247,11 +249,24 @@ function CommunicationItemRow({ item, onOpenWorkflow, onStopWorkflow }: {
             <span className="text-xs text-on-surface-variant">{formatTime(item.timestamp)}</span>
           </div>
         </div>
-        <p className="text-xs text-on-surface-variant truncate">{getDetails()}</p>
-        {item.type === "call" && item.recordingUrl && (
+        <div className="flex items-center gap-1.5">
+          <p className="text-xs text-on-surface-variant truncate">{getDetails()}</p>
+          {item.type === "call" && item.dispositionLabel && (
+            <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/5 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+              {item.dispositionLabel}
+            </span>
+          )}
+        </div>
+        {item.type === "call" && item.recordingUrl && item.callHistoryId && (
           <div className="mt-1.5">
+            {/* Stream through the app so Twilio Basic auth can be attached —
+                browser <audio> can't send auth headers, so a raw Twilio URL
+                fails silently. */}
             <audio controls preload="none" className="h-8 w-full max-w-xs">
-              <source src={item.recordingUrl} type="audio/mpeg" />
+              <source
+                src={`/api/twilio/recording/stream?callId=${item.callHistoryId}`}
+                type="audio/mpeg"
+              />
             </audio>
           </div>
         )}
@@ -290,6 +305,8 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         outcome: call.outcome,
         duration: call.talkTime || call.duration,
         recordingUrl: call.recordingUrl,
+        callHistoryId: call._id,
+        dispositionLabel: call.dispositionLabel,
       });
     }
 

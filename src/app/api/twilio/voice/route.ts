@@ -85,10 +85,10 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Await so we can verify the row got created — fire-and-forget was
-      // hiding silent failures (mutation returning null when phoneNumbers
-      // didn't match `from`).
-      console.log("[voice-dbg] outbound path", { callSid, from, to, callerId, clerkOrgId, userClerkId });
+      // Await the outbound activeCalls insert — fire-and-forget was masking
+      // silent failures (mutation returning null when phoneNumbers didn't
+      // match `from`), which left the disposition dialog unable to open on
+      // hangup because end-call couldn't find the row.
       try {
         const outboundId = await convex.mutation(api.calls.createOrGetOutgoingFromWebhook, {
           twilioCallSid: callSid,
@@ -97,9 +97,13 @@ export async function POST(request: NextRequest) {
           userClerkId,
           userClerkOrgId: clerkOrgId,
         });
-        console.log("[voice-dbg] createOrGetOutgoingFromWebhook returned:", outboundId);
+        if (!outboundId) {
+          console.warn(
+            `[voice] Outbound activeCall not created — no phoneNumbers row matches from=${callerId}`
+          );
+        }
       } catch (err) {
-        console.error("[voice-dbg] createOrGetOutgoingFromWebhook threw:", err);
+        console.error("Failed to create outbound activeCall:", err);
       }
 
       const dial = twiml.dial({

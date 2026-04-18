@@ -256,25 +256,18 @@ export const createOrGetOutgoingFromWebhook = mutation({
     userClerkOrgId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    console.log("[mut-dbg] createOrGetOutgoingFromWebhook args:", args);
     const phoneConfig = await ctx.db
       .query("phoneNumbers")
       .withIndex("by_phone_number", (q) => q.eq("phoneNumber", args.from))
       .first();
-    if (!phoneConfig) {
-      console.warn("[mut-dbg] BAIL: no phoneNumbers row matches from=", args.from);
-      return null;
-    }
+    if (!phoneConfig) return null;
     const organizationId = phoneConfig.organizationId;
 
     const existing = await ctx.db
       .query("activeCalls")
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
-    if (existing) {
-      console.log("[mut-dbg] activeCall already exists for", args.twilioCallSid);
-      return existing._id;
-    }
+    if (existing) return existing._id;
 
     // Resolve the originating user by matching clerkUserId + org.
     let userId: import("./_generated/dataModel").Id<"users"> | undefined;
@@ -1203,5 +1196,23 @@ export const storeRecording = mutation({
     }
 
     return { updated: false };
+  },
+});
+
+// Look up a callHistory row's recording URL, verifying the caller is an
+// org member. Used by the server-side proxy that streams Twilio recordings
+// (browser <audio> can't send Basic auth, so we fetch with creds server-side).
+export const getRecording = query({
+  args: { callHistoryId: v.id("callHistory") },
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.callHistoryId);
+    if (!row) return null;
+    await authorizeOrgMember(ctx, row.organizationId);
+    return row.recordingUrl
+      ? {
+          recordingUrl: row.recordingUrl,
+          organizationId: row.organizationId,
+        }
+      : null;
   },
 });

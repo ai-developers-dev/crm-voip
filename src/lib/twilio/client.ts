@@ -19,8 +19,8 @@ export async function getOrgTwilioClient(clerkOrgId: string) {
     throw new Error("Organization not found");
   }
 
-  const { client, accountSid } = await getOrgTwilioClientFromOrg(org);
-  return { client, accountSid, org };
+  const { client, accountSid, authToken } = await getOrgTwilioClientFromOrg(org);
+  return { client, accountSid, authToken, org };
 }
 
 /**
@@ -40,6 +40,7 @@ export async function getOrgTwilioClientFromOrg(org: {
 }): Promise<{
   client: Twilio;
   accountSid: string;
+  authToken: string;
 }> {
   const creds = org.settings?.twilioCredentials;
   let accountSid: string;
@@ -79,5 +80,5 @@ export async function getOrgTwilioClientFromOrg(org: {
     throw new Error("Twilio credentials not configured");
   }
 
-  return { client: twilio(accountSid, authToken), accountSid };
+  return { client: twilio(accountSid, authToken), accountSid, authToken };
 }

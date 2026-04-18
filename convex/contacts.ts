@@ -443,6 +443,31 @@ export const getCommunicationsHistory = query({
     const trimmedCalls = calls.slice(0, 100);
     const trimmedEmails = emails.slice(0, 100);
 
+    // Batch-load disposition labels so the UI can show them inline.
+    const dispositionIds = Array.from(
+      new Set(
+        trimmedCalls
+          .map((c) => c.dispositionId)
+          .filter((id): id is Id<"callDispositions"> => !!id),
+      ),
+    );
+    const dispositionMap = new Map<string, { label: string; category?: string }>();
+    if (dispositionIds.length > 0) {
+      const rows = await Promise.all(dispositionIds.map((id) => ctx.db.get(id)));
+      for (const row of rows) {
+        if (row) dispositionMap.set(row._id, { label: row.label, category: row.category });
+      }
+    }
+    const enrichedCalls = trimmedCalls.map((c) => ({
+      ...c,
+      dispositionLabel: c.dispositionId
+        ? dispositionMap.get(c.dispositionId)?.label
+        : undefined,
+      dispositionCategory: c.dispositionId
+        ? dispositionMap.get(c.dispositionId)?.category
+        : undefined,
+    }));
+
     // Enrich workflow data for messages that came from workflows
     const workflowExecutionIds = new Set<string>();
     for (const msg of trimmedMessages) {
@@ -491,7 +516,7 @@ export const getCommunicationsHistory = query({
 
     // Return limited results (most recent 100 each)
     return {
-      calls: trimmedCalls,
+      calls: enrichedCalls,
       messages: trimmedMessages,
       emails: trimmedEmails,
       workflowInfo: workflowInfoMap,
