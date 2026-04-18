@@ -61,14 +61,17 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
           ? call.contactName || call.fromName || call.from
           : call.contactName || call.toName || call.to;
 
-        const callbackNumber = isInbound ? call.from : call.to;
-        const canCallBack =
-          isMissed && !!callbackNumber && !!callingContext?.isReady;
+        // For outbound calls the other party is `to`; for inbound it's `from`.
+        // Skip browser-client identities ("client:…") — those aren't dialable.
+        const otherPartyNumber = isInbound ? call.from : call.to;
+        const isDialable =
+          !!otherPartyNumber && !otherPartyNumber.startsWith("client:");
+        const canCallBack = isDialable && !!callingContext?.isReady;
 
         const handleCallBack = async (e: React.MouseEvent) => {
           e.stopPropagation();
-          if (!callingContext || !callbackNumber) return;
-          const e164 = toE164(callbackNumber) ?? callbackNumber;
+          if (!callingContext || !otherPartyNumber) return;
+          const e164 = toE164(otherPartyNumber) ?? otherPartyNumber;
           try {
             await callingContext.makeCall(e164);
           } catch (err) {
@@ -127,12 +130,15 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
               </div>
             </div>
 
-            {/* Call back — missed calls only */}
+            {/* Click-to-call — shown for any row with a dialable number.
+                stopPropagation so it doesn't also trigger the row-click
+                navigate-to-contact behavior. */}
             {canCallBack && (
               <button
                 type="button"
                 onClick={handleCallBack}
-                title={`Call back ${callbackNumber}`}
+                title={`Call ${otherPartyNumber}`}
+                aria-label={`Call ${otherPartyNumber}`}
                 className="shrink-0 rounded-full bg-green-500 hover:bg-green-600 text-white h-7 w-7 flex items-center justify-center transition-colors"
               >
                 <Phone className="h-3.5 w-3.5" />
