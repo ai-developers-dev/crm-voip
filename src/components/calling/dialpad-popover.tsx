@@ -34,6 +34,13 @@ export function DialpadPopover() {
   const [input, setInput] = useState("");
   const [dialing, setDialing] = useState(false);
 
+  if (typeof window !== "undefined") {
+    console.log("[dialpad] render", {
+      hasContext: !!callingContext,
+      isReady: callingContext?.isReady,
+    });
+  }
+
   // `isReady` is the device-registered state; without it `makeCall` errors out.
   const isReady = callingContext?.isReady ?? false;
 
@@ -84,13 +91,14 @@ export function DialpadPopover() {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="icon"
-          className="h-9 w-9"
+          size="sm"
+          className="gap-2"
           disabled={triggerDisabled}
           title={triggerTitle}
           aria-label={triggerTitle}
         >
           <Phone className="h-4 w-4" />
+          Dial
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-4">
