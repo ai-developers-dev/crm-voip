@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { convex } from "@/lib/convex/client";
+import { getConvexHttpClient } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import twilio from "twilio";
 import { api } from "../../../../../convex/_generated/api";
@@ -18,8 +18,12 @@ export async function POST(request: NextRequest) {
 
     const { identity } = await request.json();
 
-    // Fetch per-tenant Twilio credentials from Convex
-    // First, get the organization by Clerk org ID
+    // Per-request unauthenticated client. getCurrent is a public query so no
+    // Clerk JWT is needed; using a fresh instance also guarantees we can
+    // never inherit a stale JWT from any other route that mistakenly
+    // mutates a shared ConvexHttpClient in the future.
+    const convex = getConvexHttpClient();
+    console.log("[token] v2 fresh-client route handling request");
     const org = await convex.query(api.organizations.getCurrent, { clerkOrgId: orgId });
 
     if (!org) {
