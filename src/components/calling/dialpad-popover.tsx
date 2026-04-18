@@ -67,20 +67,30 @@ export function DialpadPopover() {
     }
   };
 
-  if (!callingContext) return null;
+  // Always render the trigger so the icon has a stable slot in the nav.
+  // If calling isn't wired up yet (no provider, device registering, etc.) we
+  // show it disabled with a helpful tooltip instead of returning null —
+  // otherwise the icon seems to "disappear" during page loads or when the
+  // calling context hasn't resolved yet.
+  const triggerDisabled = !callingContext || !isReady;
+  const triggerTitle = !callingContext
+    ? "Phone system loading…"
+    : isReady
+    ? "Open dialpad"
+    : "Phone system not ready";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
-          className="gap-2"
-          disabled={!isReady}
-          title={isReady ? "Open dialpad" : "Phone system not ready"}
+          size="icon"
+          className="h-9 w-9"
+          disabled={triggerDisabled}
+          title={triggerTitle}
+          aria-label={triggerTitle}
         >
           <Phone className="h-4 w-4" />
-          Dial
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-4">
