@@ -8,12 +8,22 @@ import { Doc, Id } from "../../../convex/_generated/dataModel";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FormField } from "@/components/ui/form-field";
+import { SectionHeader } from "@/components/ui/section-header";
+import { InfoRow } from "@/components/ui/info-row";
 import { Plus, Trash2 } from "lucide-react";
 
 interface SaleFormDialogProps {
@@ -256,9 +266,6 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
   // Strip commas for storage
   const stripCommas = (val: string) => val.replace(/,/g, "");
 
-  const selectClasses =
-    "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -268,170 +275,152 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
 
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-4">
           {/* Agent & Contact info */}
-          <div className="rounded-md border p-3 space-y-1 bg-surface-container/30">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-on-surface-variant">Agent</span>
-              <span className="font-medium">{currentUser?.name ?? "Loading..."}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-on-surface-variant">Insured</span>
-              <span className="font-medium">
-                {contact.firstName} {contact.lastName}
-              </span>
-            </div>
+          <div className="rounded-md border p-3 space-y-1 bg-muted/30">
+            <InfoRow label="Agent" value={currentUser?.name ?? "Loading..."} />
+            <InfoRow label="Insured" value={`${contact.firstName} ${contact.lastName}`} />
           </div>
 
           {/* Sale Type & Policy Number */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="saleType">Sale Type</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Sale Type" htmlFor="saleType">
               {saleTypes && saleTypes.length === 0 ? (
-                <p className="text-xs text-on-surface-variant">
+                <p className="text-xs text-muted-foreground">
                   No sale types configured.
                 </p>
               ) : (
-                <select
-                  id="saleType"
-                  value={saleTypeId}
-                  onChange={(e) => setSaleTypeId(e.target.value)}
-                  className={selectClasses}
-                >
-                  <option value="">Select type...</option>
-                  {saleTypes?.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={saleTypeId} onValueChange={setSaleTypeId}>
+                  <SelectTrigger id="saleType" className="w-full">
+                    <SelectValue placeholder="Select type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {saleTypes?.map((t) => (
+                      <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="policyNumber">Policy Number</Label>
+            </FormField>
+            <FormField label="Policy Number" htmlFor="policyNumber">
               <Input
                 id="policyNumber"
                 value={policyNumber}
                 onChange={(e) => setPolicyNumber(e.target.value)}
                 placeholder="Policy #"
               />
-            </div>
+            </FormField>
           </div>
 
           {/* Status (only in edit mode) */}
           {isEditing && (
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as "active" | "cancelled" | "pending")}
-                className={selectClasses}
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormField label="Status" htmlFor="status">
+              <Select value={status} onValueChange={(v) => setStatus(v as "active" | "cancelled" | "pending")}>
+                <SelectTrigger id="status" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
           )}
 
           {/* Carrier */}
-          <div className="space-y-2">
-            <Label htmlFor="carrier">Carrier</Label>
+          <FormField label="Carrier" htmlFor="carrier" required>
             {carriers && carriers.length === 0 ? (
-              <p className="text-sm text-on-surface-variant">
+              <p className="text-sm text-muted-foreground">
                 No carriers configured. Contact your admin to set up carriers.
               </p>
             ) : (
-              <select
-                id="carrier"
-                value={carrierId}
-                onChange={(e) => handleCarrierChange(e.target.value)}
-                className={selectClasses}
-                required
-              >
-                <option value="">Select carrier...</option>
-                {carriers?.map((c) => (
-                  <option key={c.carrierId} value={c.carrierId}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <Select value={carrierId} onValueChange={handleCarrierChange}>
+                <SelectTrigger id="carrier" className="w-full">
+                  <SelectValue placeholder="Select carrier..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {carriers?.map((c) => (
+                    <SelectItem key={c.carrierId} value={c.carrierId}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-          </div>
+          </FormField>
 
           {/* Line Items */}
-          <div className="space-y-3">
-            <Label>Lines of Business</Label>
-            {lineItems.map((item, index) => (
-              <div key={index} className="flex items-end gap-2">
-                <div className="flex-1 space-y-1">
-                  {index === 0 && (
-                    <span className="text-xs text-on-surface-variant">Line of Business</span>
-                  )}
-                  <select
-                    value={item.productId}
-                    onChange={(e) => updateLineItem(index, "productId", e.target.value)}
-                    className={selectClasses}
-                    disabled={!carrierId}
-                    required
+          <div>
+            <SectionHeader>Lines of Business</SectionHeader>
+            <div className="space-y-2">
+              {lineItems.map((item, index) => (
+                <div key={index} className="flex items-end gap-2">
+                  <div className="flex-1 space-y-1">
+                    {index === 0 && (
+                      <span className="text-xs text-muted-foreground">Line of Business</span>
+                    )}
+                    <Select
+                      value={item.productId || undefined}
+                      onValueChange={(v) => updateLineItem(index, "productId", v)}
+                      disabled={!carrierId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={
+                            !carrierId
+                              ? "Select carrier first"
+                              : products && products.length === 0
+                                ? "No lines available"
+                                : "Select LOB..."
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products?.map((p) => (
+                          <SelectItem key={p.productId} value={p.productId}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-32 space-y-1">
+                    {index === 0 && (
+                      <span className="text-xs text-muted-foreground">Premium</span>
+                    )}
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="0.00"
+                      value={item.premium}
+                      onChange={(e) => updateLineItem(index, "premium", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => removeLineItem(index)}
+                    disabled={lineItems.length === 1}
                   >
-                    <option value="">
-                      {!carrierId
-                        ? "Select carrier first"
-                        : products && products.length === 0
-                          ? "No lines available"
-                          : "Select LOB..."}
-                    </option>
-                    {products?.map((p) => (
-                      <option key={p.productId} value={p.productId}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
                 </div>
-                <div className="w-32 space-y-1">
-                  {index === 0 && (
-                    <span className="text-xs text-on-surface-variant">Premium</span>
-                  )}
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="0.00"
-                    value={item.premium}
-                    onChange={(e) => updateLineItem(index, "premium", e.target.value)}
-                    required
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0 shrink-0"
-                  onClick={() => removeLineItem(index)}
-                  disabled={lineItems.length === 1}
-                >
-                  <Trash2 className="h-4 w-4 text-on-surface-variant" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addLineItem}
-              className="gap-1"
-            >
-              <Plus className="h-3 w-3" />
-              Add Line Item
-            </Button>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addLineItem}
+                className="gap-1"
+              >
+                <Plus className="h-3 w-3" />
+                Add Line Item
+              </Button>
+            </div>
           </div>
 
           {/* Date & Term */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="effectiveDate">Effective Date</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Effective Date" htmlFor="effectiveDate" required>
               <Input
                 id="effectiveDate"
                 type="date"
@@ -439,71 +428,69 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
                 onChange={(e) => setEffectiveDate(e.target.value)}
                 required
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="term">Term</Label>
-              <select
-                id="term"
-                value={term}
-                onChange={(e) => setTerm(parseInt(e.target.value))}
-                className={selectClasses}
-              >
-                {TERM_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            </FormField>
+            <FormField label="Term" htmlFor="term">
+              <Select value={String(term)} onValueChange={(v) => setTerm(parseInt(v))}>
+                <SelectTrigger id="term" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TERM_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
           </div>
 
           {/* End Date (read-only) */}
           {endDate && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-on-surface-variant">End Date</span>
-              <span className="font-medium">
-                {(() => {
-                  const [y, m, d] = endDate.split("-").map(Number);
-                  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  });
-                })()}
-              </span>
-            </div>
+            <InfoRow
+              label="End Date"
+              value={(() => {
+                const [y, m, d] = endDate.split("-").map(Number);
+                return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                });
+              })()}
+            />
           )}
 
           {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+          <FormField label="Notes" htmlFor="notes">
             <Input
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional notes..."
             />
-          </div>
+          </FormField>
 
           {/* Coverages (dynamic from product definitions) */}
           {mergedCoverageFields.length > 0 && (
-            <div className="space-y-3">
-              <Label>Coverages</Label>
-              <div className="grid grid-cols-2 gap-3">
+            <div>
+              <SectionHeader>Coverages</SectionHeader>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {mergedCoverageFields.map((field) => (
                   <div key={field.key} className="space-y-1">
-                    <span className="text-xs text-on-surface-variant">{field.label}</span>
+                    <span className="text-xs text-muted-foreground">{field.label}</span>
                     {field.type === "select" && field.options?.length ? (
-                      <select
-                        value={coverages[field.key] ?? ""}
-                        onChange={(e) => setCoverages((c) => ({ ...c, [field.key]: e.target.value }))}
-                        className={selectClasses}
+                      <Select
+                        value={coverages[field.key] || "_none"}
+                        onValueChange={(v) => setCoverages((c) => ({ ...c, [field.key]: v === "_none" ? "" : v }))}
                       >
-                        <option value="">Select...</option>
-                        {field.options.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none">Select...</SelectItem>
+                          {field.options.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     ) : field.type === "currency" || field.type === "number" ? (
                       <Input
                         type="text"
@@ -536,15 +523,14 @@ export function SaleFormDialog({ open, onOpenChange, contact, organizationId, ed
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
+          <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={!isValid || submitting}>
               {submitting ? "Saving..." : isEditing ? "Update Sale" : "Submit Sale"}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
