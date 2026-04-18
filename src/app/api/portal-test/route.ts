@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { convex } from "@/lib/convex/client";
+import { getConvexHttpClient } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "../../../../convex/_generated/api";
 import { decrypt } from "@/lib/credentials/crypto";
@@ -12,12 +12,17 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 
 export const maxDuration = 120;
 
-async function authenticateConvex() {
+// Per-request client. Never mutate a shared Convex singleton with setAuth —
+// an expired JWT leaks into every other server route and triggers
+// "Could not verify OIDC token claim" across unrelated endpoints.
+async function getAuthedConvex() {
   try {
     const { getToken } = await auth();
     const token = await getToken({ template: "convex" });
-    if (token) convex.setAuth(token);
-  } catch {}
+    return getConvexHttpClient(token);
+  } catch {
+    return getConvexHttpClient();
+  }
 }
 
 export async function POST(req: Request) {
@@ -27,7 +32,7 @@ export async function POST(req: Request) {
 
     if (action === "start_login") {
       const { organizationId, carrierId, username, password, portalUrl } = body;
-      await authenticateConvex();
+      const convex = await getAuthedConvex();
 
       let creds: { username: string; password: string; portalUrl?: string };
 
@@ -84,7 +89,7 @@ export async function POST(req: Request) {
       if (!sessionId || !code) {
         return NextResponse.json({ status: "error", message: "Missing sessionId or code." });
       }
-      await authenticateConvex();
+      const convex = await getAuthedConvex();
       const result = await submitLoginTest2FA(sessionId, code.trim(), convex);
       return NextResponse.json(result);
     }

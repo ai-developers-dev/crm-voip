@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { convex } from "@/lib/convex/client";
+import { getConvexHttpClient } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import type { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
@@ -14,12 +14,17 @@ import type { Id } from "../../../../../convex/_generated/dataModel";
 
 export const maxDuration = 300; // 5 min for multiple leads
 
-async function authenticateConvex() {
+// Per-request client. Never mutate a shared Convex singleton with setAuth —
+// an expired JWT leaks into every other server route and triggers
+// "Could not verify OIDC token claim" across unrelated endpoints.
+async function getAuthedConvex(): Promise<ConvexHttpClient> {
   try {
     const { getToken } = await auth();
     const token = await getToken({ template: "convex" });
-    if (token) convex.setAuth(token);
-  } catch {}
+    return getConvexHttpClient(token);
+  } catch {
+    return getConvexHttpClient();
+  }
 }
 
 // Map carrier names to portal driver keys
@@ -71,7 +76,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await authenticateConvex();
+    const convex = await getAuthedConvex();
 
     const body = await req.json();
     const { organizationId, quoteType = "auto", action, sessionId, code } = body;

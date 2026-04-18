@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { convex } from "@/lib/convex/client";
+import { getConvexHttpClient } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "../../../../../convex/_generated/api";
 
@@ -20,8 +20,12 @@ export async function POST(request: NextRequest) {
     // the call as outcome="missed" in call history even though the agent
     // actually answered and talked. Root cause of "answered calls showing
     // as missed" in the call log.
+    //
+    // Use a per-request client — never mutate the shared singleton, or an
+    // expired JWT leaks into unrelated routes and triggers Convex's
+    // "Could not verify OIDC token claim" rejection.
     const convexJwt = await getToken({ template: "convex" });
-    if (convexJwt) convex.setAuth(convexJwt);
+    const convex = getConvexHttpClient(convexJwt);
 
     const { twilioCallSid } = await request.json();
 

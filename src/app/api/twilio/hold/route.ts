@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { convex } from "@/lib/convex/client";
+import { getConvexHttpClient } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -29,8 +29,12 @@ export async function POST(request: NextRequest) {
     // calls authorizeOrgMember -> requireAuth, which throws "Not authenticated"
     // if the Convex client has no JWT attached. Without this, parking dies on
     // every click with a 500 from the Convex mutation.
+    //
+    // Use a per-request client — never mutate the shared singleton, or an
+    // expired JWT leaks into unrelated routes and triggers Convex's
+    // "Could not verify OIDC token claim" rejection.
     const convexJwt = await getToken({ template: "convex" });
-    if (convexJwt) convex.setAuth(convexJwt);
+    const convex = getConvexHttpClient(convexJwt);
 
     const { twilioCallSid, callerNumber, callerName, organizationId, parkedByUserId } = await request.json();
 

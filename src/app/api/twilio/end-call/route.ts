@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { convex } from "@/lib/convex/client";
+import { getConvexHttpClient } from "@/lib/convex/client";
 import { auth } from "@clerk/nextjs/server";
 import { api } from "../../../../../convex/_generated/api";
 import { getOrgTwilioClient } from "@/lib/twilio/client";
@@ -14,9 +14,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward Clerk identity to Convex so endByCallSid's authorizeOrgMember
-    // (if any) can run. Safe no-op if the mutation doesn't need auth.
+    // (if any) can run. Use a per-request client — never mutate the shared
+    // singleton, or the expired JWT will poison every other server route.
     const convexJwt = await getToken({ template: "convex" });
-    if (convexJwt) convex.setAuth(convexJwt);
+    const convex = getConvexHttpClient(convexJwt);
 
     const { twilioCallSid } = await request.json();
 
