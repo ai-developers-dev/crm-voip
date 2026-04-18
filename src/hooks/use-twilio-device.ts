@@ -626,13 +626,16 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
         call.on("disconnect", () => {
           removeCall(callSid);
-          // Same cleanup as incoming: mark the call ended in Convex so the
-          // row moves from activeCalls to callHistory and returns an id
-          // the UI can open a disposition dialog against.
+          // The temp `out-${Date.now()}` fallback above won't match what the
+          // voice webhook stored on activeCalls (which keys off the real Twilio
+          // CallSid). By disconnect time `call.parameters.CallSid` is populated
+          // via signaling, so prefer it — otherwise the disposition dialog
+          // never opens because end-call can't find the row.
+          const resolvedSid = call.parameters?.CallSid || callSid;
           fetch("/api/twilio/end-call", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ twilioCallSid: callSid }),
+            body: JSON.stringify({ twilioCallSid: resolvedSid }),
           })
             .then((response) => response.json())
             .then((result) => {
