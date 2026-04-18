@@ -21,10 +21,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, AlertCircle, CheckCircle, Plus, Trash2, ChevronRight, ToggleLeft, ToggleRight, Download, Chrome, KeyRound, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Loader2, AlertCircle, CheckCircle, Plus, Trash2, ChevronRight, ToggleLeft, ToggleRight, Download, Chrome, KeyRound, Eye, EyeOff } from "lucide-react";
 import { NatGenLoginTest } from "@/components/settings/natgen-login-test";
 
 interface CarriersSettingsDialogProps {
@@ -436,9 +438,9 @@ export function CarriersSettingsDialog({
           </Alert>
         )}
         {success && (
-          <Alert className="bg-green-500/10 border-green-500/20">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-700 dark:text-green-400">
+          <Alert>
+            <CheckCircle className="h-4 w-4 text-success" />
+            <AlertDescription>
               Carriers and products saved successfully!
             </AlertDescription>
           </Alert>
@@ -446,10 +448,10 @@ export function CarriersSettingsDialog({
 
         <div className="space-y-4">
           {/* Agency Type */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Agency Type</Label>
+          <div>
+            <SectionHeader>Agency Type</SectionHeader>
             {agencyTypes && agencyTypes.length === 0 ? (
-              <p className="text-sm text-on-surface-variant">No agency types configured yet.</p>
+              <p className="text-sm text-muted-foreground">No agency types configured yet.</p>
             ) : (
               <Select value={selectedAgencyTypeId} onValueChange={handleAgencyTypeChange}>
                 <SelectTrigger>
@@ -468,10 +470,10 @@ export function CarriersSettingsDialog({
 
           {/* Carriers & Lines of Business */}
           {selectedAgencyTypeId && (
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Carriers & Lines of Business</Label>
+            <div>
+              <SectionHeader>Carriers & Lines of Business</SectionHeader>
               {activeCarriers.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">
+                <p className="text-sm text-muted-foreground">
                   No carriers configured for this agency type.
                 </p>
               ) : (
@@ -484,7 +486,7 @@ export function CarriersSettingsDialog({
                     const hasCredentials = carrierCredentials.get(carrier._id)?.configured;
 
                     return (
-                      <div key={carrier._id} className={`rounded-lg border transition-colors ${isChecked ? "border-primary/30 bg-primary/[0.02]" : "bg-muted/30"}`}>
+                      <div key={carrier._id} className={`rounded-md border transition-colors ${isChecked ? "border-primary/30 bg-primary/[0.02]" : "bg-muted/30"}`}>
                         {/* Carrier header */}
                         <div
                           className="flex items-center w-full gap-3 p-3 cursor-pointer"
@@ -500,14 +502,12 @@ export function CarriersSettingsDialog({
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold">{carrier.name}</span>
                               {isChecked && carrierProducts.length > 0 && (
-                                <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                                <Badge variant="secondary">
                                   {selectedCount}/{carrierProducts.length} LOBs
-                                </span>
+                                </Badge>
                               )}
                               {hasCredentials && (
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] h-5 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30">
-                                  Portal Connected
-                                </Badge>
+                                <Badge variant="success">Portal Connected</Badge>
                               )}
                             </div>
                           </div>
@@ -520,7 +520,7 @@ export function CarriersSettingsDialog({
                             {/* Products / Lines of Business */}
                             <div className="rounded-md border bg-background">
                               <div className="px-3 py-2 border-b bg-muted/40">
-                                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lines of Business</span>
+                                <SectionHeader className="mb-0">Lines of Business</SectionHeader>
                               </div>
                               {carrierProducts.length === 0 ? (
                                 <p className="text-xs text-muted-foreground p-3">No LOBs configured for this carrier.</p>
@@ -542,7 +542,7 @@ export function CarriersSettingsDialog({
                                         {rate && (
                                           <div className="flex items-center gap-3 shrink-0">
                                             <div className="flex items-center gap-1.5">
-                                              <Label className="text-xs text-muted-foreground w-8">New %</Label>
+                                              <span className="text-xs text-muted-foreground">New %</span>
                                               <Input
                                                 type="number"
                                                 min="0"
@@ -553,11 +553,11 @@ export function CarriersSettingsDialog({
                                                 onChange={(e) =>
                                                   setCommissionRateValue(carrier._id, product._id, "commission", e.target.value)
                                                 }
-                                                className="h-7 text-xs w-16 px-2 text-center"
+                                                className="w-20"
                                               />
                                             </div>
                                             <div className="flex items-center gap-1.5">
-                                              <Label className="text-xs text-muted-foreground w-8">Rnw %</Label>
+                                              <span className="text-xs text-muted-foreground">Rnw %</span>
                                               <Input
                                                 type="number"
                                                 min="0"
@@ -568,7 +568,7 @@ export function CarriersSettingsDialog({
                                                 onChange={(e) =>
                                                   setCommissionRateValue(carrier._id, product._id, "renewal", e.target.value)
                                                 }
-                                                className="h-7 text-xs w-16 px-2 text-center"
+                                                className="w-20"
                                               />
                                             </div>
                                           </div>
@@ -589,26 +589,24 @@ export function CarriersSettingsDialog({
                                   className="flex items-center gap-2 w-full px-3 py-2 text-left"
                                 >
                                   <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex-1">Portal Credentials</span>
+                                  <SectionHeader className="mb-0 flex-1">Portal Credentials</SectionHeader>
                                   {hasCredentials && (
-                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Connected</span>
+                                    <Badge variant="success">Connected</Badge>
                                   )}
                                   <ChevronRight className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${expandedCredsFor.has(carrier._id) ? "rotate-90" : ""}`} />
                                 </button>
-                                <div className={`overflow-hidden transition-all duration-200 ${expandedCredsFor.has(carrier._id) ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
-                                  <div className="px-3 pb-3 pt-1 space-y-2 border-t">
+                                <div className={`overflow-hidden transition-all duration-200 ${expandedCredsFor.has(carrier._id) ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"}`}>
+                                  <div className="px-3 pb-3 pt-2 space-y-2 border-t">
                                     <Input
                                       value={carrierCredentials.get(carrier._id)?.url ?? carrier.portalUrl ?? ""}
                                       onChange={(e) => updateCredField(carrier._id, "url", e.target.value)}
                                       placeholder="Portal URL (e.g. https://natgenagency.com/Account/Login.aspx)"
-                                      className="h-8 text-xs"
                                     />
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                       <Input
                                         value={carrierCredentials.get(carrier._id)?.username ?? ""}
                                         onChange={(e) => updateCredField(carrier._id, "username", e.target.value)}
                                         placeholder={hasCredentials ? "••••••••" : "Agent username"}
-                                        className="h-8 text-xs"
                                       />
                                       <div className="relative">
                                         <Input
@@ -616,7 +614,7 @@ export function CarriersSettingsDialog({
                                           value={carrierCredentials.get(carrier._id)?.password ?? ""}
                                           onChange={(e) => updateCredField(carrier._id, "password", e.target.value)}
                                           placeholder={hasCredentials ? "••••••••" : "Password"}
-                                          className="h-8 text-xs pr-8"
+                                          className="pr-9"
                                         />
                                         <button
                                           type="button"
@@ -626,8 +624,9 @@ export function CarriersSettingsDialog({
                                             return next;
                                           })}
                                           className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                          aria-label={showPasswordFor.has(carrier._id) ? "Hide password" : "Show password"}
                                         >
-                                          {showPasswordFor.has(carrier._id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                          {showPasswordFor.has(carrier._id) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                       </div>
                                     </div>
@@ -635,7 +634,6 @@ export function CarriersSettingsDialog({
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-7 text-xs px-3"
                                         disabled={!carrierCredentials.get(carrier._id)?.username || !carrierCredentials.get(carrier._id)?.password || savingCredsFor === carrier._id}
                                         onClick={() => handleSaveCredentials(carrier._id)}
                                       >
@@ -666,25 +664,25 @@ export function CarriersSettingsDialog({
           )}
 
           {/* Sale Types */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold">Sale Types</Label>
+          <div>
+            <SectionHeader>Sale Types</SectionHeader>
             <div className="rounded-md border p-3 space-y-2">
               {saleTypes && saleTypes.length > 0 && (
                 <div className="space-y-0.5">
                   {saleTypes.map((st) => (
-                    <div key={st._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-surface-container-high/50 group">
+                    <div key={st._id} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-accent group">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-medium truncate">{st.name}</span>
-                        <Badge variant={st.isActive ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 shrink-0">
+                        <Badge variant={st.isActive ? "default" : "secondary"}>
                           {st.isActive ? "Active" : "Off"}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateSaleType({ id: st._id, isActive: !st.isActive })}>
-                          {st.isActive ? <ToggleRight className="h-2.5 w-2.5" /> : <ToggleLeft className="h-2.5 w-2.5" />}
+                        <Button variant="ghost" size="icon-sm" onClick={() => updateSaleType({ id: st._id, isActive: !st.isActive })}>
+                          {st.isActive ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => removeSaleType({ id: st._id })}>
-                          <Trash2 className="h-2.5 w-2.5" />
+                        <Button variant="ghost" size="icon-sm" className="text-destructive hover:text-destructive" onClick={() => removeSaleType({ id: st._id })}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -696,7 +694,6 @@ export function CarriersSettingsDialog({
                   value={newSaleTypeName}
                   onChange={(e) => setNewSaleTypeName(e.target.value)}
                   placeholder="Sale type name..."
-                  className="h-8 text-sm"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && newSaleTypeName.trim()) {
                       e.preventDefault();
@@ -706,9 +703,9 @@ export function CarriersSettingsDialog({
                   }}
                 />
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs shrink-0"
+                  className="shrink-0"
                   disabled={!newSaleTypeName.trim()}
                   onClick={() => {
                     if (newSaleTypeName.trim()) {
@@ -725,13 +722,15 @@ export function CarriersSettingsDialog({
           </div>
 
           {/* Chrome Extension */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold flex items-center gap-2">
-              <Chrome className="h-4 w-4" />
-              Carrier Portal Helper — Chrome Extension
-            </Label>
+          <div>
+            <SectionHeader>
+              <span className="inline-flex items-center gap-2">
+                <Chrome className="h-3.5 w-3.5" />
+                Carrier Portal Helper — Chrome Extension
+              </span>
+            </SectionHeader>
             <div className="rounded-md border p-3 space-y-3">
-              <p className="text-sm text-on-surface-variant">
+              <p className="text-sm text-muted-foreground">
                 Auto-fills policy number when you open a carrier portal from the Policies panel.
               </p>
               <a href="/crm-carrier-helper.zip" download>
@@ -740,34 +739,33 @@ export function CarriersSettingsDialog({
                   Download Extension (.zip)
                 </Button>
               </a>
-              <ol className="text-xs text-on-surface-variant space-y-1 list-decimal list-inside">
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
                 <li>Download and unzip the file above</li>
-                <li>Open Chrome &rarr; <code className="rounded bg-surface-container px-1 py-0.5 text-[10px] font-mono">chrome://extensions</code></li>
+                <li>Open Chrome &rarr; <code className="rounded bg-muted px-1 py-0.5 text-[10px] font-mono">chrome://extensions</code></li>
                 <li>Enable <strong>Developer mode</strong> (top-right toggle)</li>
                 <li>Click <strong>Load unpacked</strong> &rarr; select the unzipped folder</li>
               </ol>
             </div>
           </div>
-
-          {/* Save / Cancel */}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            {selectedAgencyTypeId && (
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            )}
-          </div>
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          {selectedAgencyTypeId && (
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
