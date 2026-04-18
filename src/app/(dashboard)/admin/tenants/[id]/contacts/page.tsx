@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Loader2, Settings, Phone, MessageSquare, Users, Calendar, BarChart3, Bot, Workflow, Columns3, ClipboardCheck, FileSignature
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ContactListCompact } from "@/components/contacts/contact-list-compact";
@@ -36,6 +37,9 @@ export default function TenantContactsPage() {
   // Active panel state for side menu
   const [activePanel, setActivePanel] = useState<PanelType | null>(null);
 
+  // Mobile list-vs-detail view toggle. Ignored on `lg+` viewports.
+  const [activeMobileView, setActiveMobileView] = useState<"list" | "detail">("list");
+
   // Check if user is a platform admin
   const isPlatformUser = useQuery(
     api.platformUsers.isPlatformUser,
@@ -61,9 +65,10 @@ export default function TenantContactsPage() {
   );
   const fallbackUserId = tenantUsers?.[0]?._id;
 
-  // Handle selecting a contact (for viewing)
+  // Handle selecting a contact (for viewing). On mobile, flip to detail view.
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
+    setActiveMobileView("detail");
   };
 
   const handleNewContact = () => {
@@ -187,10 +192,15 @@ export default function TenantContactsPage() {
         </div>
       </div>
 
-      {/* 3-Column Layout */}
+      {/* 3-Column Layout (stacks to 1-column-with-tabs below lg) */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Column 1: Contact List */}
-        <div className="w-80 flex-shrink-0">
+        <div
+          className={cn(
+            "w-full lg:w-80 lg:flex-shrink-0",
+            activeMobileView === "list" ? "block" : "hidden lg:block",
+          )}
+        >
           <ContactListCompact
             contacts={contacts || []}
             selectedContactId={selectedContact?._id || null}
@@ -204,15 +214,35 @@ export default function TenantContactsPage() {
         </div>
 
         {/* Column 2: Communications Pane */}
-        <div className="flex-1 min-w-0 h-full overflow-hidden">
-          <CommunicationsPane
-            contact={selectedContact}
-            organizationId={tenant._id}
-          />
+        <div
+          className={cn(
+            "flex-1 min-w-0 h-full overflow-hidden flex-col",
+            activeMobileView === "detail" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveMobileView("list")}
+            className="lg:hidden flex items-center gap-2 px-4 py-2 border-b text-sm text-muted-foreground hover:bg-accent"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to contacts
+          </button>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <CommunicationsPane
+              contact={selectedContact}
+              organizationId={tenant._id}
+            />
+          </div>
         </div>
 
         {/* Column 3: Panel + Icon Menu */}
-        <div className="flex flex-shrink-0 h-full overflow-hidden">
+        <div
+          className={cn(
+            "flex flex-shrink-0 h-full overflow-hidden",
+            activeMobileView === "detail" ? "flex" : "hidden lg:flex",
+          )}
+        >
           {activePanel && (activePanel === "sort" || selectedContact) && (
             <div className="w-80 h-full flex flex-col">
               <ContactPanelDrawer

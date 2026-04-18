@@ -7,7 +7,8 @@ import { useSearchParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 import { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ContactListCompact } from "@/components/contacts/contact-list-compact";
 import { CommunicationsPane } from "@/components/contacts/communications-pane";
 import { ContactSideMenu, type PanelType } from "@/components/contacts/contact-side-menu";
@@ -32,6 +33,11 @@ export default function ContactsPage() {
 
   // Active panel state for side menu
   const [activePanel, setActivePanel] = useState<PanelType | null>(null);
+
+  // Mobile view toggle — list vs detail. Below `lg` breakpoint only one is
+  // visible at a time; on `lg+` the layout is the original 3-column view and
+  // this state is ignored. Defaults to list so users see contacts first.
+  const [activeMobileView, setActiveMobileView] = useState<"list" | "detail">("list");
 
 
 
@@ -74,9 +80,12 @@ export default function ContactsPage() {
 
   const isAdmin = isPlatformAdmin || currentUser?.role === "tenant_admin";
 
-  // Handle selecting a contact (for viewing)
+  // Handle selecting a contact (for viewing).
+  // On mobile we also flip to the detail view so the user sees the
+  // communications pane immediately after picking a contact.
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
+    setActiveMobileView("detail");
   };
 
   const handleNewContact = () => {
@@ -163,10 +172,15 @@ export default function ContactsPage() {
         <p className="text-on-surface-variant">Manage your organization&apos;s contacts</p>
       </div>
 
-      {/* 3-Column Layout */}
+      {/* 3-Column Layout (stacks to 1-column-with-tabs below lg) */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Column 1: Contact List */}
-        <div className="w-80 flex-shrink-0 overflow-hidden h-full">
+        <div
+          className={cn(
+            "w-full lg:w-80 lg:flex-shrink-0 overflow-hidden h-full",
+            activeMobileView === "list" ? "block" : "hidden lg:block",
+          )}
+        >
           <ContactListCompact
             contacts={contacts || []}
             selectedContactId={selectedContact?._id || null}
@@ -180,15 +194,36 @@ export default function ContactsPage() {
         </div>
 
         {/* Column 2: Communications Pane */}
-        <div className="flex-1 min-w-0 h-full overflow-hidden">
-          <CommunicationsPane
-            contact={selectedContact}
-            organizationId={org._id}
-          />
+        <div
+          className={cn(
+            "flex-1 min-w-0 h-full overflow-hidden flex-col",
+            activeMobileView === "detail" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          {/* Mobile-only back-to-list bar */}
+          <button
+            type="button"
+            onClick={() => setActiveMobileView("list")}
+            className="lg:hidden flex items-center gap-2 px-4 py-2 border-b text-sm text-muted-foreground hover:bg-accent"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to contacts
+          </button>
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <CommunicationsPane
+              contact={selectedContact}
+              organizationId={org._id}
+            />
+          </div>
         </div>
 
         {/* Column 3: Panel + Icon Menu */}
-        <div className="flex flex-shrink-0">
+        <div
+          className={cn(
+            "flex flex-shrink-0",
+            activeMobileView === "detail" ? "flex" : "hidden lg:flex",
+          )}
+        >
           {/* Panel content (expands when active) */}
           {activePanel && (activePanel === "sort" || selectedContact) && (
             <div className="w-80 overflow-y-auto">
