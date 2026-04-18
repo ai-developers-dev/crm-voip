@@ -396,7 +396,7 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
   const hasItems = Object.keys(groupedCommunications).length > 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3">
         <div className="flex items-center justify-between">
@@ -436,9 +436,11 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         </div>
       )}
 
-      {/* Content */}
+      {/* Content. `min-h-0` is required on a flex child that wraps Radix
+          ScrollArea — without it the scroll area grows to match its intrinsic
+          content height and the Viewport never becomes scrollable. */}
       {hasItems ? (
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
             {Object.entries(groupedCommunications).map(([dateGroup, items]) => (
               <div key={dateGroup} className="mb-6 last:mb-0">
