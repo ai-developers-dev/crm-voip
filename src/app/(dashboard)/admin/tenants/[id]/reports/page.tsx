@@ -114,7 +114,7 @@ export default function TenantReportsPage() {
       {/* Navigation Menu */}
       <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 overflow-x-auto">
             <Link href={`/admin/tenants/${tenant._id}`}>
               <Button variant="ghost" size="sm" className="gap-2"><Phone className="h-4 w-4" />Calls</Button>
             </Link>

@@ -166,7 +166,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
         <form onSubmit={handleSubmit} className="flex-1 px-6 py-5 space-y-6">
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Contact</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>First Name *</Label>
                 <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" required />
@@ -176,7 +176,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
                 <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Smith" required />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Email</Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" />
@@ -190,7 +190,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
 
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Personal</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label>Date of Birth *</Label>
                 <Input type="date" value={dob} onChange={(e) => setDob(e.target.value)} required />
@@ -222,7 +222,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
               <Label>Street *</Label>
               <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="123 Main St" required />
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1 col-span-1">
                 <Label>City *</Label>
                 <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Chicago" required />
@@ -267,12 +267,12 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
                       </button>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     <div className="space-y-1"><Label className="text-xs">Year</Label><Input type="number" value={v.year} onChange={(e) => updateVehicle(i, "year", Number(e.target.value))} min={1980} max={new Date().getFullYear() + 1} /></div>
                     <div className="space-y-1"><Label className="text-xs">Make</Label><Input value={v.make} onChange={(e) => updateVehicle(i, "make", e.target.value)} placeholder="Toyota" /></div>
                     <div className="space-y-1"><Label className="text-xs">Model</Label><Input value={v.model} onChange={(e) => updateVehicle(i, "model", e.target.value)} placeholder="Camry" /></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div className="space-y-1"><Label className="text-xs">VIN (optional)</Label><Input value={v.vin} onChange={(e) => updateVehicle(i, "vin", e.target.value)} placeholder="1HGCM82633A..." /></div>
                     <div className="space-y-1">
                       <Label className="text-xs">Primary Use</Label>
@@ -294,11 +294,11 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
           {quoteHome && (
             <section className="space-y-3">
               <h3 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Property</h3>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Year Built</Label><Input type="number" value={yearBuilt} onChange={(e) => setYearBuilt(e.target.value)} placeholder="1995" /></div>
                 <div className="space-y-1"><Label>Sq Ft</Label><Input type="number" value={sqft} onChange={(e) => setSqft(e.target.value)} placeholder="1800" /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Construction Type</Label>
                   <select value={constructionType} onChange={(e) => setConstructionType(e.target.value)} className="flex h-9 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm">

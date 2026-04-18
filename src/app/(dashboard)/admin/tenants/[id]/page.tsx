@@ -103,7 +103,7 @@ export default function TenantViewPage() {
           stays in sync with the tenant's own dashboard top nav. */}
       <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 overflow-x-auto">
             {adminNavItems.map((item) => {
               const href = `${basePath}${item.adminSubPath}`;
               const isActive = pathname === href || (item.adminSubPath === "" && pathname === basePath);

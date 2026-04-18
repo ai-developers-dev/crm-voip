@@ -314,7 +314,7 @@ export default function CarriersSettingsPage() {
   const selectedProductsList = activeProducts.filter((p) => selectedProductIds.has(p._id));
 
   return (
-    <div className="p-6 pb-16 max-w-6xl mx-auto space-y-4">
+    <div className="p-4 md:p-6 pb-16 max-w-4xl lg:max-w-6xl mx-auto space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-lg font-semibold tracking-tight">Carriers & Lines of Business</h1>

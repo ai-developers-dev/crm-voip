@@ -181,7 +181,7 @@ export default function CalendarPage() {
     <div className="h-[calc(100vh-var(--header-height))] flex flex-col">
       {/* Toolbar — user filter for admins */}
       {isAdmin && orgUsers && orgUsers.length > 0 && (
-        <div className="flex items-center justify-between px-12 py-2 bg-surface-container/30">
+        <div className="flex items-center justify-between px-4 md:px-6 lg:px-12 py-2 bg-surface-container/30">
           <h1 className="text-sm font-bold text-on-surface-variant">Calendar</h1>
           <Select value={selectedUserId} onValueChange={setSelectedUserId}>
             <SelectTrigger className="w-52 h-8 text-sm">
