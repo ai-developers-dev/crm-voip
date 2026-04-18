@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type DocumentType = "contract" | "id" | "application" | "claim" | "correspondence" | "other";
 type DocumentStatus = "draft" | "final" | "archived";
@@ -102,24 +109,32 @@ export function DocumentFormDialog({ open, onOpenChange, document, contactId, or
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
-              <select id="type" value={type} onChange={(e) => setType(e.target.value as DocumentType)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                <option value="contract">Contract</option>
-                <option value="id">ID</option>
-                <option value="application">Application</option>
-                <option value="claim">Claim</option>
-                <option value="correspondence">Correspondence</option>
-                <option value="other">Other</option>
-              </select>
+              <Select value={type} onValueChange={(v) => setType(v as DocumentType)}>
+                <SelectTrigger id="type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contract">Contract</SelectItem>
+                  <SelectItem value="id">ID</SelectItem>
+                  <SelectItem value="application">Application</SelectItem>
+                  <SelectItem value="claim">Claim</SelectItem>
+                  <SelectItem value="correspondence">Correspondence</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <select id="status" value={status} onChange={(e) => setStatus(e.target.value as DocumentStatus)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                <option value="draft">Draft</option>
-                <option value="final">Final</option>
-                <option value="archived">Archived</option>
-              </select>
+              <Select value={status} onValueChange={(v) => setStatus(v as DocumentStatus)}>
+                <SelectTrigger id="status" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="final">Final</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="space-y-2">

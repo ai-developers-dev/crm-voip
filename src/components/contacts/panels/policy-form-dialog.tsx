@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type PolicyType = "home" | "auto" | "life" | "health" | "umbrella" | "commercial" | "other";
 type PolicyStatus = "active" | "pending" | "expired" | "cancelled";
@@ -127,27 +134,35 @@ export function PolicyFormDialog({ open, onOpenChange, policy, contactId, organi
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
-              <select id="type" value={type} onChange={(e) => setType(e.target.value as PolicyType)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                <option value="home">Home</option>
-                <option value="auto">Auto</option>
-                <option value="life">Life</option>
-                <option value="health">Health</option>
-                <option value="umbrella">Umbrella</option>
-                <option value="commercial">Commercial</option>
-                <option value="other">Other</option>
-              </select>
+              <Select value={type} onValueChange={(v) => setType(v as PolicyType)}>
+                <SelectTrigger id="type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="home">Home</SelectItem>
+                  <SelectItem value="auto">Auto</SelectItem>
+                  <SelectItem value="life">Life</SelectItem>
+                  <SelectItem value="health">Health</SelectItem>
+                  <SelectItem value="umbrella">Umbrella</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             {policy && (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
-                <select id="status" value={status} onChange={(e) => setStatus(e.target.value as PolicyStatus)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="expired">Expired</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                <Select value={status} onValueChange={(v) => setStatus(v as PolicyStatus)}>
+                  <SelectTrigger id="status" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
@@ -158,13 +173,17 @@ export function PolicyFormDialog({ open, onOpenChange, policy, contactId, organi
             </div>
             <div className="space-y-2">
               <Label htmlFor="frequency">Frequency</Label>
-              <select id="frequency" value={premiumFrequency} onChange={(e) => setPremiumFrequency(e.target.value as PremiumFrequency)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="semi_annual">Semi-Annual</option>
-                <option value="annual">Annual</option>
-              </select>
+              <Select value={premiumFrequency} onValueChange={(v) => setPremiumFrequency(v as PremiumFrequency)}>
+                <SelectTrigger id="frequency" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="semi_annual">Semi-Annual</SelectItem>
+                  <SelectItem value="annual">Annual</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
