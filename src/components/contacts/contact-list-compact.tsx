@@ -75,7 +75,13 @@ function ContactCard({
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "rounded-md transition-colors relative",
-        isSelected ? "bg-surface-container-lowest" : "hover:bg-surface-container-high/50"
+        // Selected: primary-tinted bg + ring so it reads clearly against the
+        // page background. The previous `surface-container-lowest` resolved
+        // to #ffffff (light) / #14142a (dark), both nearly identical to the
+        // page background, making selection invisible and users click twice.
+        isSelected
+          ? "bg-primary/10 ring-1 ring-inset ring-primary/40"
+          : "hover:bg-surface-container-high/50"
       )}
     >
       {/* Main row */}
