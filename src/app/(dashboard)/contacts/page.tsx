@@ -180,7 +180,7 @@ export default function ContactsPage() {
         </div>
 
         {/* Column 2: Communications Pane */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 h-full overflow-hidden">
           <CommunicationsPane
             contact={selectedContact}
             organizationId={org._id}
