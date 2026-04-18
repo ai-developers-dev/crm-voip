@@ -156,7 +156,7 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 py-4">
         <h1 className="text-lg font-extrabold tracking-tight">Contacts</h1>
@@ -164,7 +164,7 @@ export default function ContactsPage() {
       </div>
 
       {/* 3-Column Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Column 1: Contact List */}
         <div className="w-80 flex-shrink-0 overflow-hidden h-full">
           <ContactListCompact

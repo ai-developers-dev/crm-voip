@@ -145,7 +145,7 @@ export default function TenantContactsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--header-height))]">
+    <div className="flex flex-col h-full">
       {/* Navigation Menu */}
       <div className="border-b bg-surface-container/30 px-4 py-2">
         <div className="flex items-center justify-between">
@@ -188,7 +188,7 @@ export default function TenantContactsPage() {
       </div>
 
       {/* 3-Column Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Column 1: Contact List */}
         <div className="w-80 flex-shrink-0">
           <ContactListCompact

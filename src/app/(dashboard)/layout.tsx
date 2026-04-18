@@ -809,9 +809,15 @@ export default function DashboardLayout({
   // The useTwilioDevice hook will handle errors gracefully if Twilio isn't configured
   const hasCallingEnabled = Boolean(organization?.id && !isOnboarding);
 
-  // The inner content that will be wrapped conditionally
+  // The inner content that will be wrapped conditionally.
+  // Uses h-screen + flex-col so <main> can be a bounded flex-1 child. Pages
+  // that need internal scrolling (contacts, calendar, sms) can then rely on
+  // h-full — attempting h-[calc(100vh-var(--header-height))] was brittle
+  // because the tenant nav bar and optional calling banners also sit above
+  // the page, making the page taller than the viewport and breaking inner
+  // ScrollArea components.
   const layoutContent = (
-    <div className="min-h-screen bg-background">
+    <div className="flex h-screen flex-col bg-background overflow-hidden">
       {/* Audio unlock banner - prompts user to click once so the browser
           autoplay policy lets ringtones play. Hides itself after the
           first click anywhere on the page. */}
@@ -967,6 +973,10 @@ export default function DashboardLayout({
               })}
             </nav>
             <div className="flex items-center gap-2">
+              {/* Dialpad: click to open, type a number, hit Call. The
+                  ActiveCallBar below takes over for dialing/connected state.
+                  Rendered just LEFT of Settings as requested. */}
+              <DialpadPopover />
               {currentUser?.role !== "agent" && (
                 <Link href="/settings">
                   <Button variant="outline" size="sm">
@@ -975,9 +985,6 @@ export default function DashboardLayout({
                   </Button>
                 </Link>
               )}
-              {/* Dialpad: click to open, type a number, hit Call. The
-                  ActiveCallBar below takes over for dialing/connected state. */}
-              <DialpadPopover />
             </div>
           </div>
         </div>
@@ -997,8 +1004,11 @@ export default function DashboardLayout({
           can do anything else. */}
       <DispositionDialog />
 
-      {/* Main content */}
-      <main className="flex-1">{children}</main>
+      {/* Main content. min-h-0 lets flex shrink below content; overflow-auto
+          means pages using `min-h-[...]` still grow and body-scroll inside
+          main, while pages using `h-full` get a bounded viewport for their
+          own ScrollAreas. */}
+      <main className="flex-1 min-h-0 overflow-auto">{children}</main>
 
       {/* Support widget — show for anyone viewing a tenant org */}
       {currentOrg?._id && !currentOrg.isPlatformOrg && (currentUser?._id || isPlatformUser) && (
