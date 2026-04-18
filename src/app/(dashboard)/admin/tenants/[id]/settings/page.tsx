@@ -26,6 +26,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Phone, Users, Settings, CheckCircle, XCircle, Loader2,
   ArrowLeft, Eye, Building2, Pencil, AlertCircle, Mail, Unplug, Trash2, Plus, Briefcase,
   Music, ImageIcon, UserPlus, MoreHorizontal, Tag, Workflow, MessageSquare, Zap
@@ -1241,11 +1248,16 @@ export default function TenantSettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="add-role">Role</Label>
-                <select id="add-role" className="flex h-9 w-full rounded-xl border border-input bg-surface-container-lowest px-3 py-1 text-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
-                  <option value="agent">Agent</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="tenant_admin">Admin</option>
-                </select>
+                <Select value={userFormData.role} onValueChange={(v) => setUserFormData(prev => ({ ...prev, role: v as any }))}>
+                  <SelectTrigger id="add-role" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="tenant_admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="add-extension">Extension (Optional)</Label>
@@ -1301,11 +1313,16 @@ export default function TenantSettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Role</Label>
-                <select id="edit-role" className="flex h-9 w-full rounded-xl border border-input bg-surface-container-lowest px-3 py-1 text-sm" value={userFormData.role} onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value as any }))}>
-                  <option value="agent">Agent</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="tenant_admin">Admin</option>
-                </select>
+                <Select value={userFormData.role} onValueChange={(v) => setUserFormData(prev => ({ ...prev, role: v as any }))}>
+                  <SelectTrigger id="edit-role" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="tenant_admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-extension">Extension</Label>

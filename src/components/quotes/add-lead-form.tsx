@@ -6,6 +6,15 @@ import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { X, Plus, Trash2 } from "lucide-react";
 
 function Label({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -197,21 +206,31 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
               </div>
               <div className="space-y-1">
                 <Label>Gender</Label>
-                <select value={gender} onChange={(e) => setGender(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                  <option value="">--</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
+                <Select value={gender || "_none"} onValueChange={(v) => setGender(v === "_none" ? "" : v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="--" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">--</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label>Marital Status</Label>
-                <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                  <option value="">--</option>
-                  <option value="single">Single</option>
-                  <option value="married">Married</option>
-                  <option value="divorced">Divorced</option>
-                  <option value="widowed">Widowed</option>
-                </select>
+                <Select value={maritalStatus || "_none"} onValueChange={(v) => setMaritalStatus(v === "_none" ? "" : v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="--" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">--</SelectItem>
+                    <SelectItem value="single">Single</SelectItem>
+                    <SelectItem value="married">Married</SelectItem>
+                    <SelectItem value="divorced">Divorced</SelectItem>
+                    <SelectItem value="widowed">Widowed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </section>
@@ -242,11 +261,11 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
             <h3 className="section-heading">Quote Types</h3>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={quoteAuto} onChange={(e) => setQuoteAuto(e.target.checked)} className="rounded" />
+                <Checkbox checked={quoteAuto} onCheckedChange={(c) => setQuoteAuto(c === true)} />
                 Auto Insurance
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={quoteHome} onChange={(e) => setQuoteHome(e.target.checked)} className="rounded" />
+                <Checkbox checked={quoteHome} onCheckedChange={(c) => setQuoteHome(c === true)} />
                 Home / Renters
               </label>
             </div>
@@ -276,11 +295,16 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
                     <div className="space-y-1"><Label className="text-xs">VIN (optional)</Label><Input value={v.vin} onChange={(e) => updateVehicle(i, "vin", e.target.value)} placeholder="1HGCM82633A..." /></div>
                     <div className="space-y-1">
                       <Label className="text-xs">Primary Use</Label>
-                      <select value={v.primaryUse} onChange={(e) => updateVehicle(i, "primaryUse", e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                        <option value="commute">Commute</option>
-                        <option value="pleasure">Pleasure</option>
-                        <option value="business">Business</option>
-                      </select>
+                      <Select value={v.primaryUse} onValueChange={(val) => updateVehicle(i, "primaryUse", val)}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="commute">Commute</SelectItem>
+                          <SelectItem value="pleasure">Pleasure</SelectItem>
+                          <SelectItem value="business">Business</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -301,19 +325,29 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Construction Type</Label>
-                  <select value={constructionType} onChange={(e) => setConstructionType(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                    <option value="">--</option>
-                    <option value="frame">Frame</option>
-                    <option value="masonry">Masonry</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <Select value={constructionType || "_none"} onValueChange={(v) => setConstructionType(v === "_none" ? "" : v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">--</SelectItem>
+                      <SelectItem value="frame">Frame</SelectItem>
+                      <SelectItem value="masonry">Masonry</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label>Ownership</Label>
-                  <select value={ownershipType} onChange={(e) => setOwnershipType(e.target.value)} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
-                    <option value="own">Own</option>
-                    <option value="rent">Rent</option>
-                  </select>
+                  <Select value={ownershipType} onValueChange={setOwnershipType}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="own">Own</SelectItem>
+                      <SelectItem value="rent">Rent</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </section>
@@ -321,7 +355,7 @@ export function AddLeadForm({ organizationId, lead, onClose, onAdded }: LeadForm
 
           <section className="space-y-1">
             <Label>Notes</Label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Any additional notes..." className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-on-surface-variant resize-none" />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Any additional notes..." className="resize-none" />
           </section>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
