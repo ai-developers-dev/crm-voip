@@ -9,6 +9,7 @@ import { Loader2, PhoneIncoming, PhoneOutgoing, PhoneMissed, MessageSquare, Arro
 import { ContactActionBar } from "./contact-action-bar";
 import { ComposeBox } from "./compose-box";
 import { commTypeColors } from "@/lib/style-constants";
+import { formatPhoneDisplay } from "@/lib/utils/phone";
 import {
   HoverCard,
   HoverCardContent,
@@ -42,6 +43,7 @@ type CommunicationItem = {
   recordingUrl?: string;
   callHistoryId?: Id<"callHistory">;
   dispositionLabel?: string;
+  phoneNumber?: string;
   // SMS fields
   body?: string;
   status?: string;
@@ -218,9 +220,16 @@ function CommunicationItemRow({ item, onOpenWorkflow, onStopWorkflow }: {
 
   const getDetails = () => {
     if (item.type === "call") {
-      if (item.outcome === "missed") return "Not answered";
-      if (item.duration !== undefined) return formatDuration(item.duration);
-      return "Connected";
+      const parts: string[] = [];
+      if (item.phoneNumber) parts.push(formatPhoneDisplay(item.phoneNumber));
+      if (item.outcome === "missed") {
+        parts.push("Not answered");
+      } else if (item.duration !== undefined) {
+        parts.push(formatDuration(item.duration));
+      } else {
+        parts.push("Connected");
+      }
+      return parts.join(" · ");
     }
     if (item.type === "email") {
       const parts = [];
@@ -307,6 +316,8 @@ export function CommunicationsPane({ contact, organizationId }: CommunicationsPa
         recordingUrl: call.recordingUrl,
         callHistoryId: call._id,
         dispositionLabel: call.dispositionLabel,
+        // For outbound calls we show the number dialed; for inbound, who called.
+        phoneNumber: call.direction === "outbound" ? call.to : call.from,
       });
     }
 
