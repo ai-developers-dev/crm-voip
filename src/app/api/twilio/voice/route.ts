@@ -85,16 +85,22 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Fire-and-forget: create the outbound activeCalls row keyed by the
-      // browser leg's CallSid. Uses the webhook-safe variant so this works
-      // with no Clerk session (we're a Twilio-signed callback).
-      convex.mutation(api.calls.createOrGetOutgoingFromWebhook, {
-        twilioCallSid: callSid,
-        from: callerId,
-        to,
-        userClerkId,
-        userClerkOrgId: clerkOrgId,
-      }).catch((err) => console.error("Failed to create outbound call record:", err));
+      // Await so we can verify the row got created — fire-and-forget was
+      // hiding silent failures (mutation returning null when phoneNumbers
+      // didn't match `from`).
+      console.log("[voice-dbg] outbound path", { callSid, from, to, callerId, clerkOrgId, userClerkId });
+      try {
+        const outboundId = await convex.mutation(api.calls.createOrGetOutgoingFromWebhook, {
+          twilioCallSid: callSid,
+          from: callerId,
+          to,
+          userClerkId,
+          userClerkOrgId: clerkOrgId,
+        });
+        console.log("[voice-dbg] createOrGetOutgoingFromWebhook returned:", outboundId);
+      } catch (err) {
+        console.error("[voice-dbg] createOrGetOutgoingFromWebhook threw:", err);
+      }
 
       const dial = twiml.dial({
         callerId,
