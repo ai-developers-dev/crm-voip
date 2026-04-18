@@ -113,8 +113,8 @@
   --accent-foreground: #191c1f;
   --destructive: #ba1a1a;
   --error-container: #ffdad6;
-  --border: transparent;
-  --input: transparent;
+  --border: #dcdfe4;
+  --input: #dcdfe4;
   --ring: #004ac6;
   /* Chart colors */
   --chart-1: #004ac6;
@@ -179,8 +179,8 @@
   --accent-foreground: #e4e4f0;
   --destructive: #ffb4ab;
   --error-container: #93000a;
-  --border: transparent;
-  --input: transparent;
+  --border: #363656;
+  --input: #363656;
   --ring: #b4c5ff;
   /* Chart colors - dark mode */
   --chart-1: #b4c5ff;
@@ -275,15 +275,23 @@
    Based on Stitch "The Tactile Curated Interface"
    ═══════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════
+   @deprecated — neumorphic / glass / gradient utilities
+   The UI has been flattened to a standard shadcn look (borders +
+   subtle shadows + moderate rounding). These classes stay defined
+   so any stragglers still referencing them don't 500, but do NOT
+   add new usages. Grep any file that still uses them and migrate
+   to flat `border` / `shadow-sm` / `shadow-md` instead.
+   ═══════════════════════════════════════════════════════ */
 @layer utilities {
-  /* ── Neumorphic Shadows ─────────────────────────────── */
+  /* ── Neumorphic Shadows (deprecated) ─────────────────── */
   .neu-outset     { box-shadow: var(--shadow-outset); }
   .neu-outset-sm  { box-shadow: var(--shadow-outset-sm); }
   .neu-inset      { box-shadow: var(--shadow-inset); }
   .neu-inset-sm   { box-shadow: var(--shadow-inset-sm); }
   .neu-ambient    { box-shadow: var(--shadow-ambient); }
 
-  /* Hover intensified outset */
+  /* Hover intensified outset (deprecated) */
   .neu-outset-hover {
     box-shadow: var(--shadow-outset);
     transition: box-shadow 0.2s ease;
@@ -295,12 +303,12 @@
     box-shadow: 12px 12px 24px #0c0c1a, -12px -12px 24px #282848;
   }
 
-  /* Active press (outset → inset) */
+  /* Active press (deprecated) */
   .neu-press:active {
     box-shadow: var(--shadow-inset-sm) !important;
   }
 
-  /* ── Glassmorphism ──────────────────────────────────── */
+  /* ── Glassmorphism (deprecated) ──────────────────────── */
   .glass {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
@@ -310,7 +318,7 @@
     background: rgba(30, 30, 52, 0.7);
   }
 
-  /* ── Ghost Border (accessibility fallback) ──────────── */
+  /* ── Ghost Border (deprecated) ───────────────────────── */
   .ghost-border {
     outline: 1px solid rgba(195, 198, 215, 0.15);
   }
@@ -321,7 +329,7 @@
     outline: 1px solid rgba(58, 58, 85, 0.3);
   }
 
-  /* ── Primary Gradient ───────────────────────────────── */
+  /* ── Primary Gradient (deprecated) ───────────────────── */
   .gradient-primary {
     background: linear-gradient(135deg, #004ac6, #2563eb);
   }
@@ -329,7 +337,7 @@
     background: linear-gradient(135deg, #2563eb, #3b82f6);
   }
 
-  /* ── Neumorphic Progress Bar Track ──────────────────── */
+  /* ── Neumorphic Progress Bar Track (deprecated) ──────── */
   .neu-track {
     box-shadow: var(--shadow-inset-sm);
     border-radius: 9999px;
