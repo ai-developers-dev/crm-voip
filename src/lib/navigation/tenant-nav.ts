@@ -22,6 +22,11 @@ export interface TenantNavItem {
   /** Whether the tenant-level route actually exists.
    *  If false, only shown in admin tenant view (which has its own routes). */
   tenantRouteExists: boolean;
+  /** Whether the admin tenant-view route (/admin/tenants/[id]/{adminSubPath})
+   *  actually exists. Defaults to true. Set false to hide the item from
+   *  the admin nav until a page is created — otherwise Next.js prefetches
+   *  the Link and gets 404s in the console. */
+  adminRouteExists?: boolean;
 }
 
 /**
@@ -40,12 +45,12 @@ export const TENANT_NAV_ITEMS: TenantNavItem[] = [
   { label: "Calendar",    icon: Calendar,       tenantPath: "/calendar",   adminSubPath: "/calendar",   tenantRouteExists: true },
   { label: "Tasks",       icon: ClipboardCheck, tenantPath: "/tasks",      adminSubPath: "/tasks",      tenantRouteExists: false },
   { label: "Reports",     icon: TrendingUp,     tenantPath: "/reports",    adminSubPath: "/reports",    minRole: "supervisor",    tenantRouteExists: true },
-  { label: "Stats",       icon: BarChart3,      tenantPath: "/stats",      adminSubPath: "/stats",      tenantRouteExists: true },
+  { label: "Stats",       icon: BarChart3,      tenantPath: "/stats",      adminSubPath: "/stats",      tenantRouteExists: true, adminRouteExists: false },
   { label: "Workflows",   icon: Workflow,        tenantPath: "/workflows",  adminSubPath: "/workflows",  minRole: "supervisor",    tenantRouteExists: true },
   { label: "Pipelines",   icon: Columns3,       tenantPath: "/pipelines",  adminSubPath: "/pipelines",  minRole: "supervisor",    tenantRouteExists: false },
   { label: "E-Sign",      icon: FileSignature,  tenantPath: "/e-sign",     adminSubPath: "/e-sign",     tenantRouteExists: true },
   { label: "AI Agents",   icon: Bot,            tenantPath: "/ai-agents",  adminSubPath: "/agents",     minRole: "supervisor",    tenantRouteExists: true },
-  { label: "Voicemails",  icon: Voicemail,       tenantPath: "/voicemails", adminSubPath: "/voicemails", tenantRouteExists: true },
+  { label: "Voicemails",  icon: Voicemail,       tenantPath: "/voicemails", adminSubPath: "/voicemails", tenantRouteExists: true, adminRouteExists: false },
 ];
 
 const ROLE_RANK: Record<TenantRole, number> = {
@@ -66,7 +71,9 @@ export function getTenantNavItems(role: TenantRole): TenantNavItem[] {
   });
 }
 
-/** Get all nav items for the admin tenant view (no filtering). */
+/** Get nav items for the admin tenant view. Filters out items whose
+ *  admin route doesn't exist yet — previously returning all items
+ *  caused Next.js Link prefetching to hit 404s for Stats/Voicemails. */
 export function getAdminTenantNavItems(): TenantNavItem[] {
-  return TENANT_NAV_ITEMS;
+  return TENANT_NAV_ITEMS.filter((item) => item.adminRouteExists !== false);
 }
