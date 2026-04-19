@@ -154,7 +154,7 @@ export const grid = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Card Patterns — Neumorphic
+// Card Patterns — flat, matches the shared Card UI kit
 // ---------------------------------------------------------------------------
 export const cardPatterns = {
   /** Stat card CardHeader: horizontal row with icon top-right */
@@ -163,14 +163,15 @@ export const cardPatterns = {
   statLabel: "text-[10px] font-bold uppercase tracking-widest text-on-surface-variant",
   /** Stat card icon: top-right corner, primary color */
   statIcon: "h-4 w-4 text-primary",
-  /** Shared dashboard card shell used by workflows, calls, reports, pipelines, and AI agents */
-  pageCard:
-    "rounded-2xl border border-outline-variant/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,255,0.92)_100%)] shadow-sm dark:bg-[linear-gradient(180deg,rgba(20,20,42,0.98)_0%,rgba(24,28,52,0.94)_100%)]",
+  /** Shared dashboard card shell used by workflows, calls, reports, pipelines, and AI agents.
+   *  Kept as a class string (rather than swapping to <Card>) because consumers mix it with
+   *  other utility classes (gap-0, py-0) for the expandable-row pattern. */
+  pageCard: "rounded-lg border bg-card shadow-sm",
   /** Interactive version of the shared dashboard card shell */
   pageCardInteractive:
-    "rounded-2xl border border-outline-variant/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(244,247,255,0.92)_100%)] shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-primary/40 hover:shadow-md dark:bg-[linear-gradient(180deg,rgba(20,20,42,0.98)_0%,rgba(24,28,52,0.94)_100%)]",
-  /** Settings card icon container — neumorphic outset */
-  settingsIconWrap: "flex h-12 w-12 items-center justify-center rounded-2xl bg-surface",
+    "rounded-lg border bg-card shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-primary/40 hover:shadow-md",
+  /** Settings card icon container */
+  settingsIconWrap: "flex h-12 w-12 items-center justify-center rounded-md bg-muted",
   /** Interactive card hover — shadow intensifies */
   hoverCard: "hover:border-primary/30 transition-colors",
 } as const;
