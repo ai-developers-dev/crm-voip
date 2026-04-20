@@ -82,6 +82,20 @@ export function ActiveCallBar() {
   // No calls at all — hide.
   if (!displayCall) return null;
 
+  // Don't render for an incoming call that hasn't been answered yet. The
+  // first incoming call becomes `focusedCall` immediately (see
+  // `addCallToState` → `shouldFocus = !prev.focusedCallSid`), which used
+  // to cause the green "End" bar to render on top of the blue "Incoming
+  // Call / Decline / Answer" banner — two UI treatments for the same
+  // ringing call. The blue banner (IncomingCallsArea / GlobalIncomingBanner)
+  // owns the pre-answer UX; this bar owns dialing + connected.
+  if (
+    displayCall.status === "pending" &&
+    displayCall.direction === "INCOMING"
+  ) {
+    return null;
+  }
+
   const handleToggleMute = () => {
     if (displayCall.callSid && toggleMuteBySid) {
       toggleMuteBySid(displayCall.callSid);

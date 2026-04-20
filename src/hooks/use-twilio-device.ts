@@ -584,7 +584,22 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           },
         });
 
-        const callSid = call.parameters?.CallSid || `out-${Date.now()}`;
+        // Twilio doesn't populate `call.parameters.CallSid` until after the
+        // outbound signaling round-trip completes (a few hundred ms after
+        // `.connect()` returns). Use a placeholder for the Map key so the UI
+        // can track the call immediately, then rekey to the real CA… SID
+        // once Twilio assigns it (via `rekeyToRealSid` below).
+        //
+        // Rekeying matters because the voice webhook (`/api/twilio/voice`)
+        // creates the `activeCalls` DB row keyed by the real Twilio CallSid,
+        // and `UserStatusCard` joins `twilioCallsArray` to `activeCalls` by
+        // CallSid. If the UI stays on the `out-…` placeholder, the join
+        // fails — `call._id` falls back to the placeholder, and clicking
+        // End routes to `endCallMutation({ callId: "out-…" })`, which
+        // throws an `ArgumentValidationError`. The user has to click End a
+        // second time (on the DB-backed fallback card) to actually cancel
+        // the row. Rekeying fixes both the join and the first-click End.
+        let callSid = call.parameters?.CallSid || `out-${Date.now()}`;
 
         // Add to state
         const callInfo: CallInfo = {
@@ -614,28 +629,47 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           };
         });
 
+        // Rekey the Map entry (and this closure's `callSid`) to the real
+        // Twilio CallSid once it becomes available. Called from the
+        // ringing / accept / disconnect handlers.
+        const rekeyToRealSid = () => {
+          const realSid = call.parameters?.CallSid;
+          if (!realSid || realSid === callSid) return;
+          const oldSid = callSid;
+          callSid = realSid;
+          setState((prev) => {
+            const newCalls = new Map(prev.calls);
+            const entry = newCalls.get(oldSid);
+            if (!entry) return prev;
+            newCalls.delete(oldSid);
+            newCalls.set(realSid, { ...entry, callSid: realSid });
+            const focusedCallSid =
+              prev.focusedCallSid === oldSid ? realSid : prev.focusedCallSid;
+            return { ...prev, calls: newCalls, focusedCallSid };
+          });
+        };
+
         // Surface the far-end ringing state so the UI can show "Dialing…"
         // distinctly from "Connected". Without this the bar sits on the
         // initial "connecting" status indefinitely.
         call.on("ringing", () => {
+          rekeyToRealSid();
           updateCallInfo(callSid, { status: "connecting" });
         });
         call.on("accept", () => {
+          rekeyToRealSid();
           updateCallInfo(callSid, { status: "open", answeredAt: Date.now() });
         });
 
         call.on("disconnect", () => {
+          // Belt-and-suspenders: if ringing/accept never fired (e.g. the
+          // callee declined before ringing), pick up the real SID here.
+          rekeyToRealSid();
           removeCall(callSid);
-          // `call.parameters.CallSid` isn't populated when Device.connect()
-          // returns — Twilio assigns it via signaling a moment later. By
-          // disconnect time it's there, so prefer it over the temp fallback
-          // used at setup; otherwise end-call can't find the activeCalls row
-          // and the disposition dialog never opens.
-          const resolvedSid = call.parameters?.CallSid || callSid;
           fetch("/api/twilio/end-call", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ twilioCallSid: resolvedSid }),
+            body: JSON.stringify({ twilioCallSid: callSid }),
           })
             .then((response) => response.json())
             .then((result) => {
