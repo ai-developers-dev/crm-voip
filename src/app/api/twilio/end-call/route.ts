@@ -81,11 +81,18 @@ export async function POST(request: NextRequest) {
     // Status=completed to the parent (or the browser SID itself for
     // outbound browser-to-PSTN calls where there's no parent). 20404
     // "already terminated" is expected and ignored.
+    //
+    // We also remember parentCallSid for STEP 3 below — for inbound calls
+    // the activeCalls row is keyed by the PSTN leg's CallSid, but the
+    // browser only knows the agent-leg SID. Cleaning up by the browser SID
+    // leaves the row orphaned and the user-card stays stuck.
+    let parentCallSid: string | null = null;
     if (orgId && !isParked) {
       try {
         const { client } = await getOrgTwilioClient(orgId);
         const browserCall = await client.calls(twilioCallSid).fetch();
-        const sidToEnd = browserCall.parentCallSid || twilioCallSid;
+        parentCallSid = browserCall.parentCallSid || null;
+        const sidToEnd = parentCallSid || twilioCallSid;
 
         try {
           await client.calls(sidToEnd).update({ status: "completed" });
@@ -106,10 +113,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // STEP 2: Mark the call as ended in Convex.
-    const result = await convex.mutation(api.calls.endByCallSid, {
-      twilioCallSid,
+    // STEP 3: Mark the call as ended in Convex.
+    //
+    // Inbound calls create two Twilio legs with different CallSids:
+    //   - PSTN leg: caller → Twilio number (what the voice webhook sees
+    //     and what `activeCalls.twilioCallSid` is keyed by)
+    //   - Agent leg: Twilio → browser client (what the SDK's Call object
+    //     reports via `call.parameters.CallSid`)
+    // The browser sends us the *agent* SID, so we try the PSTN parent
+    // first when we have one. Outbound browser-to-PSTN calls have no
+    // parent, so `twilioCallSid` IS the row key — one attempt is enough.
+    // Fall back to the browser SID if the parent lookup drew a blank.
+    let result = await convex.mutation(api.calls.endByCallSid, {
+      twilioCallSid: parentCallSid || twilioCallSid,
     });
+    if (result?.alreadyCleaned && parentCallSid && parentCallSid !== twilioCallSid) {
+      // Parent SID didn't match a row either — try the browser SID as a
+      // last resort. Rare, but can happen if the dial-status webhook
+      // already moved the row to callHistory under the browser SID.
+      result = await convex.mutation(api.calls.endByCallSid, {
+        twilioCallSid,
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {
