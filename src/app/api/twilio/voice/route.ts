@@ -52,8 +52,17 @@ export async function POST(request: NextRequest) {
     const isOutboundFromBrowser = from && from.startsWith("client:");
 
     if (isOutboundFromBrowser && to && !to.startsWith("client:")) {
-      // Outbound call from browser to PSTN
-      // Determine caller ID: use org's configured phone number, not browser client identity
+      // Outbound call from browser to PSTN.
+      //
+      // Caller-ID selection: previously this just picked
+      // `phoneNumbers[0]` — whichever row Convex returned first.
+      // Stable across requests, which made it look like caller ID was
+      // "stuck on an old number" for tenants with multiple lines.
+      // `getOutboundCallerId` now applies a sane priority in Convex:
+      //   1. a number explicitly assigned to this user
+      //   2. the number marked `type: "main"`
+      //   3. any other active number (stable fallback)
+      // All in one round-trip so the critical path stays short.
       let callerId = process.env.TWILIO_PHONE_NUMBER || "";
       // Parse org/user identity for the outbound record.
       const clientIdentity = from.replace("client:", "");
@@ -63,18 +72,17 @@ export async function POST(request: NextRequest) {
         : undefined;
       try {
         if (clerkOrgId) {
-          const org = await convex.query(api.organizations.getCurrent, { clerkOrgId });
-          if (org) {
-            const phoneNumbers = await convex.query(api.phoneNumbers.getByOrganization, {
-              organizationId: org._id,
-            });
-            if (phoneNumbers.length > 0) {
-              callerId = phoneNumbers[0].phoneNumber;
-            }
-          }
+          const resolved = await convex.query(
+            api.phoneNumbers.getOutboundCallerId,
+            { clerkOrgId, clerkUserId: userClerkId },
+          );
+          if (resolved) callerId = resolved;
         }
       } catch (err) {
-        console.warn("Failed to fetch org phone number for caller ID, using env fallback:", err);
+        console.warn(
+          "Failed to resolve outbound caller ID, using env fallback:",
+          err,
+        );
       }
 
       if (!callerId) {

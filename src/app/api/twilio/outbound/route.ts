@@ -63,25 +63,27 @@ export async function POST(request: NextRequest) {
     const formattedTo = formatPhoneNumber(to);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
-    // Determine caller ID: use org's configured phone number, not browser client identity
+    // Determine caller ID: use org's configured phone number, not browser
+    // client identity. Uses the same priority helper as /api/twilio/voice
+    // (user-assigned line > main line > first active) so a tenant with
+    // multiple numbers gets the "right" one instead of whatever row
+    // happened to be created first.
     let twilioNumber = process.env.TWILIO_PHONE_NUMBER || "";
     try {
-      // Parse org ID from client identity: "client:org_xxx-user_xxx" or "org_xxx-user_xxx"
       const clientIdentity = from?.startsWith("client:") ? from.replace("client:", "") : from;
       const clerkOrgId = clientIdentity?.split("-user_")[0];
+      const clerkUserId = clientIdentity && clerkOrgId && clientIdentity.startsWith(`${clerkOrgId}-`)
+        ? clientIdentity.slice(clerkOrgId.length + 1)
+        : undefined;
       if (clerkOrgId) {
-        const org = await convex.query(api.organizations.getCurrent, { clerkOrgId });
-        if (org) {
-          const phoneNumbers = await convex.query(api.phoneNumbers.getByOrganization, {
-            organizationId: org._id,
-          });
-          if (phoneNumbers.length > 0) {
-            twilioNumber = phoneNumbers[0].phoneNumber;
-          }
-        }
+        const resolved = await convex.query(api.phoneNumbers.getOutboundCallerId, {
+          clerkOrgId,
+          clerkUserId,
+        });
+        if (resolved) twilioNumber = resolved;
       }
     } catch (err) {
-      console.warn("Failed to fetch org phone number for caller ID, using env fallback:", err);
+      console.warn("Failed to resolve outbound caller ID, using env fallback:", err);
     }
 
     // Parse clerkUserId from the identity (format: clerkOrgId-clerkUserId)

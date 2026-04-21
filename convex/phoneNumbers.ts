@@ -18,6 +18,69 @@ export const getByOrganization = query({
   },
 });
 
+/**
+ * Resolve the outbound caller-ID E.164 for a user in an org, using a
+ * consistent priority:
+ *
+ *   1. An **active** `phoneNumbers` row whose `assignedUserId` matches
+ *      the caller (their personal line).
+ *   2. An active row with `type === "main"` (the tenant's main line).
+ *   3. Any other active row (stable fallback — first one Convex yields).
+ *
+ * Prior to this query, the voice webhook just picked `phoneNumbers[0]`,
+ * so tenants with multiple numbers saw whichever row happened to exist
+ * first — and since that stayed stable across requests, it looked like
+ * "the caller ID is stuck on an old number". This query centralises
+ * the priority and is called once by the voice webhook (one round-trip
+ * instead of two), so the critical path stays sub-200ms.
+ *
+ * Returns null if no active phone numbers exist — caller should then
+ * fall back to `TWILIO_PHONE_NUMBER` env and surface an error if that
+ * is also empty.
+ */
+export const getOutboundCallerId = query({
+  args: {
+    clerkOrgId: v.string(),
+    clerkUserId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .first();
+    if (!org) return null;
+
+    const [numbers, userRows] = await Promise.all([
+      ctx.db
+        .query("phoneNumbers")
+        .withIndex("by_organization", (q) => q.eq("organizationId", org._id))
+        .collect(),
+      args.clerkUserId
+        ? ctx.db
+            .query("users")
+            .withIndex("by_clerk_user_id", (q) =>
+              q.eq("clerkUserId", args.clerkUserId!),
+            )
+            .collect()
+        : Promise.resolve([]),
+    ]);
+
+    const user = userRows.find((u) => u.organizationId === org._id);
+    const active = numbers.filter((n) => n.isActive);
+    if (active.length === 0) return null;
+
+    if (user) {
+      const assigned = active.find((n) => n.assignedUserId === user._id);
+      if (assigned) return assigned.phoneNumber;
+    }
+
+    const main = active.find((n) => n.type === "main");
+    if (main) return main.phoneNumber;
+
+    return active[0].phoneNumber;
+  },
+});
+
 // Get a single phone number by ID
 export const getById = query({
   args: { id: v.id("phoneNumbers") },
