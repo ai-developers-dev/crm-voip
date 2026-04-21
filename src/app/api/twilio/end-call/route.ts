@@ -7,7 +7,7 @@ import { getOrgTwilioClient } from "@/lib/twilio/client";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId, getToken } = await auth();
+    const { userId, orgId: clerkActiveOrgId, getToken } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,6 +29,29 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`Ending call ${twilioCallSid} via frontend cleanup`);
+
+    // Resolve the TENANT org from the call record itself rather than
+    // trusting Clerk's active-org, which is wrong for super admins
+    // viewing a tenant at `/admin/tenants/[id]` — their active org is
+    // their own platform org, which has no Twilio creds. That mismatch
+    // made `getOrgTwilioClient` throw, left `parentCallSid` null, and
+    // then silently no-opped the whole cleanup — leaving the call card
+    // stuck on the tenant's user row.
+    let orgId: string | null = null;
+    try {
+      const resolved = await convex.query(api.calls.getOrgByCallSid, {
+        twilioCallSid,
+      });
+      orgId = resolved?.clerkOrgId ?? null;
+    } catch (lookupErr) {
+      console.warn(
+        `[end-call] getOrgByCallSid failed for ${twilioCallSid}:`,
+        lookupErr
+      );
+    }
+    // Fallback to Clerk active org only if the call record is gone
+    // (already cleaned up). Safe for the normal-tenant-member path.
+    if (!orgId) orgId = clerkActiveOrgId ?? null;
 
     // STEP 1: Check whether the call was just PARKED. If so, we must NOT
     // terminate the parent PSTN leg — the caller is now in a conference

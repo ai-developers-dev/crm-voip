@@ -434,6 +434,14 @@ export default defineSchema({
   activeCalls: defineTable({
     organizationId: v.id("organizations"),
     twilioCallSid: v.string(),
+    // Agent-leg (child) CallSid — populated when the call is claimed by a
+    // browser user. For inbound calls this is what the browser's Twilio
+    // SDK reports via `call.parameters.CallSid`, while `twilioCallSid`
+    // above is the PSTN (parent) leg from the voice webhook. Storing
+    // both lets `endByCallSid` find the row regardless of which SID the
+    // cleanup caller has. See commits 15568aa / 4ff15a8 for the dual-leg
+    // history and why this field was needed.
+    childCallSid: v.optional(v.string()),
     conferenceSid: v.optional(v.string()), // Deprecated: kept for existing data
     direction: v.union(v.literal("inbound"), v.literal("outbound")),
 
@@ -475,6 +483,7 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_organization_state", ["organizationId", "state"])
     .index("by_twilio_sid", ["twilioCallSid"])
+    .index("by_child_call_sid", ["childCallSid"])
     .index("by_assigned_user", ["assignedUserId"]),
 
   // Call History (Historical records)

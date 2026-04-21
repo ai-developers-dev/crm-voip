@@ -41,6 +41,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { updateTenant, UpdateTenantData, addUserToOrganization, removeUserFromOrganization, provisionTenantTwilio, transferNumberFromMaster } from "../../../actions";
+import { DiagnosticsCard } from "@/components/settings/diagnostics-card";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 import { SalesGoalsManager } from "@/components/settings/sales-goals-manager";
 import { ImageUpload } from "@/components/settings/image-upload";
@@ -983,6 +984,19 @@ export default function TenantSettingsPage() {
               onToggle={() => toggleRow("holdmusic")}
             >
               <HoldMusicUpload organizationId={tenant._id} />
+            </SettingsRow>
+          )}
+
+          {/* Diagnostics — admin cleanup actions */}
+          {tenant._id && (
+            <SettingsRow
+              icon={<AlertCircle className="h-4 w-4 text-amber-600" />}
+              label="Diagnostics"
+              summary="Clear stuck calls"
+              isExpanded={expandedRow === "diagnostics"}
+              onToggle={() => toggleRow("diagnostics")}
+            >
+              <DiagnosticsCard organizationId={tenant._id} />
             </SettingsRow>
           )}
         </div>

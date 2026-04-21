@@ -52,6 +52,54 @@ export const getByTwilioSid = query({
   },
 });
 
+// Resolve the owning org for a CallSid by walking both the PSTN leg
+// (`twilioCallSid`) and the agent leg (`childCallSid`), then falling
+// back to the callHistory row if the call already wrapped up. Returns
+// `null` if nothing matches. Used by `/api/twilio/end-call` so that
+// super admins on `/admin/tenants/[id]` resolve the TENANT's Twilio
+// credentials instead of their own active Clerk org — which would
+// otherwise have no Twilio config and blow up `getOrgTwilioClient`.
+export const getOrgByCallSid = query({
+  args: { twilioCallSid: v.string() },
+  handler: async (ctx, args) => {
+    let orgId: import("./_generated/dataModel").Id<"organizations"> | null = null;
+
+    const activeByParent = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+      .first();
+    if (activeByParent) orgId = activeByParent.organizationId;
+
+    if (!orgId) {
+      const activeByChild = await ctx.db
+        .query("activeCalls")
+        .withIndex("by_child_call_sid", (q) =>
+          q.eq("childCallSid", args.twilioCallSid),
+        )
+        .first();
+      if (activeByChild) orgId = activeByChild.organizationId;
+    }
+
+    if (!orgId) {
+      const history = await ctx.db
+        .query("callHistory")
+        .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
+        .first();
+      if (history) orgId = history.organizationId;
+    }
+
+    if (!orgId) return null;
+
+    const org = await ctx.db.get(orgId);
+    if (!org) return null;
+
+    return {
+      organizationId: orgId,
+      clerkOrgId: org.clerkOrgId,
+    };
+  },
+});
+
 // Query to get calls assigned to a user
 export const getByUser = query({
   args: { userId: v.id("users") },
@@ -830,11 +878,25 @@ export const claimCall = mutation({
       return { success: false, reason: "call_not_claimable" };
     }
 
-    // Claim the call atomically
+    // Claim the call atomically.
+    //
+    // Capture the agent-leg CallSid on the row. For inbound calls the row
+    // was created by the voice webhook with the PSTN leg's CallSid (the
+    // parent), but the browser SDK only knows the agent leg (the child).
+    // Without this mapping, any hangup cleanup that uses the browser's
+    // SID — e.g. ActiveCallCard.handleEndCall — can't find the row and
+    // silently no-ops, leaving the call card stuck on screen.
+    //
+    // `args.twilioCallSid` here is exactly the agent-leg SID: it comes
+    // from `/api/twilio/claim-call` which forwards the browser SDK's
+    // `call.parameters.CallSid`. For outbound calls there's no parent/
+    // child split, so this is redundant but harmless (same as
+    // `call.twilioCallSid`).
     await ctx.db.patch(call._id, {
       assignedUserId: user._id,
       state: "connected",
       answeredAt: Date.now(),
+      childCallSid: args.twilioCallSid,
     });
 
     // Update user status to on_call
@@ -917,10 +979,29 @@ export const end = mutation({
 export const endByCallSid = mutation({
   args: { twilioCallSid: v.string() },
   handler: async (ctx, args) => {
-    const call = await ctx.db
+    // Inbound calls have TWO Twilio legs with different CallSids:
+    //   - PSTN leg (parent): stored in `activeCalls.twilioCallSid` by the
+    //     voice webhook.
+    //   - Agent leg (child): what the browser SDK sees and passes in.
+    //     Stored on the same row as `childCallSid` by `claimCall`.
+    // Look up by BOTH so this mutation is idempotent regardless of which
+    // SID the caller happens to hold. Without this fallback, every
+    // in-UI End-button click on an inbound call silently returned
+    // `alreadyCleaned` and left the row stuck, which is what made the
+    // call card persist on the tenant dashboard.
+    let call = await ctx.db
       .query("activeCalls")
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
+
+    if (!call) {
+      call = await ctx.db
+        .query("activeCalls")
+        .withIndex("by_child_call_sid", (q) =>
+          q.eq("childCallSid", args.twilioCallSid),
+        )
+        .first();
+    }
 
     if (!call) {
       // Cleanup might be called after the call already moved to history.
@@ -1011,6 +1092,84 @@ export const clearAllActiveCalls = mutation({
     }
 
     return { success: true, clearedCount: calls.length };
+  },
+});
+
+// Clear activeCalls that have been hanging around longer than the
+// caller expects — used by the Settings → Diagnostics button so admins
+// can flush rows left over from Twilio legs that failed to clean up
+// (historic dual-leg SID-mismatch bug, or Twilio webhook drops).
+//
+// Moves the rows to callHistory with outcome "failed" so there's an
+// audit trail, then flips the assigned user's presence back to
+// "available" — otherwise the next inbound call could be rejected with
+// "all agents busy".
+export const clearStuckActiveCalls = mutation({
+  args: {
+    organizationId: v.id("organizations"),
+    olderThanMinutes: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await authorizeOrgAdmin(ctx, args.organizationId);
+
+    const thresholdMs = (args.olderThanMinutes ?? 10) * 60 * 1000;
+    const cutoff = Date.now() - thresholdMs;
+
+    const calls = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_organization", (q) =>
+        q.eq("organizationId", args.organizationId),
+      )
+      .collect();
+
+    const stuck = calls.filter((c) => c.startedAt < cutoff);
+
+    for (const call of stuck) {
+      // Move to history so dispositions / reports still see it.
+      await ctx.db.insert("callHistory", {
+        organizationId: call.organizationId,
+        twilioCallSid: call.twilioCallSid,
+        direction: call.direction,
+        from: call.from,
+        fromName: call.fromName,
+        to: call.to,
+        toName: call.toName,
+        outcome: "failed",
+        handledByUserId: call.assignedUserId,
+        startedAt: call.startedAt,
+        answeredAt: call.answeredAt,
+        endedAt: Date.now(),
+        duration: call.answeredAt
+          ? Math.floor((Date.now() - call.answeredAt) / 1000)
+          : 0,
+        notes: call.notes
+          ? `${call.notes}\n[cleared as stuck]`
+          : "[cleared as stuck]",
+      });
+
+      // Flip presence back to available if someone was on this call.
+      if (call.assignedUserId) {
+        await ctx.db.patch(call.assignedUserId, {
+          status: "available",
+          updatedAt: Date.now(),
+        });
+        const presence = await ctx.db
+          .query("presence")
+          .withIndex("by_user", (q) => q.eq("userId", call.assignedUserId!))
+          .first();
+        if (presence) {
+          await ctx.db.patch(presence._id, {
+            status: "available",
+            currentCallId: undefined,
+            lastHeartbeat: Date.now(),
+          });
+        }
+      }
+
+      await ctx.db.delete(call._id);
+    }
+
+    return { success: true, clearedCount: stuck.length };
   },
 });
 
