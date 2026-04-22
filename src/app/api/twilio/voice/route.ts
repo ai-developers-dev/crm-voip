@@ -150,6 +150,33 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Block list — per Twilio's recommended pattern, consult our own
+      // table and respond with `<Reject reason="busy">` so the caller
+      // gets a busy signal and Twilio drops the leg before any
+      // billable connect work happens (no agents pinged, no recording,
+      // no activeCalls row). This is cheaper and more discreet than
+      // <Hangup/>, which still answers the leg first.
+      try {
+        const blocked = await convex.query(api.blockedNumbers.isBlocked, {
+          organizationId: callData.organizationId,
+          phoneNumber: from,
+        });
+        if (blocked) {
+          console.log(`[voice] Rejecting blocked caller ${from} → ${to}`);
+          twiml.reject({ reason: "busy" });
+          return new NextResponse(twiml.toString(), {
+            headers: { "Content-Type": "text/xml" },
+          });
+        }
+      } catch (blockErr) {
+        // If the lookup fails, fall through and let the call ring.
+        // Failing open is better than dropping legitimate calls.
+        console.warn(
+          `[voice] block-list lookup failed for ${from}, proceeding:`,
+          blockErr,
+        );
+      }
+
       // Check if this phone number has an AI agent assigned
       if (callData.aiAgentId) {
         try {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -15,7 +16,8 @@ import {
 } from "lucide-react";
 import { callDirectionColors } from "@/lib/style-constants";
 import { useOptionalCallingContext } from "./calling-provider";
-import { toE164 } from "@/lib/phone";
+import { toE164, formatPhoneDashed } from "@/lib/phone";
+import { BlockNumberDialog } from "./block-number-dialog";
 
 interface DailyCallLogProps {
   organizationId: Id<"organizations">;
@@ -32,6 +34,10 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
   const router = useRouter();
   const callLog = useQuery(api.callStats.getDailyCallLog, { organizationId });
   const callingContext = useOptionalCallingContext();
+  // Number that opens the block/unblock dialog. The dialog itself
+  // queries `isBlocked` so it shows the right action (Block vs Unblock)
+  // without the row having to know.
+  const [blockTarget, setBlockTarget] = useState<string | null>(null);
 
   if (callLog === undefined) {
     return (
@@ -50,23 +56,32 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
   }
 
   return (
+    <>
     <div className="divide-y">
       {callLog.map((call) => {
         const isMissed = call.outcome === "missed";
         const isInbound = call.direction === "inbound";
         const hasContact = !!call.contactId;
 
-        // Determine display name/number
-        const callerDisplay = isInbound
-          ? call.contactName || call.fromName || call.from
-          : call.contactName || call.toName || call.to;
-
-        // For outbound calls the other party is `to`; for inbound it's `from`.
-        // Skip browser-client identities ("client:…") — those aren't dialable.
+        // Resolve display name and the underlying phone number.
+        // `nameDisplay` is what we'd show if we have a contact match;
+        // when we don't, we show the dashed phone number instead so
+        // long E.164 strings don't overflow the row. Click opens the
+        // block dialog.
         const otherPartyNumber = isInbound ? call.from : call.to;
         const isDialable =
           !!otherPartyNumber && !otherPartyNumber.startsWith("client:");
         const canCallBack = isDialable && !!callingContext?.isReady;
+
+        const contactOrName = isInbound
+          ? call.contactName || call.fromName
+          : call.contactName || call.toName;
+        const callerDisplay = contactOrName
+          ? contactOrName
+          : isDialable
+            ? formatPhoneDashed(otherPartyNumber!)
+            : (isInbound ? call.from : call.to);
+        const isJustNumber = !contactOrName && isDialable;
 
         const handleCallBack = async (e: React.MouseEvent) => {
           e.stopPropagation();
@@ -107,13 +122,29 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
             {/* Caller info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <span
-                  className={`text-sm font-medium truncate ${
-                    isMissed ? callDirectionColors.missedText : ""
-                  }`}
-                >
-                  {callerDisplay}
-                </span>
+                {isJustNumber && otherPartyNumber ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBlockTarget(otherPartyNumber);
+                    }}
+                    title={`Block or unblock ${callerDisplay}`}
+                    className={`text-sm font-medium truncate text-left hover:underline ${
+                      isMissed ? callDirectionColors.missedText : ""
+                    }`}
+                  >
+                    {callerDisplay}
+                  </button>
+                ) : (
+                  <span
+                    className={`text-sm font-medium truncate ${
+                      isMissed ? callDirectionColors.missedText : ""
+                    }`}
+                  >
+                    {callerDisplay}
+                  </span>
+                )}
                 {hasContact && (
                   <ExternalLink className="h-3 w-3 text-on-surface-variant shrink-0" />
                 )}
@@ -165,5 +196,14 @@ export function DailyCallLog({ organizationId }: DailyCallLogProps) {
         );
       })}
     </div>
+    <BlockNumberDialog
+      open={!!blockTarget}
+      onOpenChange={(open) => {
+        if (!open) setBlockTarget(null);
+      }}
+      organizationId={organizationId}
+      phoneNumber={blockTarget ?? ""}
+    />
+    </>
   );
 }

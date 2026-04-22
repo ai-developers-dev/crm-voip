@@ -17,6 +17,7 @@ import type * as agentRuns from "../agentRuns.js";
 import type * as aiCallHistory from "../aiCallHistory.js";
 import type * as appointments from "../appointments.js";
 import type * as billing from "../billing.js";
+import type * as blockedNumbers from "../blockedNumbers.js";
 import type * as calendarEvents from "../calendarEvents.js";
 import type * as callDispositions from "../callDispositions.js";
 import type * as callStats from "../callStats.js";
@@ -92,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   aiCallHistory: typeof aiCallHistory;
   appointments: typeof appointments;
   billing: typeof billing;
+  blockedNumbers: typeof blockedNumbers;
   calendarEvents: typeof calendarEvents;
   callDispositions: typeof callDispositions;
   callStats: typeof callStats;

@@ -43,6 +43,30 @@ export function formatPhoneDisplay(
 }
 
 /**
+ * Compact dashed format: `XXX-XXX-XXXX` for 10-digit US/CA numbers,
+ * `+1-XXX-XXX-XXXX` for E.164 US/CA, falls through to the input
+ * untouched for anything else (international, malformed, in-progress
+ * typing). Used in tight call-log rows where parens steal horizontal
+ * space.
+ */
+export function formatPhoneDashed(
+  input: string,
+  country: CountryCode = DEFAULT_COUNTRY
+): string {
+  if (!input) return "";
+  const parsed = parsePhoneNumberFromString(input, country);
+  if (parsed && parsed.isValid()) {
+    const digits = parsed.nationalNumber.toString();
+    if (digits.length === 10) {
+      const dashed = `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+      return parsed.country === country ? dashed : `+${parsed.countryCallingCode}-${dashed}`;
+    }
+    return parsed.formatInternational();
+  }
+  return input;
+}
+
+/**
  * Live-format partial input as the user types, for dialpad / phone input UIs.
  * Returns what the user has entered, formatted up to the current keystroke.
  */

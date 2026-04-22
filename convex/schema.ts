@@ -364,6 +364,22 @@ export default defineSchema({
     .index("by_extension", ["organizationId", "extension"]),
 
   // Phone Numbers
+  // Blocked caller IDs. Twilio doesn't have a server-side block list
+  // for inbound voice/SMS — the recommended pattern is to check this
+  // table inside the voice/SMS webhook and respond with `<Reject
+  // reason="busy"/>` (voice) or an empty TwiML (SMS) before any
+  // billable work happens. `phoneNumber` is stored in E.164 form so
+  // lookup is a single `by_org_phone` index hit.
+  blockedNumbers: defineTable({
+    organizationId: v.id("organizations"),
+    phoneNumber: v.string(), // E.164, e.g. "+13145906820"
+    blockedByUserId: v.optional(v.id("users")),
+    reason: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_org_phone", ["organizationId", "phoneNumber"]),
+
   phoneNumbers: defineTable({
     organizationId: v.id("organizations"),
     phoneNumber: v.string(),

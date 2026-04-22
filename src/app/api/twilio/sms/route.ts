@@ -42,6 +42,35 @@ export async function POST(request: NextRequest) {
     console.log(`SMS webhook: ${messageSid} from ${from} to ${to}`);
     console.log(`Message body: ${body.substring(0, 100)}${body.length > 100 ? "..." : ""}`);
 
+    // ── Block-list short-circuit ─────────────────────────────────────
+    // Same pattern as the voice webhook: consult our own table and
+    // silently drop the message (empty TwiML 200) so Twilio doesn't
+    // retry and the sender gets no signal that the message was
+    // filtered. We don't save the message, don't trigger AI routing,
+    // and don't process opt-in/out keywords for blocked senders.
+    try {
+      const phoneConfig = await convex.query(api.phoneNumbers.lookupByNumber, {
+        phoneNumber: to,
+      });
+      if (phoneConfig) {
+        const blocked = await convex.query(api.blockedNumbers.isBlocked, {
+          organizationId: phoneConfig.organizationId as Id<"organizations">,
+          phoneNumber: from,
+        });
+        if (blocked) {
+          console.log(`[sms] Dropping inbound from blocked sender ${from} → ${to}`);
+          return new NextResponse(
+            '<?xml version="1.0" encoding="UTF-8"?><Response/>',
+            { headers: { "Content-Type": "text/xml" } },
+          );
+        }
+      }
+    } catch (blockErr) {
+      // Fail open — better to deliver a real message than to drop it
+      // because of a transient Convex error.
+      console.warn(`[sms] block-list lookup failed for ${from}, proceeding:`, blockErr);
+    }
+
     // ── Opt-out / Opt-in keyword detection ──────────────────────────
     const bodyLower = (body || "").toLowerCase().trim();
 
