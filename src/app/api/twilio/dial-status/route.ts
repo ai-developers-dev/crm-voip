@@ -184,14 +184,28 @@ export async function POST(request: NextRequest) {
             transcribe: true,
             maxLength: 120,
             transcribeCallback: `${appUrl}/api/twilio/transcription`,
+            // Without this, the audio recording is never sent to our
+            // /recording handler — `callHistory.recordingUrl` stays
+            // null and `convex/calls.ts:storeRecording` never inserts
+            // the voicemails row (it gates on `outcome === "voicemail"`
+            // which we now also set below). Net effect before the fix:
+            // voicemails were captured by Twilio but invisible in the
+            // CRM. Same callback the live-call recording uses.
+            recordingStatusCallback: `${appUrl}/api/twilio/recording`,
+            recordingStatusCallbackEvent: ["completed"],
           });
           twiml.say({ voice: "alice" }, "Thank you for your message. Goodbye.");
           twiml.hangup();
 
+          // Mark the call as ended with outcome "voicemail" so the
+          // recording handler's gate (`if (outcome === "voicemail")`)
+          // creates the voicemails row when the recording arrives.
+          // Previously we marked it "missed", which suppressed the
+          // voicemails insert.
           await convex.mutation(api.calls.updateStatusFromWebhook, {
             twilioCallSid: callSid,
             state: "ended",
-            outcome: dialCallStatus === "no-answer" ? "missed" : dialCallStatus as any,
+            outcome: "voicemail",
           });
         }
         break;
