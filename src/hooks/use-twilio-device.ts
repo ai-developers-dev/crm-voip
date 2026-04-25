@@ -71,6 +71,36 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
   // call, stopped when the call is answered, rejected, or cancelled.
   const ringtoneHandlesRef = useRef<Map<string, { stop: () => void }>>(new Map());
 
+  // Optimistic "I just hung this up" set. Populated synchronously in
+  // `removeCall` and consumed by `UserStatusCard`'s DB-fallback render
+  // block to suppress a brief flicker where the locally-removed call
+  // re-renders from the still-current `activeCalls` Convex query
+  // before the row is actually deleted on the server. Entries
+  // self-expire after 5 seconds. State-backed (not just ref) so
+  // consumers re-render on changes.
+  const [recentlyHungUpSids, setRecentlyHungUpSids] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const markRecentlyHungUp = useCallback((sid: string | undefined) => {
+    if (!sid) return;
+    setRecentlyHungUpSids((prev) => {
+      if (prev.has(sid)) return prev;
+      const next = new Set(prev);
+      next.add(sid);
+      return next;
+    });
+    // Drop the entry after 5s. By then the Convex subscription
+    // should have already removed the row, so the filter is no-op.
+    setTimeout(() => {
+      setRecentlyHungUpSids((prev) => {
+        if (!prev.has(sid)) return prev;
+        const next = new Set(prev);
+        next.delete(sid);
+        return next;
+      });
+    }, 5000);
+  }, []);
+
   // Unlock the browser's AudioContext on the first user gesture so
   // subsequent ringtones can play without being blocked by autoplay policy.
   useEffect(() => {
@@ -252,6 +282,10 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
   // Helper to remove call from state
   const removeCall = useCallback((callSid: string) => {
+    // Mark locally as "just hung up" so UserStatusCard's DB-fallback
+    // render block doesn't briefly re-show the row in the gap between
+    // local removal and the Convex subscription update.
+    markRecentlyHungUp(callSid);
     setState((prev) => {
       const newCalls = new Map(prev.calls);
       newCalls.delete(callSid);
@@ -1127,5 +1161,10 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     toggleMuteBySid,
     // Max calls setting
     maxConcurrentCalls,
+    // Optimistic-hangup tracking — see UserStatusCard's DB-fallback
+    // render block, which filters out activeCalls rows whose
+    // twilioCallSid OR childCallSid is in this set so the card doesn't
+    // flicker between local removal and the Convex subscription update.
+    recentlyHungUpSids,
   };
 }

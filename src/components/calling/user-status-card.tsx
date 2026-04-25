@@ -15,6 +15,7 @@ import { ActiveCallCard } from "./active-call-card";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useState, useEffect, useCallback } from "react";
 import type { CallInfo } from "@/hooks/use-twilio-device";
+import { useOptionalCallingContext } from "./calling-provider";
 
 interface UserStatusCardProps {
   user: {
@@ -78,6 +79,13 @@ export function UserStatusCard({
   const declineTargetedCall = useMutation(api.targetedRinging.decline);
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
   const [ringTime, setRingTime] = useState(0);
+
+  // Optimistic-hangup set from the calling context — we filter the
+  // DB-fallback render block (line ~411) by it so a just-hung-up call
+  // doesn't briefly re-render from `activeCalls` between the local
+  // `removeCall` and the Convex subscription update arriving.
+  const callingCtx = useOptionalCallingContext();
+  const recentlyHungUpSids = callingCtx?.recentlyHungUpSids ?? new Set<string>();
 
   // Query for targeted ringing for THIS user specifically
   const targetedRinging = useQuery(
@@ -397,20 +405,35 @@ export function UserStatusCard({
           );
         })()}
 
-        {/* Active calls from database for this user (when no Twilio call is connected) */}
-        {activeCalls.length > 0 && !twilioCallConnected && connectedCalls.length === 0 && (
-          <div className="mt-3 space-y-2">
-            {activeCalls.map((call) => (
-              <ActiveCallCard
-                key={call._id}
-                call={call}
-                activeCall={twilioActiveCall}
-                onEndCall={onHangUp}
-                compact
-              />
-            ))}
-          </div>
-        )}
+        {/* Active calls from database for this user (when no Twilio call is connected).
+            Filter out rows the local hook just removed — without this
+            we'd briefly re-render the card during the ~200 ms window
+            between `removeCall` and the Convex subscription delivering
+            the deletion. */}
+        {(() => {
+          const visibleDbCalls = activeCalls.filter(
+            (c) =>
+              !recentlyHungUpSids.has(c.twilioCallSid) &&
+              !recentlyHungUpSids.has(c.childCallSid),
+          );
+          return (
+            visibleDbCalls.length > 0 &&
+            !twilioCallConnected &&
+            connectedCalls.length === 0 && (
+              <div className="mt-3 space-y-2">
+                {visibleDbCalls.map((call) => (
+                  <ActiveCallCard
+                    key={call._id}
+                    call={call}
+                    activeCall={twilioActiveCall}
+                    onEndCall={onHangUp}
+                    compact
+                  />
+                ))}
+              </div>
+            )
+          );
+        })()}
 
         {/* Drop zone indicator */}
         {isOver && (

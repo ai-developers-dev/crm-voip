@@ -65,6 +65,13 @@ export interface CallingContextValue {
   // Max calls setting
   maxConcurrentCalls: number;
 
+  // Optimistic-hangup tracking — populated by useTwilioDevice when the
+  // local removeCall fires. UserStatusCard's DB-fallback render block
+  // filters activeCalls rows whose twilioCallSid OR childCallSid is in
+  // this set, so the call card doesn't flicker between local removal
+  // and the Convex subscription update. Entries auto-expire after 5s.
+  recentlyHungUpSids: Set<string>;
+
   // Organization data
   convexOrgId: Id<"organizations"> | undefined;
   currentUserId: Id<"users"> | undefined;
@@ -212,6 +219,9 @@ export function CallingProvider({
     // Max calls setting
     maxConcurrentCalls,
 
+    // Optimistic-hangup tracking (see CallingContextValue comment)
+    recentlyHungUpSids: twilioDevice.recentlyHungUpSids,
+
     // Organization data
     convexOrgId: convexOrg?._id,
     currentUserId: currentUser?._id,
@@ -228,6 +238,7 @@ export function CallingProvider({
     twilioDevice.hangUp, twilioDevice.hangUpBySid,
     twilioDevice.holdCall, twilioDevice.unholdCall, twilioDevice.focusCall,
     twilioDevice.toggleMute, twilioDevice.toggleMuteBySid,
+    twilioDevice.recentlyHungUpSids,
     maxConcurrentCalls, convexOrg?._id, currentUser?._id, organizationId,
   ]);
 
