@@ -61,15 +61,29 @@ async function getAuthTokenForAccount(
 /**
  * Validate a Twilio webhook request using per-subaccount auth tokens.
  *
- * Extracts `AccountSid` from the params to determine which auth token to use.
- * Falls back to the global TWILIO_AUTH_TOKEN if the org is not found.
+ * For POST webhooks: callers pass the parsed form-data fields as
+ * `params`. AccountSid comes from the body.
+ *
+ * For GET webhooks (e.g. conference waitUrl): Twilio puts everything
+ * in the query string and expects `params = {}` for signature
+ * computation. AccountSid is then read from the URL query string.
+ * Callers can also override AccountSid explicitly via `accountSidOverride`
+ * for non-Twilio-signed contexts.
  */
 export async function validateTwilioWebhook(
   request: NextRequest,
   params: Record<string, string>,
-  convex: ConvexHttpClient
+  convex: ConvexHttpClient,
+  options: { accountSidOverride?: string | null } = {}
 ): Promise<boolean> {
-  const accountSid = params["AccountSid"] || null;
+  // For GET, the body is empty so `params` is empty too — but Twilio
+  // still includes AccountSid in the URL query, so read it from there.
+  const reqUrlForSid = new URL(request.url);
+  const accountSid =
+    options.accountSidOverride ??
+    params["AccountSid"] ??
+    reqUrlForSid.searchParams.get("AccountSid") ??
+    null;
   const authToken = await getAuthTokenForAccount(convex, accountSid);
 
   if (!authToken) {
