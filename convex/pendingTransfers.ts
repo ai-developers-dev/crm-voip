@@ -57,6 +57,8 @@ export const initiate = mutation({
     sourceUserId: v.optional(v.id("users")),
     targetUserId: v.id("users"),
     type: v.union(v.literal("direct"), v.literal("from_park")),
+    mode: v.optional(v.union(v.literal("cold"), v.literal("warm"))),
+    conferenceName: v.optional(v.string()),
     returnToParkSlot: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -74,12 +76,19 @@ export const initiate = mutation({
       targetUserId: args.targetUserId,
       status: "ringing",
       type: args.type,
+      mode: args.mode ?? "cold",
+      conferenceName: args.conferenceName,
       returnToParkSlot: args.returnToParkSlot,
       createdAt: now,
       expiresAt: now + TRANSFER_TIMEOUT_MS,
     });
 
-    // Update call state to transferring
+    // Update call state to transferring. This is load-bearing: the
+    // /api/twilio/end-call route checks for this state and skips
+    // PSTN-leg termination, so the source agent's SDK disconnect (which
+    // fires when their <Dial> bridge breaks the moment we move the
+    // caller into a conference) doesn't accidentally hang up the
+    // caller mid-transfer.
     await ctx.db.patch(args.activeCallId, {
       state: "transferring",
     });
@@ -287,5 +296,29 @@ export const getByTwilioSid = query({
       .query("pendingTransfers")
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
+  },
+});
+
+// Fetch a transfer row by id, with the bits the webhook routes
+// actually need (conferenceName, mode, source identity for cold-decline
+// caller-redirect). Webhook-safe: transfer-ring / transfer-result
+// validate the Twilio signature before calling this, and the
+// transferId is only ever embedded in URLs we generated ourselves.
+export const getById = query({
+  args: { transferId: v.id("pendingTransfers") },
+  handler: async (ctx, args) => {
+    const transfer = await ctx.db.get(args.transferId);
+    if (!transfer) return null;
+    const sourceUser = transfer.sourceUserId
+      ? await ctx.db.get(transfer.sourceUserId)
+      : null;
+    const org = await ctx.db.get(transfer.organizationId);
+    const sourceIdentity =
+      sourceUser && org ? `${org.clerkOrgId}-${sourceUser.clerkUserId}` : null;
+    return {
+      ...transfer,
+      sourceIdentity,
+      clerkOrgId: org?.clerkOrgId ?? null,
+    };
   },
 });

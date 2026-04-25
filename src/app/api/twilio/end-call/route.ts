@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
     // /Calls/{sid} terminating the parent a fraction of a second later
     // (from this route), then a "completed" status callback.
     let isParked = false;
+    let isTransferring = false;
     try {
       const activeCall = await convex.query(api.calls.getByTwilioSid, {
         twilioCallSid,
@@ -79,6 +80,16 @@ export async function POST(request: NextRequest) {
         isParked = true;
         console.log(
           `[end-call] Call ${twilioCallSid} is parked — skipping PSTN termination`
+        );
+      }
+      // Same guard for transferring: the source agent's SDK fires
+      // `disconnect` the moment we move the caller into the transfer
+      // conference. We must NOT terminate the parent leg or we'd hang
+      // up the caller right as the target agent is about to join.
+      if (activeCall && activeCall.state === "transferring") {
+        isTransferring = true;
+        console.log(
+          `[end-call] Call ${twilioCallSid} is transferring — skipping PSTN termination`
         );
       }
     } catch (queryErr) {
@@ -110,7 +121,7 @@ export async function POST(request: NextRequest) {
     // browser only knows the agent-leg SID. Cleaning up by the browser SID
     // leaves the row orphaned and the user-card stays stuck.
     let parentCallSid: string | null = null;
-    if (orgId && !isParked) {
+    if (orgId && !isParked && !isTransferring) {
       try {
         const { client } = await getOrgTwilioClient(orgId);
         const browserCall = await client.calls(twilioCallSid).fetch();

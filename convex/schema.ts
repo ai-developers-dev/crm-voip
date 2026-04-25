@@ -667,6 +667,15 @@ export default defineSchema({
       v.literal("direct"),    // Direct transfer from agent to agent
       v.literal("from_park")  // Transfer from parking slot
     ),
+    // Cold = source agent drops as soon as the caller is moved into the
+    // transfer conference (caller hears music until target answers).
+    // Warm = source agent's leg is also moved into the conference, so
+    // they remain on the call with the caller, can introduce, then drop
+    // when ready. Optional for backward compat — old rows default to "cold".
+    mode: v.optional(v.union(v.literal("cold"), v.literal("warm"))),
+    // Twilio conference name we created for this transfer. Both legs
+    // (caller, target, optionally source) join this conference.
+    conferenceName: v.optional(v.string()),
     returnToParkSlot: v.optional(v.number()), // If declined and from_park, return here
     createdAt: v.number(),
     expiresAt: v.number(), // When the ringing times out

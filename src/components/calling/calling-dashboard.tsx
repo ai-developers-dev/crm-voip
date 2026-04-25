@@ -24,6 +24,7 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { useParkingStore, generateTempParkingId } from "@/lib/stores/parking-store";
 import { DailyCallLog } from "./daily-call-log";
+import { TransferModeToggle, useTransferMode } from "./transfer-mode-toggle";
 import { cardPatterns } from "@/lib/style-constants";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +95,9 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
   // Convex mutations (only needed for operations not handled by context)
   const createTargetedRinging = useMutation(api.targetedRinging.create);
   const setAgentCallSid = useMutation(api.targetedRinging.setAgentCallSid);
+
+  // Persisted "cold vs warm" preference for drag-transfer.
+  const [transferMode] = useTransferMode();
 
   // Parking store for optimistic updates
   const addOptimisticCall = useParkingStore((s) => s.addOptimisticCall);
@@ -296,6 +300,8 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           const targetTwilioIdentity = `${organizationId}-${targetUser.clerkUserId}`;
           console.log(`Initiating transfer: ${callSid} -> ${targetUser.name} (identity: ${targetTwilioIdentity})`);
 
+          // The transfer route looks up the activeCall row by SID,
+          // so we don't need to pass activeCallId from here.
           const transferResponse = await fetch("/api/twilio/transfer", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -304,6 +310,7 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
               targetUserId: targetId,
               targetIdentity: targetTwilioIdentity,
               type: "direct",
+              mode: transferMode, // cold | warm
               sourceUserId: effectiveUserId,
             }),
           });
@@ -315,11 +322,19 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
             const result = await transferResponse.json();
             console.log("Transfer initiated:", result);
 
-            // Disconnect local Twilio SDK call
-            if (focusedCall) {
-              hangUpBySid(focusedCall.callSid);
-            } else if (twilioActiveCall) {
-              twilioActiveCall.disconnect();
+            // For COLD: source agent's leg auto-disconnects when the
+            // caller leaves the <Dial> bridge, so we don't need to
+            // do anything locally.
+            //
+            // For WARM: source agent stays in the conference. Their
+            // SDK call is still open, just routed differently. Don't
+            // hang it up here — the user hangs up manually when ready.
+            if (transferMode === "cold") {
+              if (focusedCall) {
+                hangUpBySid(focusedCall.callSid);
+              } else if (twilioActiveCall) {
+                twilioActiveCall.disconnect();
+              }
             }
           }
         }
@@ -356,6 +371,12 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
 
             {/* Main agent grid + call log */}
             <div className="flex-1 overflow-auto p-6 space-y-6">
+              {/* Transfer mode toggle — applies to drag-and-drop transfers
+                  between agents. Persists in localStorage. */}
+              <div className="flex justify-end">
+                <TransferModeToggle />
+              </div>
+
               <AgentGrid
                 organizationId={organizationId}
                 convexOrgId={effectiveOrgId}

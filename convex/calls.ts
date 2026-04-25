@@ -1019,6 +1019,25 @@ export const endByCallSid = mutation({
     }
     await authorizeOrgMember(ctx, call.organizationId);
 
+    // Don't tear down rows that are mid-flight in another flow:
+    //   - "parked": caller is in a hold conference waiting for an unpark.
+    //     The same skip exists for parked at the route level too — this
+    //     is the defense-in-depth Convex-side guard.
+    //   - "transferring": caller has just been moved into a transfer
+    //     conference. The source agent's <Dial> bridge breaks the moment
+    //     we move the caller, which makes their browser SDK fire
+    //     `disconnect`, which calls this mutation. If we proceeded we'd
+    //     delete the row mid-transfer and the target agent would join a
+    //     conference whose Convex bookkeeping is gone — assignedUserId
+    //     swap, presence flip, callHistory insert all come out wrong.
+    if (call.state === "parked" || call.state === "transferring") {
+      return {
+        success: true,
+        skipped: true,
+        reason: call.state,
+      };
+    }
+
     const talkTimeSeconds = call.answeredAt ? Math.floor((Date.now() - call.answeredAt) / 1000) : 0;
 
     // Move to history
