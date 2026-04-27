@@ -8,6 +8,18 @@ import {
   playRingtone,
 } from "@/lib/audio/ringtone";
 
+// Verbose Twilio SDK logging — gated behind a build-time env flag so
+// production browsers don't ship 60+ console.logs per call. Flip
+// `NEXT_PUBLIC_TWILIO_DEBUG=1` in env to re-enable when debugging.
+// `console.error` is always on (real failures); `console.warn` is also
+// always on (recoverable issues worth surfacing). Only `console.log`
+// is gated.
+const DEBUG = process.env.NEXT_PUBLIC_TWILIO_DEBUG === "1";
+// eslint-disable-next-line no-console
+const dlog: (...args: unknown[]) => void = DEBUG
+  ? (...args) => console.log("[twilio-device]", ...args)
+  : () => {};
+
 export type CallStatus = "pending" | "connecting" | "open" | "closed";
 
 export interface CallInfo {
@@ -216,16 +228,16 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     );
 
     reconnectAttemptRef.current += 1;
-    console.log(`Attempting reconnection (attempt ${reconnectAttemptRef.current}/${RECONNECT_MAX_ATTEMPTS}) in ${delay}ms...`);
+    dlog(`Attempting reconnection (attempt ${reconnectAttemptRef.current}/${RECONNECT_MAX_ATTEMPTS}) in ${delay}ms...`);
 
     reconnectTimeoutRef.current = setTimeout(async () => {
       try {
         // First try to just re-register if device exists
         if (deviceRef.current) {
           try {
-            console.log("Attempting to re-register existing device...");
+            dlog("Attempting to re-register existing device...");
             await deviceRef.current.register();
-            console.log("Re-registration successful");
+            dlog("Re-registration successful");
             reconnectAttemptRef.current = 0;
             isReconnectingRef.current = false;
             setState((prev) => ({ ...prev, isReconnecting: false, isReady: true, error: null }));
@@ -397,7 +409,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
       // Register event handlers
       newDevice.on("registered", () => {
-        console.log("Twilio Device registered (multi-call enabled)");
+        dlog("Twilio Device registered (multi-call enabled)");
         reconnectAttemptRef.current = 0;
         setState((prev) => ({
           ...prev,
@@ -408,7 +420,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       });
 
       newDevice.on("unregistered", () => {
-        console.log("Twilio Device unregistered - attempting reconnection");
+        dlog("Twilio Device unregistered - attempting reconnection");
         setState((prev) => ({
           ...prev,
           isReady: false,
@@ -420,13 +432,13 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       newDevice.on("incoming", (call: Call) => {
         const callSid = call.parameters.CallSid;
         const from = call.parameters.From;
-        console.log(`Incoming call from: ${from} (SID: ${callSid})`);
+        dlog(`Incoming call from: ${from} (SID: ${callSid})`);
 
         // Check if we can accept more calls using REF (not stale state)
         const currentCallCount = callsRef.current.size;
         const maxCalls = maxCallsRef.current;
 
-        console.log(`Current calls: ${currentCallCount}, Max: ${maxCalls}`);
+        dlog(`Current calls: ${currentCallCount}, Max: ${maxCalls}`);
 
         if (currentCallCount >= maxCalls) {
           console.warn(`Rejecting incoming call - max concurrent calls (${maxCalls}) reached`);
@@ -462,7 +474,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           // If this is the first call or no call is focused, focus this one
           const shouldFocus = !prev.focusedCallSid || prev.calls.size === 0;
 
-          console.log(`Call added to state. Total calls: ${newCalls.size}, shouldFocus: ${shouldFocus}`);
+          dlog(`Call added to state. Total calls: ${newCalls.size}, shouldFocus: ${shouldFocus}`);
 
           return {
             ...prev,
@@ -482,13 +494,13 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           if (handle) {
             handle.stop();
             ringtoneHandlesRef.current.delete(callSid);
-            console.log(`[ringtone] stopped (${reason}) for ${callSid}`);
+            dlog(`[ringtone] stopped (${reason}) for ${callSid}`);
           }
         };
 
         // Set up per-call event handlers
         call.on("accept", () => {
-          console.log(`Call accepted: ${callSid}`);
+          dlog(`Call accepted: ${callSid}`);
           stopRingtoneFor("accepted");
           updateCallInfo(callSid, {
             status: "open",
@@ -497,7 +509,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         });
 
         call.on("disconnect", () => {
-          console.log(`Call disconnected: ${callSid}`);
+          dlog(`Call disconnected: ${callSid}`);
           stopRingtoneFor("disconnected");
           removeCall(callSid);
 
@@ -524,13 +536,13 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         });
 
         call.on("cancel", () => {
-          console.log(`Call cancelled: ${callSid}`);
+          dlog(`Call cancelled: ${callSid}`);
           stopRingtoneFor("cancelled");
           removeCall(callSid);
         });
 
         call.on("reject", () => {
-          console.log(`Call rejected: ${callSid}`);
+          dlog(`Call rejected: ${callSid}`);
           stopRingtoneFor("rejected");
           removeCall(callSid);
         });
@@ -542,7 +554,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         // Check for token-related errors that require reconnection
         const tokenErrors = [20101, 20104, 31005, 31009]; // AccessTokenInvalid, AccessTokenExpired, ConnectionError, TransportError
         if (error.code && tokenErrors.includes(error.code)) {
-          console.log(`Token/connection error (${error.code}) - attempting reconnection`);
+          dlog(`Token/connection error (${error.code}) - attempting reconnection`);
           setState((prev) => ({
             ...prev,
             isReady: false,
@@ -558,11 +570,11 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       });
 
       newDevice.on("tokenWillExpire", async () => {
-        console.log("Token will expire, refreshing with retry...");
+        dlog("Token will expire, refreshing with retry...");
         const newToken = await fetchTokenWithRetry(3);
         if (newToken) {
           newDevice.updateToken(newToken);
-          console.log("Token refreshed successfully");
+          dlog("Token refreshed successfully");
         } else {
           console.error("Failed to refresh token - device may disconnect");
           setState((prev) => ({
@@ -782,9 +794,9 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
       });
       const result = await response.json();
       if (result.success) {
-        console.log("Call claimed, inbound metrics incremented");
+        dlog("Call claimed, inbound metrics incremented");
       } else {
-        console.log("Call claim result:", result.reason);
+        dlog("Call claim result:", result.reason);
       }
     } catch (error) {
       console.error("Failed to claim call:", error);
@@ -819,7 +831,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
           });
           const result = await response.json();
           if (result.success) {
-            console.log("Call claimed, inbound metrics incremented");
+            dlog("Call claimed, inbound metrics incremented");
           }
         } catch (error) {
           console.error("Failed to claim call:", error);
@@ -932,7 +944,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
       // Update local state
       updateCallInfo(callSid, { isHeld: true });
-      console.log(`Call ${callSid} placed on hold`);
+      dlog(`Call ${callSid} placed on hold`);
       return true;
     } catch (error) {
       console.error("Error holding call:", error);
@@ -964,7 +976,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
 
       // Update local state
       updateCallInfo(callSid, { isHeld: false });
-      console.log(`Call ${callSid} resumed from hold`);
+      dlog(`Call ${callSid} resumed from hold`);
       return true;
     } catch (error) {
       console.error("Error unholding call:", error);
@@ -1051,16 +1063,16 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
         const timeSinceLastChange = now - lastVisibilityChangeRef.current;
         lastVisibilityChangeRef.current = now;
 
-        console.log(`Tab became visible (was hidden for ${Math.round(timeSinceLastChange / 1000)}s)`);
+        dlog(`Tab became visible (was hidden for ${Math.round(timeSinceLastChange / 1000)}s)`);
 
         // If device exists but is not ready, attempt reconnection
         // Only trigger if hidden for more than 30 seconds to avoid unnecessary reconnects
         if (timeSinceLastChange > 30000 && !state.isReady && userRef.current && organizationRef.current) {
-          console.log("Device not ready after returning to tab - attempting reconnection");
+          dlog("Device not ready after returning to tab - attempting reconnection");
           attemptReconnect();
         } else if (deviceRef.current && !state.isReady) {
           // Try a quick re-register if device exists but not ready
-          console.log("Attempting quick re-register after tab focus...");
+          dlog("Attempting quick re-register after tab focus...");
           deviceRef.current.register().catch((error) => {
             console.warn("Quick re-register failed:", error);
             attemptReconnect();
@@ -1078,10 +1090,10 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
   // Online/offline handler - reconnect when network comes back
   useEffect(() => {
     const handleOnline = () => {
-      console.log("Network came back online");
+      dlog("Network came back online");
       // If device is not ready, attempt reconnection
       if (!state.isReady && userRef.current && organizationRef.current) {
-        console.log("Device not ready - attempting reconnection after network restored");
+        dlog("Device not ready - attempting reconnection after network restored");
         // Reset reconnect attempts since this is a new network event
         reconnectAttemptRef.current = 0;
         attemptReconnect();
@@ -1095,7 +1107,7 @@ export function useTwilioDevice(maxConcurrentCalls: number = DEFAULT_MAX_CONCURR
     };
 
     const handleOffline = () => {
-      console.log("Network went offline");
+      dlog("Network went offline");
       setState((prev) => ({
         ...prev,
         isReady: false,
