@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -41,17 +41,40 @@ export function DispositionDialog() {
   );
   const saveForCall = useMutation(api.callDispositions.saveForCall);
 
+  // Track the last `callHistoryId` we opened the dialog for, with a
+  // timestamp. The SDK can fire `disconnect` more than once for the
+  // same call (e.g. once on `disconnect`, once on `cancel`), and the
+  // route-side cleanup also dispatches `crm:call-ended` after the
+  // mutation returns. Without this dedupe, the disposition dialog
+  // would briefly close-then-reopen as `setCallHistoryId(null)` on
+  // save raced with a second event for the same id.
+  const lastFiredRef = useRef<{ id: string; at: number } | null>(null);
+  const DEDUPE_WINDOW_MS = 3000;
+
   // Listen for call-ended events dispatched from the SDK disconnect handlers.
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as {
         callHistoryId?: Id<"callHistory">;
       } | undefined;
-      if (detail?.callHistoryId) {
-        setCallHistoryId(detail.callHistoryId);
-        setSelected(null);
-        setNotes("");
+      if (!detail?.callHistoryId) return;
+
+      const now = Date.now();
+      const last = lastFiredRef.current;
+      if (
+        last &&
+        last.id === detail.callHistoryId &&
+        now - last.at < DEDUPE_WINDOW_MS
+      ) {
+        // Same callHistoryId fired again within the dedupe window —
+        // ignore the duplicate event.
+        return;
       }
+      lastFiredRef.current = { id: detail.callHistoryId, at: now };
+
+      setCallHistoryId(detail.callHistoryId);
+      setSelected(null);
+      setNotes("");
     };
     window.addEventListener("crm:call-ended", handler);
     return () => window.removeEventListener("crm:call-ended", handler);
