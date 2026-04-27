@@ -25,61 +25,6 @@ export const getSlots = query({
   },
 });
 
-// Query to get a specific parking slot
-export const getSlot = query({
-  args: {
-    organizationId: v.id("organizations"),
-    slotNumber: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const slot = await ctx.db
-      .query("parkingLots")
-      .withIndex("by_organization_slot", (q) =>
-        q.eq("organizationId", args.organizationId).eq("slotNumber", args.slotNumber)
-      )
-      .first();
-
-    if (slot?.activeCallId) {
-      const call = await ctx.db.get(slot.activeCallId);
-      return { ...slot, call };
-    }
-
-    return slot ? { ...slot, call: null } : null;
-  },
-});
-
-// Initialize parking slots for an organization
-export const initialize = mutation({
-  args: {
-    organizationId: v.id("organizations"),
-    numSlots: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const numSlots = args.numSlots || 10;
-
-    // Check if slots already exist
-    const existing = await ctx.db
-      .query("parkingLots")
-      .withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId))
-      .first();
-
-    if (existing) {
-      return { message: "Parking slots already initialized" };
-    }
-
-    // Create parking slots
-    for (let i = 1; i <= numSlots; i++) {
-      await ctx.db.insert("parkingLots", {
-        organizationId: args.organizationId,
-        slotNumber: i,
-        isOccupied: false,
-      });
-    }
-
-    return { message: `Created ${numSlots} parking slots` };
-  },
-});
-
 // Clear a parking slot by conference name (when caller hangs up)
 export const clearByConference = mutation({
   args: {
