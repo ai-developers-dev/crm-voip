@@ -276,10 +276,17 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
 
     if (!call) return;
 
-    // IMPORTANT: Don't process "ended" for parked calls
-    // When we park a call, the browser SDK disconnects which triggers a "completed" status
-    // But the call is still active in the conference - don't delete it!
-    if (args.state === "ended" && call.state === "parked") {
+    // IMPORTANT: Don't process "ended" for parked or transferring calls.
+    // When we park a call, the browser SDK disconnects which triggers
+    // a "completed" status — but the call is still active in the
+    // conference, don't delete it. Same for transferring: the source
+    // agent's leg ends the moment we move the caller into the
+    // transfer conference, but the caller is still active and the
+    // target is about to join.
+    if (
+      args.state === "ended" &&
+      (call.state === "parked" || call.state === "transferring")
+    ) {
       return;
     }
 
@@ -311,6 +318,31 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
         duration: args.duration || 0,
         notes: call.notes,
       });
+
+      // Flip presence + user status back to "available" for whichever
+      // agent was on the call. Without this, presence stays
+      // "on_call" until the agent's next 30-second heartbeat, and
+      // the voice webhook's availability filter rejects new
+      // inbound calls with "all agents busy" in the meantime. Same
+      // logic as `endByCallSid`; centralised here so Twilio-driven
+      // hangups (dial-status, outbound-status) get the flip too.
+      if (call.assignedUserId) {
+        await ctx.db.patch(call.assignedUserId, {
+          status: "available",
+          updatedAt: Date.now(),
+        });
+        const presence = await ctx.db
+          .query("presence")
+          .withIndex("by_user", (q) => q.eq("userId", call.assignedUserId!))
+          .first();
+        if (presence) {
+          await ctx.db.patch(presence._id, {
+            status: "available",
+            currentCallId: undefined,
+            lastHeartbeat: Date.now(),
+          });
+        }
+      }
 
       // Trigger workflow: missed_call (no answer, busy, canceled)
       const callOutcome = (args.outcome as string) || "answered";
