@@ -1,5 +1,5 @@
 {
-  "mcpServers": {
+ 
     "convex": {
       "type": "stdio",
       "command": "npx",
@@ -12,4 +12,4 @@
       "env": {}
     }
   }
-}
+
