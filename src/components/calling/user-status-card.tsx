@@ -113,17 +113,6 @@ export function UserStatusCard({
     ? twilioCallsArray.filter(c => c.status === "pending" && c.direction === "INCOMING")
     : [];
 
-  // Legacy: Check if the Twilio call is connected (not pending/ringing)
-  const twilioCallConnected = !isMultiCallMode && twilioActiveCall &&
-    twilioActiveCall.status &&
-    (twilioActiveCall.status() === "open" || twilioActiveCall.status() === "connecting");
-
-  // Legacy: Check if Twilio call is pending (ringing) for this user
-  const twilioCallPending = !isMultiCallMode && twilioActiveCall &&
-    twilioActiveCall.direction === "INCOMING" &&
-    twilioActiveCall.status &&
-    twilioActiveCall.status() === "pending";
-
   // Update ring time counter for targeted calls
   useEffect(() => {
     if (!targetedRinging) {
@@ -187,14 +176,14 @@ export function UserStatusCard({
     }
   }, [targetedRinging, onRejectCallBySid, onRejectTwilio, declineTargetedCall, pendingCalls]);
 
-  // Track call start time when call connects
+  // Track call start time when first connected call appears.
   useEffect(() => {
-    if (twilioCallConnected && !callStartTime) {
+    if (connectedCalls.length > 0 && !callStartTime) {
       setCallStartTime(Date.now());
-    } else if (!twilioCallConnected && connectedCalls.length === 0) {
+    } else if (connectedCalls.length === 0) {
       setCallStartTime(null);
     }
-  }, [twilioCallConnected, callStartTime, connectedCalls.length]);
+  }, [callStartTime, connectedCalls.length]);
 
   // Format talk time for display (Xh Xm or Xm)
   const formatTalkTime = (seconds: number) => {
@@ -208,8 +197,8 @@ export function UserStatusCard({
   };
 
   const status = statusColors[user.status as keyof typeof statusColors] || statusColors.offline;
-  const hasActiveCalls = activeCalls.length > 0 || twilioCallConnected || connectedCalls.length > 0;
-  const totalCallCount = isMultiCallMode ? connectedCalls.length : (twilioCallConnected ? 1 : 0);
+  const hasActiveCalls = activeCalls.length > 0 || connectedCalls.length > 0;
+  const totalCallCount = connectedCalls.length;
 
   const handleToggleStatus = async () => {
     try {
@@ -379,32 +368,6 @@ export function UserStatusCard({
           </div>
         )}
 
-        {/* Legacy: Active Twilio call - draggable card when connected */}
-        {!isMultiCallMode && twilioCallConnected && (() => {
-          // Find the matching Convex call by twilioCallSid to get the real _id
-          const twilioCallSid = twilioActiveCall.parameters?.CallSid;
-          const matchingCall = activeCalls.find(c => c.twilioCallSid === twilioCallSid);
-
-          return (
-            <div className="mt-3">
-              <ActiveCallCard
-                call={{
-                  _id: matchingCall?._id || twilioCallSid || "unknown",
-                  twilioCallSid: twilioCallSid,
-                  from: twilioActiveCall.parameters?.From || "Unknown",
-                  fromName: matchingCall?.fromName,
-                  state: "connected",
-                  startedAt: matchingCall?.startedAt || callStartTime || Date.now(),
-                  answeredAt: matchingCall?.answeredAt || callStartTime || Date.now(),
-                }}
-                activeCall={twilioActiveCall}
-                onEndCall={onHangUp}
-                compact
-              />
-            </div>
-          );
-        })()}
-
         {/* Active calls from database for this user (when no Twilio call is connected).
             Filter out rows the local hook just removed — without this
             we'd briefly re-render the card during the ~200 ms window
@@ -418,14 +381,12 @@ export function UserStatusCard({
           );
           return (
             visibleDbCalls.length > 0 &&
-            !twilioCallConnected &&
             connectedCalls.length === 0 && (
               <div className="mt-3 space-y-2">
                 {visibleDbCalls.map((call) => (
                   <ActiveCallCard
                     key={call._id}
                     call={call}
-                    activeCall={twilioActiveCall}
                     onEndCall={onHangUp}
                     compact
                   />
