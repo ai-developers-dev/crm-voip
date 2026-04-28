@@ -36,17 +36,31 @@ export function ParkingLot({ organizationId }: ParkingLotProps) {
       isOptimistic?: boolean;
     }> = [];
 
-    // Add occupied DB slots
+    // Add occupied DB slots.
+    //
+    // The parking-info fields (`pstnCallSid`, `conferenceName`,
+    // `callerNumber`, `callerName`) ALWAYS come from the parkingLots
+    // row itself — not from the joined activeCalls row. This was the
+    // unpark bug: when `dbSlot.call` existed (the activeCalls row),
+    // we used it as-is, but activeCalls doesn't carry
+    // `conferenceName` and `pstnCallSid` only got populated in P3 —
+    // pre-P3 rows lacked it. Result: dragging the parked card to an
+    // agent threw "PSTN call SID not found for unpark".
+    //
+    // Always merge slot fields on top so both fresh and legacy rows
+    // unpark correctly.
     if (dbSlots) {
       for (const dbSlot of dbSlots) {
         if (dbSlot.isOccupied) {
           calls.push({
             slotNumber: dbSlot.slotNumber,
-            call: dbSlot.call || {
-              from: dbSlot.callerNumber,
-              fromName: dbSlot.callerName,
+            call: {
+              ...(dbSlot.call ?? {}),
+              from: dbSlot.callerNumber ?? dbSlot.call?.from,
+              fromName: dbSlot.callerName ?? dbSlot.call?.fromName,
               conferenceName: dbSlot.conferenceName,
-              pstnCallSid: dbSlot.pstnCallSid,
+              pstnCallSid:
+                dbSlot.pstnCallSid ?? dbSlot.call?.pstnCallSid,
             },
           });
         }
