@@ -1,6 +1,30 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+/**
+ * Authoritative "is this PSTN leg currently parked?" check used by
+ * `/api/twilio/end-call` so the caller doesn't get terminated when
+ * the source agent's <Dial> bridge breaks. Looks at parkingLots
+ * directly — independent of whether `activeCalls.state` was
+ * correctly patched to "parked" by parkByCallSid (which has had
+ * dual-SID-lookup bugs in the past).
+ *
+ * Returns the matching occupied slot, or null.
+ */
+export const getOccupiedByPstnSid = query({
+  args: { pstnCallSid: v.string() },
+  handler: async (ctx, args) => {
+    const slot = await ctx.db
+      .query("parkingLots")
+      .withIndex("by_pstn_call_sid", (q) =>
+        q.eq("pstnCallSid", args.pstnCallSid),
+      )
+      .first();
+    if (!slot || !slot.isOccupied) return null;
+    return slot;
+  },
+});
+
 // Query to get all parking slots for an organization
 export const getSlots = query({
   args: { organizationId: v.id("organizations") },

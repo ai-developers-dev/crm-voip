@@ -306,6 +306,22 @@ async function updateStatusHandler(ctx: MutationCtx, args: {
       return;
     }
 
+    // Belt-and-suspenders: even if state isn't "parked", consult the
+    // parkingLots table. If a slot still exists for this PSTN SID
+    // (or for any SID we know maps to this call), don't delete —
+    // the caller is alive and waiting for an unpark.
+    if (args.state === "ended") {
+      const parkedSlot = await ctx.db
+        .query("parkingLots")
+        .withIndex("by_pstn_call_sid", (q) =>
+          q.eq("pstnCallSid", call.twilioCallSid),
+        )
+        .first();
+      if (parkedSlot && parkedSlot.isOccupied) {
+        return;
+      }
+    }
+
     const updates: Record<string, string | number> = {
       state: args.state,
     };

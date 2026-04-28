@@ -624,7 +624,12 @@ export default defineSchema({
   })
     .index("by_organization", ["organizationId"])
     .index("by_organization_slot", ["organizationId", "slotNumber"])
-    .index("by_conference_name", ["conferenceName"]),
+    .index("by_conference_name", ["conferenceName"])
+    // Used by /api/twilio/end-call to detect "is this PSTN leg
+    // currently parked?" without depending on activeCalls.state
+    // being correctly patched. Authoritative source: if a parking
+    // slot exists with this SID, the call is parked, full stop.
+    .index("by_pstn_call_sid", ["pstnCallSid"]),
 
   // Targeted Ringing (for unpark/transfer to specific user)
   // When a call is being directed to a specific user, not broadcast to all

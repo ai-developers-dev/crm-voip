@@ -128,15 +128,42 @@ export async function POST(request: NextRequest) {
         parentCallSid = browserCall.parentCallSid || null;
         const sidToEnd = parentCallSid || twilioCallSid;
 
+        // BELT-AND-SUSPENDERS PARKED CHECK.
+        // STEP 1's check on activeCalls.state was missing in production
+        // when parkByCallSid couldn't find / patch the activeCall row.
+        // The parkingLots table is authoritative — if a slot exists
+        // for this PSTN SID, the call is parked, period. Skip the
+        // termination unconditionally.
+        let parkedSlot = null;
         try {
-          await client.calls(sidToEnd).update({ status: "completed" });
-          console.log(`Terminated Twilio call ${sidToEnd}`);
-        } catch (updateErr) {
-          console.warn(
-            `[end-call] Twilio termination of ${sidToEnd} failed (likely already ended): ${
-              updateErr instanceof Error ? updateErr.message : String(updateErr)
-            }`
+          parkedSlot = await convex.query(
+            api.parkingLot.getOccupiedByPstnSid,
+            { pstnCallSid: sidToEnd },
           );
+        } catch (parkLookupErr) {
+          console.warn(
+            "[end-call] parking-slot lookup failed:",
+            parkLookupErr,
+          );
+        }
+        if (parkedSlot) {
+          console.log(
+            `[end-call] ${sidToEnd} has an active parking slot (#${parkedSlot.slotNumber}) — skipping PSTN termination`,
+          );
+          isParked = true;
+        }
+
+        if (!isParked) {
+          try {
+            await client.calls(sidToEnd).update({ status: "completed" });
+            console.log(`Terminated Twilio call ${sidToEnd}`);
+          } catch (updateErr) {
+            console.warn(
+              `[end-call] Twilio termination of ${sidToEnd} failed (likely already ended): ${
+                updateErr instanceof Error ? updateErr.message : String(updateErr)
+              }`
+            );
+          }
         }
       } catch (twilioErr) {
         console.warn(
