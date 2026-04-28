@@ -404,13 +404,39 @@ export const parkByCallSid = mutation({
   handler: async (ctx, args) => {
     await authorizeOrgMember(ctx, args.organizationId);
 
-    // Find call by twilioCallSid
-    const call = await ctx.db
+    // Find the activeCall row using BOTH SID indexes. For inbound calls
+    // the row is keyed by the PSTN-leg SID, but the browser's drag-to-
+    // park sends its agent-leg SID — single-index lookup misses, the
+    // `state: "parked"` patch below silently skips, and downstream
+    // guards (end-call route's parked check) never trip because the
+    // row's state is still "connected". Net result before this fix:
+    // every parked call dropped within ~200ms because end-call
+    // terminated the parent leg believing the call wasn't parked.
+    let call = await ctx.db
       .query("activeCalls")
       .withIndex("by_twilio_sid", (q) =>
-        q.eq("twilioCallSid", args.twilioCallSid)
+        q.eq("twilioCallSid", args.twilioCallSid),
       )
       .first();
+    if (!call) {
+      call = await ctx.db
+        .query("activeCalls")
+        .withIndex("by_child_call_sid", (q) =>
+          q.eq("childCallSid", args.twilioCallSid),
+        )
+        .first();
+    }
+    // For inbound calls the route also passes pstnCallSid explicitly
+    // (it resolved it via the Twilio API) — use it as a third lookup
+    // option in case neither index hit.
+    if (!call && args.pstnCallSid) {
+      call = await ctx.db
+        .query("activeCalls")
+        .withIndex("by_twilio_sid", (q) =>
+          q.eq("twilioCallSid", args.pstnCallSid!),
+        )
+        .first();
+    }
 
     // Find first available slot
     const slots = await ctx.db
