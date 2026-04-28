@@ -33,17 +33,11 @@ function formatDuration(seconds: number): string {
 // Local-timezone midnight as ms-since-epoch. Memoized on the local
 // calendar-date string so the Convex query subscription is stable
 // across renders, but rolls over correctly if the tab is left open
-// past midnight.
+// past midnight. `new Date("Mon Apr 28 2026")` parses as midnight
+// local of that date — exactly what we want.
 function useLocalTodayStartMs(): number {
   const dateKey = new Date().toDateString(); // e.g. "Mon Apr 28 2026"
-  return useMemo(() => {
-    const now = new Date();
-    return new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    ).getTime();
-  }, [dateKey]);
+  return useMemo(() => new Date(dateKey).getTime(), [dateKey]);
 }
 
 export function DailyCallLog({ organizationId }: DailyCallLogProps) {

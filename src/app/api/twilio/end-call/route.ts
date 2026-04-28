@@ -74,8 +74,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // `isParked` is reassignable — the parkingLots-table check below
+    // can flip it to true even when the activeCall row's state isn't
+    // "parked" (covers the legacy parkByCallSid-couldn't-find-row
+    // failure mode). `isTransferring` is only set here.
     let isParked = activeCall?.state === "parked";
-    let isTransferring = activeCall?.state === "transferring";
+    const isTransferring = activeCall?.state === "transferring";
     if (isParked) {
       console.log(`[end-call] ${twilioCallSid} is parked — skipping PSTN termination`);
     }

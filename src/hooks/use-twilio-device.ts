@@ -15,7 +15,6 @@ import {
 // always on (recoverable issues worth surfacing). Only `console.log`
 // is gated.
 const DEBUG = process.env.NEXT_PUBLIC_TWILIO_DEBUG === "1";
-// eslint-disable-next-line no-console
 const dlog: (...args: unknown[]) => void = DEBUG
   ? (...args) => console.log("[twilio-device]", ...args)
   : () => {};
