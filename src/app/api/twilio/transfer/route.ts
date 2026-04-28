@@ -133,42 +133,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2: Identify the PSTN leg (the external caller / callee) and
-    // the source agent's leg (the leg the source agent's browser SDK
-    // is talking on).
-    let pstnSid: string;
-    let sourceAgentSid: string | null = null;
+    // Step 2: Identify the PSTN leg + the source agent's browser leg.
+    //
+    // After P3 the activeCall row carries `pstnCallSid` directly for
+    // BOTH directions — no Twilio REST traversal needed. Same is true
+    // for the source agent's leg (always opposite of pstnCallSid):
+    //   inbound:  pstn = parent (twilioCallSid), agent = child
+    //   outbound: pstn = child (pstnCallSid),    agent = parent
+    let pstnSid: string | null = activeCall.pstnCallSid ?? null;
+    let sourceAgentSid: string | null =
+      activeCall.direction === "inbound"
+        ? activeCall.childCallSid ?? null
+        : activeCall.twilioCallSid;
 
-    if (activeCall.direction === "inbound") {
-      // Inbound: voice webhook stored the PSTN leg's SID as
-      // twilioCallSid; claimCall stored the agent leg as childCallSid.
-      pstnSid = activeCall.twilioCallSid;
-      sourceAgentSid = activeCall.childCallSid ?? null;
-    } else {
-      // Outbound: parent = browser leg, child = PSTN leg. Look up
-      // children via Twilio's REST API. Filter for the PSTN destination
-      // (real numbers start with "+", client identities don't).
-      sourceAgentSid = activeCall.twilioCallSid;
-      try {
-        const children = await client.calls.list({
-          parentCallSid: activeCall.twilioCallSid,
-          limit: 5,
-        });
-        const pstn = children.find((c) => c.to?.startsWith("+"));
-        if (!pstn) {
+    // Legacy fallback: pre-P3 rows don't have pstnCallSid. Walk
+    // Twilio's parent/child graph the slow way (one extra REST call
+    // for inbound, two for outbound).
+    if (!pstnSid) {
+      if (activeCall.direction === "inbound") {
+        pstnSid = activeCall.twilioCallSid;
+        sourceAgentSid = activeCall.childCallSid ?? null;
+      } else {
+        sourceAgentSid = activeCall.twilioCallSid;
+        try {
+          const children = await client.calls.list({
+            parentCallSid: activeCall.twilioCallSid,
+            limit: 5,
+          });
+          const pstn = children.find((c) => c.to?.startsWith("+"));
+          if (!pstn) {
+            return NextResponse.json(
+              { error: "Could not find the PSTN child leg for this outbound call" },
+              { status: 500 },
+            );
+          }
+          pstnSid = pstn.sid;
+        } catch (childErr) {
+          console.error("[transfer] failed to list children for outbound:", childErr);
           return NextResponse.json(
-            { error: "Could not find the PSTN child leg for this outbound call" },
+            { error: "Could not look up outbound PSTN leg" },
             { status: 500 },
           );
         }
-        pstnSid = pstn.sid;
-      } catch (childErr) {
-        console.error("[transfer] failed to list children for outbound:", childErr);
-        return NextResponse.json(
-          { error: "Could not look up outbound PSTN leg" },
-          { status: 500 },
-        );
       }
+    }
+
+    if (!pstnSid) {
+      return NextResponse.json(
+        { error: "Could not resolve PSTN leg SID" },
+        { status: 500 },
+      );
     }
 
     // Step 3: Create the pendingTransfer record FIRST so we have a

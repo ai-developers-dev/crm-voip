@@ -15,14 +15,25 @@ export const getActive = query({
   },
 });
 
-// Query to get call by Twilio SID — looks up by EITHER the PSTN-leg
-// SID (twilioCallSid) or the agent-leg SID (childCallSid). For inbound
-// calls the row is keyed by PSTN SID but the browser only knows the
-// agent SID, so any caller checking "is this call parked / transferring"
-// based on a SID from the browser SDK must use this dual-index query —
-// otherwise the state guards in /api/twilio/end-call silently fail and
-// a parked caller gets hung up the moment the source agent's <Dial>
-// bridge breaks. Same dual-lookup pattern as `endByCallSid`.
+// Get the activeCall row for a Twilio CallSid — tries every index
+// the row could be matched on, in order of how often each one hits:
+//
+//   1. by_twilio_sid    — matches the row's primary key. Inbound:
+//      this is the PSTN parent (= what the voice webhook saw).
+//      Outbound: this is the browser parent (= what Device.connect()
+//      returned).
+//   2. by_pstn_call_sid — matches the dedicated PSTN-leg field
+//      populated in P3 by the voice webhook (inbound) or
+//      /api/twilio/status (outbound). Lets a caller with the actual
+//      PSTN SID find the row regardless of direction.
+//   3. by_child_call_sid — matches the agent-leg SID populated by
+//      `claimCall`. Used by the SDK's disconnect handler which only
+//      knows the agent leg.
+//
+// All three indexes exist precisely so this query is one round-trip
+// regardless of which leg's SID the caller has. Used by the parked /
+// transferring guards in `/api/twilio/end-call`, by `claimCall`, and
+// elsewhere.
 export const getByTwilioSid = query({
   args: { twilioCallSid: v.string() },
   handler: async (ctx, args) => {
@@ -31,6 +42,14 @@ export const getByTwilioSid = query({
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
     if (byParent) return byParent;
+
+    const byPstn = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_pstn_call_sid", (q) =>
+        q.eq("pstnCallSid", args.twilioCallSid),
+      )
+      .first();
+    if (byPstn) return byPstn;
 
     const byChild = await ctx.db
       .query("activeCalls")
@@ -86,6 +105,16 @@ export const getOrgByCallSid = query({
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
     if (activeByParent) orgId = activeByParent.organizationId;
+
+    if (!orgId) {
+      const activeByPstn = await ctx.db
+        .query("activeCalls")
+        .withIndex("by_pstn_call_sid", (q) =>
+          q.eq("pstnCallSid", args.twilioCallSid),
+        )
+        .first();
+      if (activeByPstn) orgId = activeByPstn.organizationId;
+    }
 
     if (!orgId) {
       const activeByChild = await ctx.db
@@ -817,6 +846,18 @@ export const endByCallSid = mutation({
       .query("activeCalls")
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
+
+    if (!call) {
+      // P3: try the dedicated PSTN-leg index. Lets the SDK pass the
+      // PSTN SID directly (e.g. after end-call resolved it from the
+      // row) without having to be the row's primary key.
+      call = await ctx.db
+        .query("activeCalls")
+        .withIndex("by_pstn_call_sid", (q) =>
+          q.eq("pstnCallSid", args.twilioCallSid),
+        )
+        .first();
+    }
 
     if (!call) {
       call = await ctx.db
