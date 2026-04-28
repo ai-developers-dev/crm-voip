@@ -15,14 +15,30 @@ export const getActive = query({
   },
 });
 
-// Query to get call by Twilio SID
+// Query to get call by Twilio SID — looks up by EITHER the PSTN-leg
+// SID (twilioCallSid) or the agent-leg SID (childCallSid). For inbound
+// calls the row is keyed by PSTN SID but the browser only knows the
+// agent SID, so any caller checking "is this call parked / transferring"
+// based on a SID from the browser SDK must use this dual-index query —
+// otherwise the state guards in /api/twilio/end-call silently fail and
+// a parked caller gets hung up the moment the source agent's <Dial>
+// bridge breaks. Same dual-lookup pattern as `endByCallSid`.
 export const getByTwilioSid = query({
   args: { twilioCallSid: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const byParent = await ctx.db
       .query("activeCalls")
       .withIndex("by_twilio_sid", (q) => q.eq("twilioCallSid", args.twilioCallSid))
       .first();
+    if (byParent) return byParent;
+
+    const byChild = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_child_call_sid", (q) =>
+        q.eq("childCallSid", args.twilioCallSid),
+      )
+      .first();
+    return byChild;
   },
 });
 
