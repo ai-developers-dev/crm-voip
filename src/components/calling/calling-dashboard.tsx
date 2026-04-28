@@ -154,9 +154,16 @@ export function CallingDashboard({ organizationId, viewMode = "normal" }: Callin
           return;
         }
 
-        // Get call info directly from Twilio SDK call
+        // Get call info. Prefer the dragged card's `call.from` (which
+        // UserStatusCard sources from the activeCalls row → real PSTN
+        // From from the voice webhook) over the SDK's `parameters.From`,
+        // which can show the <Dial callerId="…"> value (sometimes the
+        // org's main number) instead of the actual caller.
         const callSid = callToUse.parameters.CallSid;
-        const callerNumber = callToUse.parameters.From || "Unknown";
+        const callerNumber =
+          dragData?.call?.from ||
+          callToUse.parameters.From ||
+          "Unknown";
         const callerName = dragData?.call?.fromName || undefined;
 
         // Step 1: Add optimistic entry for immediate UI feedback

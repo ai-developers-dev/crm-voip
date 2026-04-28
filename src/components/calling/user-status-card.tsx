@@ -337,9 +337,27 @@ export function UserStatusCard({
         {isMultiCallMode && connectedCalls.length > 0 && (
           <div className="mt-3 space-y-2">
             {connectedCalls.map((callInfo) => {
-              // Find matching Convex call by twilioCallSid
-              const matchingCall = activeCalls.find(c => c.twilioCallSid === callInfo.callSid);
+              // Find matching Convex call. Match by EITHER the parent
+              // SID (outbound) or the child SID (inbound — the SDK
+              // only knows the agent leg). After P3 the row has
+              // childCallSid populated from claimCall, so the second
+              // branch hits for every claimed inbound call.
+              const matchingCall = activeCalls.find(
+                (c) =>
+                  c.twilioCallSid === callInfo.callSid ||
+                  c.childCallSid === callInfo.callSid,
+              );
               const isFocused = callInfo.callSid === focusedCallSid;
+
+              // Prefer the activeCalls row's `from` over the SDK's
+              // `parameters.From`. The DB field is set by the voice
+              // webhook from Twilio's original PSTN `From`, while the
+              // SDK's value reflects the <Dial callerId="…"> on the
+              // agent leg — which can sometimes be the org's main
+              // number (855…) instead of the actual caller. Same for
+              // fromName: only the DB has the contact lookup result.
+              const callerFrom = matchingCall?.from ?? callInfo.from ?? "Unknown";
+              const callerName = matchingCall?.fromName;
 
               return (
                 <ActiveCallCard
@@ -347,8 +365,8 @@ export function UserStatusCard({
                   call={{
                     _id: matchingCall?._id || callInfo.callSid,
                     twilioCallSid: callInfo.callSid,
-                    from: callInfo.from || "Unknown",
-                    fromName: matchingCall?.fromName,
+                    from: callerFrom,
+                    fromName: callerName,
                     state: callInfo.isHeld ? "on_hold" : "connected",
                     startedAt: matchingCall?.startedAt || callInfo.startedAt,
                     answeredAt: matchingCall?.answeredAt || callInfo.answeredAt,
