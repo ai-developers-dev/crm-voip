@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Phone,
@@ -35,8 +36,17 @@ function formatDuration(seconds: number): string {
  */
 export function ActiveCallBar() {
   const callingContext = useOptionalCallingContext();
+  const pathname = usePathname();
   const [callDuration, setCallDuration] = useState(0);
   const [parking, setParking] = useState(false);
+
+  // The Calls pages already render the active call inside each user
+  // card (UserStatusCard's connected-call sub-card) with its own
+  // controls. Showing this bar there duplicates the same call in two
+  // places. Hide on /dashboard and any admin tenant route — same
+  // pattern as GlobalIncomingBanner uses for the same reason.
+  const callsPageOwnsBar =
+    pathname === "/dashboard" || pathname?.startsWith("/admin/tenants/");
 
   // Extract values from context (with defaults for when context is null)
   const getActiveCalls = callingContext?.getActiveCalls;
@@ -78,6 +88,7 @@ export function ActiveCallBar() {
   }, [displayCall?.answeredAt]);
 
   if (!callingContext) return null;
+  if (callsPageOwnsBar) return null;
 
   // No calls at all — hide.
   if (!displayCall) return null;

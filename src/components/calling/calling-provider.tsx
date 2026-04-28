@@ -169,6 +169,67 @@ export function CallingProvider({
   // claimCall falls back to matching by org+state="ringing" when the agent
   // leg's SID doesn't match, so the PSTN record is enough.
 
+  // ── Far-end-hangup watchdog ──────────────────────────────────────
+  // When the remote party hangs up (e.g. cell phone hits "End"),
+  // Twilio's status webhook fires and updateStatusHandler deletes
+  // the activeCalls row. The browser SDK SHOULD also fire its
+  // `disconnect` event for the parent leg, but in some scenarios
+  // (network blips, page focus loss, Twilio race) the SDK event
+  // never lands and the call card stays on screen with a stale
+  // local SDK call object behind it.
+  //
+  // We use the live `getActive` Convex subscription as a watchdog:
+  // any local SDK call whose Twilio SID isn't in the current
+  // activeCalls list anymore is presumed dead — we tear down the
+  // local call object and kick it out of state. The disposition
+  // dialog still works because end-call's storeRecording writes
+  // the callHistory row first.
+  const activeCallsForWatchdog = useQuery(
+    api.calls.getActive,
+    convexOrg?._id ? { organizationId: convexOrg._id } : "skip",
+  );
+  useEffect(() => {
+    if (!activeCallsForWatchdog) return;
+    if (twilioDevice.calls.size === 0) return;
+
+    // Build a set of every SID that's still alive in the DB.
+    const aliveSids = new Set<string>();
+    for (const c of activeCallsForWatchdog) {
+      aliveSids.add(c.twilioCallSid);
+      if (c.childCallSid) aliveSids.add(c.childCallSid);
+      if (c.pstnCallSid) aliveSids.add(c.pstnCallSid);
+    }
+
+    for (const [callSid, callInfo] of twilioDevice.calls) {
+      // Skip pending (still-ringing) calls — those wouldn't have a
+      // DB row yet anyway, and tearing them down would race with
+      // the answer/claim flow.
+      if (callInfo.status === "pending") continue;
+      // Skip if the call is connecting (outbound dialing) — give
+      // it a few seconds to land in the DB.
+      if (callInfo.status === "connecting") continue;
+      // The Twilio Call object exposes its current SID via
+      // parameters.CallSid once Twilio has assigned one. Use that
+      // alongside the stored callSid (which can still be the
+      // out-… placeholder until rekey lands).
+      const liveSid = callInfo.call.parameters?.CallSid;
+      const sids = [callSid, liveSid].filter(Boolean) as string[];
+      const stillAlive = sids.some((s) => aliveSids.has(s));
+      if (!stillAlive) {
+        console.log(
+          `[watchdog] local call ${callSid} no longer in activeCalls — clearing UI`,
+        );
+        try {
+          callInfo.call.disconnect();
+        } catch {
+          // already disconnected, ignore
+        }
+        twilioDevice.hangUpBySid(callSid);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCallsForWatchdog]);
+
   const contextValue: CallingContextValue = useMemo(() => ({
     // Connection state
     isReady: twilioDevice.isReady,
