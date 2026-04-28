@@ -458,6 +458,23 @@ export default defineSchema({
     // cleanup caller has. See commits 15568aa / 4ff15a8 for the dual-leg
     // history and why this field was needed.
     childCallSid: v.optional(v.string()),
+    // PSTN-leg CallSid — the leg that maps to the actual phone call on
+    // the carrier network. This is what server-side code uses for
+    // `client.calls(SID).update()` to redirect the call (parking,
+    // transferring, unparking, terminating).
+    //
+    // For INBOUND: PSTN leg is the PARENT, so this equals
+    //   `twilioCallSid` (set the same way by the voice webhook).
+    // For OUTBOUND: PSTN leg is the CHILD created by `<Dial><Number>`,
+    //   so this is populated from `/api/twilio/status` when Twilio
+    //   reports the dialed leg's CallSid via statusCallback.
+    //
+    // Promoting this to a first-class field is item P3 of
+    // docs/parking-architecture-2026-04-28.md — the structural fix
+    // that eliminates the recurring dual-leg-SID bug class. Every
+    // server consumer now reads `pstnCallSid` directly instead of
+    // chasing parent/child relationships at runtime.
+    pstnCallSid: v.optional(v.string()),
     conferenceSid: v.optional(v.string()), // Deprecated: kept for existing data
     direction: v.union(v.literal("inbound"), v.literal("outbound")),
 
@@ -500,6 +517,7 @@ export default defineSchema({
     .index("by_organization_state", ["organizationId", "state"])
     .index("by_twilio_sid", ["twilioCallSid"])
     .index("by_child_call_sid", ["childCallSid"])
+    .index("by_pstn_call_sid", ["pstnCallSid"])
     .index("by_assigned_user", ["assignedUserId"]),
 
   // Call History (Historical records)

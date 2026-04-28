@@ -42,6 +42,33 @@ export const getByTwilioSid = query({
   },
 });
 
+// Webhook-safe writer: stamp `pstnCallSid` onto the activeCall row
+// identified by `parentCallSid`. Used by `/api/twilio/status` when
+// Twilio first reports the PSTN child leg's SID for an outbound
+// call. Idempotent — re-stamping the same value is a no-op patch.
+// No auth check: only callable from server-to-server contexts that
+// have already verified the Twilio signature upstream.
+export const setPstnCallSid = mutation({
+  args: {
+    parentCallSid: v.string(),
+    pstnCallSid: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("activeCalls")
+      .withIndex("by_twilio_sid", (q) =>
+        q.eq("twilioCallSid", args.parentCallSid),
+      )
+      .first();
+    if (!row) return { updated: false, reason: "not_found" };
+    if (row.pstnCallSid === args.pstnCallSid) {
+      return { updated: false, reason: "unchanged" };
+    }
+    await ctx.db.patch(row._id, { pstnCallSid: args.pstnCallSid });
+    return { updated: true };
+  },
+});
+
 // Resolve the owning org for a CallSid by walking both the PSTN leg
 // (`twilioCallSid`) and the agent leg (`childCallSid`), then falling
 // back to the callHistory row if the call already wrapped up. Returns
@@ -187,6 +214,12 @@ export const createOrGetIncomingFromWebhook = mutation({
     return await ctx.db.insert("activeCalls", {
       organizationId,
       twilioCallSid: args.twilioCallSid,
+      // For inbound, the PSTN leg IS the parent that the voice
+      // webhook saw — same SID. Populating this here means every
+      // server-side consumer can read `pstnCallSid` directly without
+      // the dual-leg lookup dance. P3.2 of the parking architecture
+      // plan.
+      pstnCallSid: args.twilioCallSid,
       direction: "inbound",
       from: args.from,
       fromName,

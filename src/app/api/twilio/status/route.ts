@@ -12,6 +12,8 @@ export async function POST(request: NextRequest) {
     callSid = formData.get("CallSid") as string;
     const callStatus = formData.get("CallStatus") as string;
     const callDuration = formData.get("CallDuration") as string;
+    const parentCallSid = (formData.get("ParentCallSid") as string) || null;
+    const direction = (formData.get("Direction") as string) || null;
 
     // Convert FormData to params object for validation
     const params: Record<string, string> = {};
@@ -26,7 +28,41 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    console.log(`Status callback: ${callSid} -> ${callStatus}`);
+    console.log(`Status callback: ${callSid} -> ${callStatus} (parent=${parentCallSid}, dir=${direction})`);
+
+    // P3.3 — Populate `pstnCallSid` on the activeCall row when Twilio
+    // first reports the dialed-leg SID for an OUTBOUND call.
+    //
+    // Setup recap:
+    //   - voice/route.ts inserts the activeCall keyed by the BROWSER
+    //     leg's CallSid (the parent for outbound).
+    //   - voice/route.ts then emits TwiML <Dial><Number statusCallback=…>
+    //     which dials the PSTN destination as a CHILD call.
+    //   - Twilio fires this status route with `CallSid` = child PSTN
+    //     SID, `ParentCallSid` = browser leg, `Direction` like
+    //     "outbound-api" or "outbound-dial".
+    //
+    // We set pstnCallSid on the matched-by-parent row only on
+    // outbound-direction events to avoid corrupting inbound rows
+    // (whose child legs are <Client> calls — those legs are NOT the
+    // PSTN). Best-effort: failures are logged and ignored — the
+    // row's twilioCallSid is still useful for eventual cleanup.
+    if (
+      parentCallSid &&
+      direction &&
+      direction.startsWith("outbound") &&
+      callSid &&
+      callSid !== parentCallSid
+    ) {
+      try {
+        await convex.mutation(api.calls.setPstnCallSid, {
+          parentCallSid,
+          pstnCallSid: callSid,
+        });
+      } catch (err) {
+        console.warn(`[status] could not set pstnCallSid for ${parentCallSid}:`, err);
+      }
+    }
 
     // Map Twilio status to our call states
     const stateMap: Record<string, string> = {
