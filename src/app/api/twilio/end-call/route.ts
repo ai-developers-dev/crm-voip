@@ -53,145 +53,108 @@ export async function POST(request: NextRequest) {
     // (already cleaned up). Safe for the normal-tenant-member path.
     if (!orgId) orgId = clerkActiveOrgId ?? null;
 
-    // STEP 1: Check whether the call was just PARKED. If so, we must NOT
-    // terminate the parent PSTN leg — the caller is now in a conference
-    // with hold music waiting for an agent to unpark them. Terminating
-    // the parent would kill the conference and drop the parked call.
-    //
-    // When an agent parks a call, hold/route.ts redirects the PSTN parent
-    // into a <Conference> and inserts a parkingLots row + flips the
-    // activeCall state to "parked". The browser's client leg breaks (its
-    // <Dial> was superseded by the redirect) and the Voice SDK fires
-    // `disconnect`, which calls this route with the CHILD SID. Prior to
-    // this check, the "actively terminate the parent" logic below killed
-    // the parent while it was happily sitting in the conference.
-    //
-    // Verified via Twilio MCP on CA9127726708724f007ab053586e57fbdc:
-    // event timeline showed hold music begin playing, then a POST to
-    // /Calls/{sid} terminating the parent a fraction of a second later
-    // (from this route), then a "completed" status callback.
-    let isParked = false;
-    let isTransferring = false;
+    // STEP 1: Look up the activeCall row once. We need its state
+    // (parked / transferring) AND its `pstnCallSid` (the leg we
+    // terminate on Twilio). After P3.1-3, every freshly-created
+    // row has pstnCallSid populated — so we can skip the round-trip
+    // to Twilio's REST API in the common path.
+    let activeCall: {
+      state: string;
+      pstnCallSid?: string;
+      twilioCallSid: string;
+    } | null = null;
     try {
-      const activeCall = await convex.query(api.calls.getByTwilioSid, {
+      activeCall = await convex.query(api.calls.getByTwilioSid, {
         twilioCallSid,
       });
-      if (activeCall && activeCall.state === "parked") {
-        isParked = true;
-        console.log(
-          `[end-call] Call ${twilioCallSid} is parked — skipping PSTN termination`
-        );
-      }
-      // Same guard for transferring: the source agent's SDK fires
-      // `disconnect` the moment we move the caller into the transfer
-      // conference. We must NOT terminate the parent leg or we'd hang
-      // up the caller right as the target agent is about to join.
-      if (activeCall && activeCall.state === "transferring") {
-        isTransferring = true;
-        console.log(
-          `[end-call] Call ${twilioCallSid} is transferring — skipping PSTN termination`
-        );
-      }
     } catch (queryErr) {
-      // If the query fails, fall through and attempt termination anyway.
-      // Better to accidentally terminate a parked call than to leave a
-      // zombie PSTN leg alive.
       console.warn(
-        `[end-call] Could not check parked state for ${twilioCallSid}:`,
-        queryErr
+        `[end-call] Could not look up activeCall for ${twilioCallSid}:`,
+        queryErr,
       );
     }
 
-    // STEP 2: Actively terminate the PSTN leg on Twilio (unless parked).
-    //
-    // Previously this route only updated Convex and relied on Twilio's
-    // <Dial action> callback to eventually hang up the parent call. In
-    // practice the parent leg lingered 20–30s after the agent clicked
-    // hang up — verified via Twilio MCP on CA6149447ec85e69744c83b55e7e295f42
-    // (parent 39s, child 3s) and CAcad0cb6ebe55e742a97fb8d260c9fb05
-    // (parent 35s, child 4s).
-    //
-    // Fix: fetch only to learn parentCallSid, then unconditionally POST
-    // Status=completed to the parent (or the browser SID itself for
-    // outbound browser-to-PSTN calls where there's no parent). 20404
-    // "already terminated" is expected and ignored.
-    //
-    // We also remember parentCallSid for STEP 3 below — for inbound calls
-    // the activeCalls row is keyed by the PSTN leg's CallSid, but the
-    // browser only knows the agent-leg SID. Cleaning up by the browser SID
-    // leaves the row orphaned and the user-card stays stuck.
-    let parentCallSid: string | null = null;
-    if (orgId && !isParked && !isTransferring) {
+    let isParked = activeCall?.state === "parked";
+    let isTransferring = activeCall?.state === "transferring";
+    if (isParked) {
+      console.log(`[end-call] ${twilioCallSid} is parked — skipping PSTN termination`);
+    }
+    if (isTransferring) {
+      console.log(`[end-call] ${twilioCallSid} is transferring — skipping PSTN termination`);
+    }
+
+    // STEP 2: Resolve the PSTN leg SID. After P3 this is just a
+    // field read on the row — no Twilio API round-trip in the
+    // common path. Fall back to fetching from Twilio for legacy
+    // rows that pre-date P3 (no `pstnCallSid` populated yet).
+    let pstnSid: string | null = activeCall?.pstnCallSid ?? null;
+    if (!pstnSid && orgId && !isParked && !isTransferring) {
       try {
         const { client } = await getOrgTwilioClient(orgId);
         const browserCall = await client.calls(twilioCallSid).fetch();
-        parentCallSid = browserCall.parentCallSid || null;
-        const sidToEnd = parentCallSid || twilioCallSid;
-
-        // BELT-AND-SUSPENDERS PARKED CHECK.
-        // STEP 1's check on activeCalls.state was missing in production
-        // when parkByCallSid couldn't find / patch the activeCall row.
-        // The parkingLots table is authoritative — if a slot exists
-        // for this PSTN SID, the call is parked, period. Skip the
-        // termination unconditionally.
-        let parkedSlot = null;
-        try {
-          parkedSlot = await convex.query(
-            api.parkingLot.getOccupiedByPstnSid,
-            { pstnCallSid: sidToEnd },
-          );
-        } catch (parkLookupErr) {
-          console.warn(
-            "[end-call] parking-slot lookup failed:",
-            parkLookupErr,
-          );
-        }
-        if (parkedSlot) {
-          console.log(
-            `[end-call] ${sidToEnd} has an active parking slot (#${parkedSlot.slotNumber}) — skipping PSTN termination`,
-          );
-          isParked = true;
-        }
-
-        if (!isParked) {
-          try {
-            await client.calls(sidToEnd).update({ status: "completed" });
-            console.log(`Terminated Twilio call ${sidToEnd}`);
-          } catch (updateErr) {
-            console.warn(
-              `[end-call] Twilio termination of ${sidToEnd} failed (likely already ended): ${
-                updateErr instanceof Error ? updateErr.message : String(updateErr)
-              }`
-            );
-          }
-        }
+        pstnSid = browserCall.parentCallSid || twilioCallSid;
       } catch (twilioErr) {
         console.warn(
-          `[end-call] Could not fetch call ${twilioCallSid}: ${
+          `[end-call] Could not fetch call ${twilioCallSid} to learn parent: ${
             twilioErr instanceof Error ? twilioErr.message : String(twilioErr)
-          }`
+          }`,
         );
       }
     }
 
-    // STEP 3: Mark the call as ended in Convex.
-    //
-    // Inbound calls create two Twilio legs with different CallSids:
-    //   - PSTN leg: caller → Twilio number (what the voice webhook sees
-    //     and what `activeCalls.twilioCallSid` is keyed by)
-    //   - Agent leg: Twilio → browser client (what the SDK's Call object
-    //     reports via `call.parameters.CallSid`)
-    // The browser sends us the *agent* SID, so we try the PSTN parent
-    // first when we have one. Outbound browser-to-PSTN calls have no
-    // parent, so `twilioCallSid` IS the row key — one attempt is enough.
-    // Fall back to the browser SID if the parent lookup drew a blank.
+    // STEP 3: Belt-and-suspenders parked check via parkingLots
+    // (authoritative source). If a slot exists for the PSTN SID,
+    // the call is parked, period — even if state didn't get patched.
+    if (!isParked && pstnSid) {
+      try {
+        const parkedSlot = await convex.query(
+          api.parkingLot.getOccupiedByPstnSid,
+          { pstnCallSid: pstnSid },
+        );
+        if (parkedSlot) {
+          console.log(
+            `[end-call] ${pstnSid} has active parking slot #${parkedSlot.slotNumber} — skipping termination`,
+          );
+          isParked = true;
+        }
+      } catch (parkLookupErr) {
+        console.warn("[end-call] parking-slot lookup failed:", parkLookupErr);
+      }
+    }
+
+    // STEP 4: Actively terminate the PSTN leg on Twilio (unless
+    // parked / transferring). Without this, the parent leg used to
+    // linger 20-30s after the agent clicked hangup. 20404 "already
+    // terminated" is expected and ignored.
+    if (orgId && pstnSid && !isParked && !isTransferring) {
+      try {
+        const { client } = await getOrgTwilioClient(orgId);
+        await client.calls(pstnSid).update({ status: "completed" });
+        console.log(`[end-call] Terminated Twilio call ${pstnSid}`);
+      } catch (updateErr) {
+        console.warn(
+          `[end-call] Twilio termination of ${pstnSid} failed (likely already ended): ${
+            updateErr instanceof Error ? updateErr.message : String(updateErr)
+          }`,
+        );
+      }
+    }
+
+    // STEP 5: Mark the call as ended in Convex.
+    // Prefer the row's `twilioCallSid` (= PSTN parent for inbound,
+    // browser parent for outbound — always the row key) so the
+    // mutation hits its primary index. Fall back to the SDK's SID
+    // for legacy rows whose lookup we couldn't resolve above.
+    const sidForCleanup = activeCall?.twilioCallSid ?? pstnSid ?? twilioCallSid;
     let result = await convex.mutation(api.calls.endByCallSid, {
-      twilioCallSid: parentCallSid || twilioCallSid,
+      twilioCallSid: sidForCleanup,
     });
-    if (result?.alreadyCleaned && parentCallSid && parentCallSid !== twilioCallSid) {
-      // Parent SID didn't match a row either — try the browser SID as a
-      // last resort. Rare, but can happen if the dial-status webhook
-      // already moved the row to callHistory under the browser SID.
+    if (
+      result?.alreadyCleaned &&
+      sidForCleanup !== twilioCallSid
+    ) {
+      // Last-resort retry with the browser SID. Rare — can happen
+      // if dial-status already moved the row to callHistory.
       result = await convex.mutation(api.calls.endByCallSid, {
         twilioCallSid,
       });

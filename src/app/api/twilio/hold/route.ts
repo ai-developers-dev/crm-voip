@@ -45,48 +45,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Park the call via conference-based parking
+    // Park the call via conference-based parking.
 
-    // Get Twilio credentials
-    let result;
+    // Resolve the TENANT org from the call row, not from Clerk active
+    // org. Same fix pattern as /api/twilio/end-call so super admins
+    // viewing /admin/tenants/[id] don't blow up on `getOrgTwilioClient`
+    // because their own Clerk org has no Twilio creds.
+    let resolvedOrgId = orgId;
     try {
-      result = await getOrgTwilioClient(orgId);
+      const resolvedOrg = await convex.query(api.calls.getOrgByCallSid, {
+        twilioCallSid,
+      });
+      if (resolvedOrg?.clerkOrgId) {
+        resolvedOrgId = resolvedOrg.clerkOrgId;
+      }
+    } catch (lookupErr) {
+      console.warn(`[hold] getOrgByCallSid failed:`, lookupErr);
+    }
+
+    // Get Twilio credentials.
+    let twilioResult;
+    try {
+      twilioResult = await getOrgTwilioClient(resolvedOrgId);
     } catch {
       return NextResponse.json(
         { error: "Twilio credentials not configured" },
         { status: 400 }
       );
     }
-    const { client, org } = result;
+    const { client, org } = twilioResult;
 
-    // STEP 1: Fetch the browser SDK call to get the parent call SID
-    let browserCall;
+    // STEP 1: Resolve the PSTN leg SID. After P3, every fresh
+    // activeCalls row has `pstnCallSid` populated for both
+    // directions, so this is a single Convex read in the common
+    // path. Legacy rows (created before P3 deployed) fall back to
+    // the original Twilio-API parent/child traversal.
     let pstnCallSid = "";
-    let parentCall;
-
     try {
-      browserCall = await client.calls(twilioCallSid).fetch();
-    } catch (twilioError) {
-      console.error("Could not fetch browser call:", twilioError);
-      return NextResponse.json(
-        { error: "Failed to fetch browser call from Twilio", details: String(twilioError) },
-        { status: 500 }
-      );
+      const activeCallRow = await convex.query(api.calls.getByTwilioSid, {
+        twilioCallSid,
+      });
+      if (activeCallRow?.pstnCallSid) {
+        pstnCallSid = activeCallRow.pstnCallSid;
+      }
+    } catch (lookupErr) {
+      console.warn("[hold] activeCall lookup failed:", lookupErr);
     }
 
-    // Inbound dual-leg: browser SDK leg is the CHILD, caller's PSTN leg is
-    // the PARENT. Outbound: browser SDK leg is the PARENT, dialed PSTN leg
-    // is the CHILD. Handle both.
-    if (browserCall.parentCallSid) {
-      pstnCallSid = browserCall.parentCallSid;
-    } else {
-      const children = await client.calls.list({
-        parentCallSid: twilioCallSid,
-        limit: 5,
-      }).catch(() => [] as Array<{ sid: string; direction: string }>);
-      const pstnChild = children.find((c) => c.direction.startsWith("outbound"));
-      if (pstnChild?.sid) {
-        pstnCallSid = pstnChild.sid;
+    if (!pstnCallSid) {
+      // Fallback for legacy rows: traverse Twilio's parent/child
+      // graph to find the PSTN leg ourselves. Slow (extra REST
+      // round-trips) but covers any row that pre-dates P3.
+      let browserCall;
+      try {
+        browserCall = await client.calls(twilioCallSid).fetch();
+      } catch (twilioError) {
+        console.error("Could not fetch browser call:", twilioError);
+        return NextResponse.json(
+          { error: "Failed to fetch browser call from Twilio", details: String(twilioError) },
+          { status: 500 }
+        );
+      }
+
+      if (browserCall.parentCallSid) {
+        pstnCallSid = browserCall.parentCallSid;
+      } else {
+        const children = await client.calls.list({
+          parentCallSid: twilioCallSid,
+          limit: 5,
+        }).catch(() => [] as Array<{ sid: string; direction: string }>);
+        const pstnChild = children.find((c) => c.direction.startsWith("outbound"));
+        if (pstnChild?.sid) {
+          pstnCallSid = pstnChild.sid;
+        }
       }
     }
 
@@ -97,7 +128,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify parent call is still active
+    // Verify parent call is still active before redirecting.
+    let parentCall;
     try {
       parentCall = await client.calls(pstnCallSid).fetch();
     } catch (twilioError) {
@@ -181,14 +213,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Switched away from twimlets.com (third-party / undocumented
+      // SLA) to Twilio-hosted demo asset, matching what /transfer
+      // and /hold-music already use after H4+M5 / H1.
+      const FALLBACK_HOLD_MUSIC = "https://demo.twilio.com/docs/classic.mp3";
       if (customAudioUrl) {
         // Play the uploaded file ONCE as an intro, then loop Twilio's
         // classical hold music. Previously <Play loop="0">customUrl which
         // loops the uploaded clip forever (bad when the file is a greeting).
-        const twimlContent = `<Response><Play loop="1">${customAudioUrl}</Play><Play loop="0">http://com.twilio.sounds.music.s3.amazonaws.com/ClockworkWaltz.mp3</Play></Response>`;
+        const twimlContent = `<Response><Play loop="1">${customAudioUrl}</Play><Play loop="0">${FALLBACK_HOLD_MUSIC}</Play></Response>`;
         holdMusicWaitUrl = `https://twimlets.com/echo?Twiml=${encodeURIComponent(twimlContent)}`;
       } else {
-        holdMusicWaitUrl = "https://twimlets.com/holdmusic?Bucket=com.twilio.music.classical";
+        holdMusicWaitUrl = FALLBACK_HOLD_MUSIC;
       }
 
       // IMPORTANT: startConferenceOnEnter="false" means the caller hears waitUrl music
