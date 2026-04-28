@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -30,9 +30,29 @@ function formatDuration(seconds: number): string {
   return s > 0 ? `${m}m ${s}s` : `${m}m`;
 }
 
+// Local-timezone midnight as ms-since-epoch. Memoized on the local
+// calendar-date string so the Convex query subscription is stable
+// across renders, but rolls over correctly if the tab is left open
+// past midnight.
+function useLocalTodayStartMs(): number {
+  const dateKey = new Date().toDateString(); // e.g. "Mon Apr 28 2026"
+  return useMemo(() => {
+    const now = new Date();
+    return new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).getTime();
+  }, [dateKey]);
+}
+
 export function DailyCallLog({ organizationId }: DailyCallLogProps) {
   const router = useRouter();
-  const callLog = useQuery(api.callStats.getDailyCallLog, { organizationId });
+  const sinceMs = useLocalTodayStartMs();
+  const callLog = useQuery(api.callStats.getDailyCallLog, {
+    organizationId,
+    sinceMs,
+  });
   const callingContext = useOptionalCallingContext();
   // Number that opens the block/unblock dialog. The dialog itself
   // queries `isBlocked` so it shows the right action (Block vs Unblock)

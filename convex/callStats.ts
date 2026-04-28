@@ -244,9 +244,18 @@ export const getUsersWithStats = query({
  * Returns individual call records sorted by most recent first.
  */
 export const getDailyCallLog = query({
-  args: { organizationId: v.id("organizations") },
+  args: {
+    organizationId: v.id("organizations"),
+    // Optional cutoff in ms-since-epoch. Frontend should pass
+    // **local-timezone midnight** so the "today" log matches the
+    // user's perception of today. Without this we fall back to UTC
+    // midnight, which for Western-hemisphere users includes a chunk
+    // of yesterday evening (e.g. for US Central, 6 PM yesterday
+    // onwards) — that's the "calls from another day" bug.
+    sinceMs: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
-    const todayStart = getTodayStartTimestamp();
+    const todayStart = args.sinceMs ?? getTodayStartTimestamp();
 
     const calls = await ctx.db
       .query("callHistory")
