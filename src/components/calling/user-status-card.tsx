@@ -376,6 +376,11 @@ export function UserStatusCard({
         {(() => {
           const visibleDbCalls = activeCalls.filter(
             (c) =>
+              // Parked calls belong to the parking lot, not the agent
+              // who parked them — they should NOT render under any
+              // user card. Defensive in case parkByCallSid couldn't
+              // clear assignedUserId (legacy rows or race conditions).
+              c.state !== "parked" &&
               !recentlyHungUpSids.has(c.twilioCallSid) &&
               !recentlyHungUpSids.has(c.childCallSid),
           );

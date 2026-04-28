@@ -636,11 +636,15 @@ function AgentGrid({
     );
   }
 
-  // Group active calls by assigned user
+  // Group active calls by assigned user.
+  // Parked calls are intentionally excluded — they belong to the
+  // parking lot widget, not to any agent's row. Showing them in
+  // both places confused users into thinking the call was stuck on
+  // their card with a non-functional hangup button.
   const callsByUser = new Map<string, typeof activeCalls>();
   if (activeCalls) {
     for (const call of activeCalls) {
-      if (call.assignedUserId) {
+      if (call.assignedUserId && call.state !== "parked") {
         const userId = call.assignedUserId;
         if (!callsByUser.has(userId)) {
           callsByUser.set(userId, []);

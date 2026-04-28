@@ -502,12 +502,25 @@ export const parkByCallSid = mutation({
       });
     }
 
-    // Update call state if it exists
+    // Update call state if it exists.
+    //
+    // CRITICAL: clear `assignedUserId`. A parked call belongs to the
+    // PARKING LOT, not to any agent — anyone can grab it. Without
+    // this, calls-grouped-by-user in CallingDashboard kept the row
+    // under the agent who parked it, and UserStatusCard's DB-fallback
+    // render block kept showing the call card under their row even
+    // after parking. Worse: my new "skip delete if parking slot
+    // exists" guard meant clicking the in-card hangup button no-opped
+    // — the row was undeletable until either the slot was cleared or
+    // the diagnostics button ran.
     if (call) {
       await ctx.db.patch(call._id, {
         state: "parked",
         parkingSlot: slotNumber,
         holdStartedAt: Date.now(),
+        // Stash who parked the call so reports can still attribute it.
+        previousUserId: call.assignedUserId,
+        assignedUserId: undefined,
       });
       // Update user status back to available
       if (call.assignedUserId) {
