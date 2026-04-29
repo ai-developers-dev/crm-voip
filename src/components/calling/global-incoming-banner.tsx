@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useOptionalCallingContext } from "./calling-provider";
+import { useIsCallsPage } from "./calls-page-route";
 import { IncomingCallPopup } from "./incoming-call-popup";
 
 /**
@@ -18,7 +18,7 @@ import { IncomingCallPopup } from "./incoming-call-popup";
  */
 export function GlobalIncomingBanner() {
   const callingContext = useOptionalCallingContext();
-  const pathname = usePathname();
+  const dashboardOwnsBanner = useIsCallsPage();
 
   // Extract values from context (with defaults for when context is null)
   const calls = callingContext?.calls ?? new Map();
@@ -42,14 +42,12 @@ export function GlobalIncomingBanner() {
   const connectedCallCount = activeCalls.length;
 
   // If no calling context (e.g., on onboarding pages), render nothing.
-  // Also hide on every route that already mounts <CallingDashboard>, which has
-  // its own <IncomingCallsArea> — otherwise we render the same incoming-call
-  // popup TWICE (once via this fixed-position global banner, once via the
-  // dashboard's inline banner). CallingDashboard is rendered on /dashboard
-  // and on /admin/tenants/[id].
-  const dashboardOwnsBanner =
-    pathname === "/dashboard" ||
-    pathname?.startsWith("/admin/tenants/");
+  // Also hide ONLY on the actual Calls pages (/dashboard or the tenant
+  // ROOT route /admin/tenants/[id]) — those mount <CallingDashboard>
+  // which has its own <IncomingCallsArea>. Tenant SUB-routes (sms,
+  // contacts, etc.) need this global banner; they previously didn't get
+  // it because the old `startsWith("/admin/tenants/")` check was too
+  // broad. `useIsCallsPage()` (above) is now the single source of truth.
   if (!callingContext || dashboardOwnsBanner) {
     return null;
   }

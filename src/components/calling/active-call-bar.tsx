@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Phone,
@@ -16,6 +15,7 @@ import {
   ParkingSquare,
 } from "lucide-react";
 import { useOptionalCallingContext } from "./calling-provider";
+import { useIsCallsPage } from "./calls-page-route";
 import { formatPhoneDisplay } from "@/lib/phone";
 
 function formatDuration(seconds: number): string {
@@ -36,17 +36,17 @@ function formatDuration(seconds: number): string {
  */
 export function ActiveCallBar() {
   const callingContext = useOptionalCallingContext();
-  const pathname = usePathname();
   const [callDuration, setCallDuration] = useState(0);
   const [parking, setParking] = useState(false);
 
   // The Calls pages already render the active call inside each user
   // card (UserStatusCard's connected-call sub-card) with its own
   // controls. Showing this bar there duplicates the same call in two
-  // places. Hide on /dashboard and any admin tenant route — same
-  // pattern as GlobalIncomingBanner uses for the same reason.
-  const callsPageOwnsBar =
-    pathname === "/dashboard" || pathname?.startsWith("/admin/tenants/");
+  // places. Hide on /dashboard and on the tenant ROOT route only —
+  // NOT on tenant sub-routes like /admin/tenants/[id]/sms, where the
+  // user has navigated away from the call grid and absolutely DOES
+  // need this bar to see the active call.
+  const callsPageOwnsBar = useIsCallsPage();
 
   // Extract values from context (with defaults for when context is null)
   const getActiveCalls = callingContext?.getActiveCalls;
