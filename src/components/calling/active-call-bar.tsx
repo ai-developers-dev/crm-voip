@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Phone,
@@ -36,6 +37,7 @@ function formatDuration(seconds: number): string {
  */
 export function ActiveCallBar() {
   const callingContext = useOptionalCallingContext();
+  const pathname = usePathname();
   const [callDuration, setCallDuration] = useState(0);
   const [parking, setParking] = useState(false);
 
@@ -86,6 +88,35 @@ export function ActiveCallBar() {
     const interval = setInterval(updateDuration, 1000);
     return () => clearInterval(interval);
   }, [displayCall?.answeredAt]);
+
+  // Diagnostic logging — always-on temporarily so we can debug
+  // "I don't see the green bar" from a screenshot of devtools.
+  // Remove once user confirms the bar shows where expected.
+  if (typeof window !== "undefined") {
+    console.log("[ActiveCallBar]", {
+      pathname,
+      callsPageOwnsBar,
+      hasContext: !!callingContext,
+      hasFocusedCallSid: !!focusedCallSid,
+      callsMapSize: calls.size,
+      displayCall: displayCall
+        ? {
+            callSid: displayCall.callSid,
+            status: displayCall.status,
+            direction: displayCall.direction,
+            answeredAt: displayCall.answeredAt,
+          }
+        : null,
+      willRender:
+        !!callingContext &&
+        !callsPageOwnsBar &&
+        !!displayCall &&
+        !(
+          displayCall.status === "pending" &&
+          displayCall.direction === "INCOMING"
+        ),
+    });
+  }
 
   if (!callingContext) return null;
   if (callsPageOwnsBar) return null;
