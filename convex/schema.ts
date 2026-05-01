@@ -400,6 +400,43 @@ export default defineSchema({
     .index("by_organization", ["organizationId"])
     .index("by_page_id", ["pageId"]), // webhook → which tenant owns this page
 
+  // Facebook Lead Ads — short-lived OAuth state for the multi-page
+  // checklist step.
+  //
+  // Lifecycle:
+  //   1. /api/facebook/callback finishes the code-for-token exchange,
+  //      fetches the user's manageable Pages from /me/accounts, and
+  //      writes a row here keyed by `state` (an unguessable random
+  //      string we generated at OAuth start).
+  //   2. The Settings UI sees `?fb_pick=<state>` in the URL, calls
+  //      `listPendingByState({ state })`, and renders a checklist of
+  //      the user's Pages.
+  //   3. User ticks any subset and submits → `confirmConnections`
+  //      reads this row, exchanges each picked page's user-token for
+  //      a long-lived Page Access Token, encrypts + inserts into
+  //      `facebookConnections`, and deletes the pending row.
+  //
+  // `expiresAt` is checked by both confirm + a cleanup cron — old
+  // rows time out after 10 minutes so abandoned OAuth flows don't
+  // accumulate. `userAccessToken` is encrypted (never plaintext on
+  // disk) using the same per-org key as `facebookConnections`.
+  facebookPendingConnections: defineTable({
+    organizationId: v.id("organizations"),
+    state: v.string(), // random unguessable token, used as the lookup key
+    userAccessToken: v.string(), // ENCRYPTED long-lived user token
+    pages: v.array(
+      v.object({
+        pageId: v.string(),
+        pageName: v.string(),
+      }),
+    ),
+    initiatedByUserId: v.optional(v.id("users")),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_state", ["state"])
+    .index("by_expires_at", ["expiresAt"]), // cleanup cron
+
   // Facebook Lead Ads — per-lead audit log.
   //
   // Every lead Meta tells us about lands here, regardless of whether

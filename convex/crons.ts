@@ -47,7 +47,18 @@ crons.interval(
 crons.interval(
   "poll Facebook Lead Ads",
   { minutes: 5 },
-  internal.facebook.pollLeads,
+  internal.facebookActions.pollLeads,
+);
+
+/**
+ * Drop expired OAuth pending rows. 10-min TTL means anything older
+ * than that was an abandoned connect flow — the user closed the tab
+ * after Meta redirected back but before they ticked any pages.
+ */
+crons.interval(
+  "cleanup expired FB pending OAuth rows",
+  { minutes: 30 },
+  internal.facebook.cleanupExpiredPending,
 );
 
 export default crons;

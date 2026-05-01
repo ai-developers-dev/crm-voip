@@ -5,38 +5,32 @@
  *   - facebookConnections — one row per (org, FB Page) the tenant has
  *     authorized us to receive lead events from. Stores an encrypted
  *     long-lived Page Access Token.
+ *   - facebookPendingConnections — short-lived OAuth state during the
+ *     multi-page checklist flow. Auto-expires after 10 minutes.
  *   - facebookLeads — every lead Meta tells us about, including
  *     rejections. Dedup by `leadgenId`.
- *
- * This module is the data layer. The OAuth dance + Graph API I/O lives
- * in Next.js API routes (src/app/api/facebook/*) which do the HTTP
- * work and then call into these mutations/actions to persist.
  *
  * Plan reference: ~/.claude/plans/i-think-i-m-confused-declarative-neumann.md
  */
 
 import { v } from "convex/values";
 import {
-  action,
-  internalAction,
   internalMutation,
   internalQuery,
   mutation,
   query,
 } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { authorizeOrgMember } from "./lib/auth";
 
+// Pending-connection rows live for 10 minutes. After that, a user
+// who never finished the multi-page checklist has to start over.
+const PENDING_TTL_MS = 10 * 60 * 1000;
+
 // ─────────────────────────────────────────────────────────────────────
-// Queries
+// Public queries — used by the Settings UI
 // ─────────────────────────────────────────────────────────────────────
 
-/**
- * List every Facebook connection for an org. Drives the Settings UI.
- * Strips the encrypted token from the result — clients should never
- * see it.
- */
 export const listForOrg = query({
   args: { organizationId: v.id("organizations") },
   handler: async (ctx, args) => {
@@ -62,11 +56,6 @@ export const listForOrg = query({
   },
 });
 
-/**
- * Recent lead events for an org — both successes and rejections.
- * Powers the "Recent leads" panel in the Settings UI so tenants can
- * see "no_phone" rejections and fix their forms.
- */
 export const recentLeadsForOrg = query({
   args: {
     organizationId: v.id("organizations"),
@@ -96,10 +85,36 @@ export const recentLeadsForOrg = query({
 });
 
 /**
- * Internal lookup: given a Meta Page ID from a webhook payload,
- * find which org owns it. Used by /api/facebook/webhook to route
- * the event to the right tenant.
+ * Fetch the pending-connections row for the multi-page checklist UI.
+ * Returns null if the row doesn't exist (e.g. expired) or doesn't
+ * belong to the requested org. Strips the encrypted user token from
+ * the returned shape — the client needs the page list, not the token.
  */
+export const listPendingByState = query({
+  args: {
+    organizationId: v.id("organizations"),
+    state: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await authorizeOrgMember(ctx, args.organizationId);
+    const row = await ctx.db
+      .query("facebookPendingConnections")
+      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .first();
+    if (!row || row.organizationId !== args.organizationId) return null;
+    if (row.expiresAt < Date.now()) return null;
+    return {
+      _id: row._id,
+      pages: row.pages,
+      expiresAt: row.expiresAt,
+    };
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Internal queries — used by webhook + cron + actions
+// ─────────────────────────────────────────────────────────────────────
+
 export const getConnectionByPageId = internalQuery({
   args: { pageId: v.string() },
   handler: async (ctx, args) => {
@@ -110,11 +125,6 @@ export const getConnectionByPageId = internalQuery({
   },
 });
 
-/**
- * Internal lookup: every active connection in the system.
- * Used by the cron (`pollLeads`) to walk all tenants once per
- * interval and ask Meta for new leads.
- */
 export const listAllActiveConnections = internalQuery({
   args: {},
   handler: async (ctx) => {
@@ -125,12 +135,6 @@ export const listAllActiveConnections = internalQuery({
   },
 });
 
-/**
- * Internal lookup: dedup check — has this leadgenId been seen?
- * Used before calling contacts.create to avoid double-creating
- * contacts when both the webhook and the poller deliver the same
- * lead.
- */
 export const findLeadByLeadgenId = internalQuery({
   args: { leadgenId: v.string() },
   handler: async (ctx, args) => {
@@ -141,18 +145,74 @@ export const findLeadByLeadgenId = internalQuery({
   },
 });
 
+export const getPendingByState = internalQuery({
+  args: { state: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("facebookPendingConnections")
+      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .first();
+  },
+});
+
+/**
+ * Action-time auth helper. Actions can't use `authorizeOrgMember`
+ * directly (different runtime, no `ctx.db`); they call this query
+ * to verify the Clerk user belongs to the org or is a platform
+ * admin. Mirrors `convex/lib/auth.ts:authorizeOrgMember`.
+ */
+export const isOrgMember = internalQuery({
+  args: {
+    clerkUserId: v.string(),
+    organizationId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const tenantUsers = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_user_id", (q) =>
+        q.eq("clerkUserId", args.clerkUserId),
+      )
+      .collect();
+    if (tenantUsers.find((u) => u.organizationId === args.organizationId)) {
+      return true;
+    }
+    const platformUser = await ctx.db
+      .query("platformUsers")
+      .withIndex("by_clerk_user_id", (q) =>
+        q.eq("clerkUserId", args.clerkUserId),
+      )
+      .first();
+    return Boolean(platformUser?.isActive);
+  },
+});
+
 // ─────────────────────────────────────────────────────────────────────
-// Mutations
+// Public mutations
+// ─────────────────────────────────────────────────────────────────────
+
+export const disconnect = mutation({
+  args: { connectionId: v.id("facebookConnections") },
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.connectionId);
+    if (!row) return { success: true, alreadyGone: true };
+    await authorizeOrgMember(ctx, row.organizationId);
+    await ctx.db.patch(args.connectionId, {
+      status: "disconnected",
+      errorMessage: undefined,
+    });
+    return { success: true, alreadyGone: false };
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// Internal mutations
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Insert or update a connection row. Called by /api/facebook/callback
- * after the OAuth dance has produced a (page-id, page-name,
- * encrypted-token) triple. If a row already exists for this
- * (org, pageId) pair we update it in place — covers the
- * "reconnect after token expired" case without orphan rows.
+ * Insert/update a connection row. Called by `confirmConnections` action
+ * after Graph API has yielded a long-lived Page Access Token.
  */
-export const upsertConnection = mutation({
+export const upsertConnection = internalMutation({
   args: {
     organizationId: v.id("organizations"),
     pageId: v.string(),
@@ -161,12 +221,10 @@ export const upsertConnection = mutation({
     connectedByUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    await authorizeOrgMember(ctx, args.organizationId);
     const existing = await ctx.db
       .query("facebookConnections")
       .withIndex("by_page_id", (q) => q.eq("pageId", args.pageId))
       .first();
-
     const now = Date.now();
     if (existing && existing.organizationId === args.organizationId) {
       await ctx.db.patch(existing._id, {
@@ -180,13 +238,10 @@ export const upsertConnection = mutation({
       return { _id: existing._id, created: false };
     }
     if (existing && existing.organizationId !== args.organizationId) {
-      // Same Meta page already connected to a different tenant.
-      // Refuse to silently steal it; surface a clear error to the UI.
       throw new Error(
         "This Facebook Page is already connected to a different tenant. Disconnect it there first.",
       );
     }
-
     const id = await ctx.db.insert("facebookConnections", {
       organizationId: args.organizationId,
       pageId: args.pageId,
@@ -200,32 +255,6 @@ export const upsertConnection = mutation({
   },
 });
 
-/**
- * Disconnect button. Marks the row "disconnected" rather than
- * deleting so admins can see history. The webhook / cron skip
- * inactive rows.
- */
-export const disconnect = mutation({
-  args: {
-    connectionId: v.id("facebookConnections"),
-  },
-  handler: async (ctx, args) => {
-    const row = await ctx.db.get(args.connectionId);
-    if (!row) return { success: true, alreadyGone: true };
-    await authorizeOrgMember(ctx, row.organizationId);
-    await ctx.db.patch(args.connectionId, {
-      status: "disconnected",
-      errorMessage: undefined,
-    });
-    return { success: true, alreadyGone: false };
-  },
-});
-
-/**
- * Internal mutation: stamp lastSyncAt + errorMessage. Called by the
- * polling cron and the lead-ingest action to keep the connection
- * row's bookkeeping current.
- */
 export const updateConnectionStatus = internalMutation({
   args: {
     connectionId: v.id("facebookConnections"),
@@ -249,11 +278,6 @@ export const updateConnectionStatus = internalMutation({
   },
 });
 
-/**
- * Internal mutation: write the audit row. Called by ingestLead
- * regardless of whether the contact was created — the row's
- * `errorMessage` field captures rejections.
- */
 export const recordLead = internalMutation({
   args: {
     organizationId: v.id("organizations"),
@@ -282,81 +306,112 @@ export const recordLead = internalMutation({
   },
 });
 
-// ─────────────────────────────────────────────────────────────────────
-// Actions — outbound HTTP to Meta Graph API
-// ─────────────────────────────────────────────────────────────────────
-//
-// These STUBS define the right shape; bodies will be filled in when
-// the Meta App credentials land. Today they throw a clear "not yet
-// configured" error so the rest of the system can be wired against
-// them safely. Schema + Convex side compiles + deploys today;
-// Sprint 1 (after creds) replaces the throws with real Graph fetches.
-
-/**
- * Ingest a single lead by its leadgen ID. Called by:
- *   1. /api/facebook/webhook on real-time delivery (preferred path)
- *   2. /api/facebook/cron-poll for catch-up
- * Both paths converge here so contact creation logic stays in one
- * place.
- *
- * Flow (when implemented):
- *   1. Look up the connection by pageId.
- *   2. Decrypt page access token via lib/credentials/crypto.ts.
- *   3. GET https://graph.facebook.com/v19.0/{leadgenId}?fields=field_data,form_id,ad_id,campaign_id,created_time
- *      with access_token=<decrypted>.
- *   4. Map field_data → contact fields per docs/plan.
- *   5. If no phone field present → recordLead with errorMessage:"no_phone", DON'T create contact.
- *   6. Otherwise → contacts.create (or upsert by phone/email match), then recordLead with contactId.
- *   7. Schedule workflowEngine.checkTriggers({ triggerType: "contact_created" }).
- */
-export const ingestLead = internalAction({
+export const storePendingConnection = internalMutation({
   args: {
     organizationId: v.id("organizations"),
-    pageId: v.string(),
-    leadgenId: v.string(),
+    state: v.string(),
+    userAccessTokenEncrypted: v.string(),
+    pages: v.array(
+      v.object({
+        pageId: v.string(),
+        pageName: v.string(),
+      }),
+    ),
+    initiatedByUserId: v.optional(v.id("users")),
   },
-  handler: async (_ctx, _args) => {
-    // SCAFFOLD: real implementation lands in Sprint 1.
-    // Throwing rather than no-op so any premature wiring blows up
-    // loudly during dev instead of silently dropping leads.
-    throw new Error(
-      "facebook.ingestLead not yet implemented — waiting on FACEBOOK_APP_ID/SECRET",
-    );
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    return await ctx.db.insert("facebookPendingConnections", {
+      organizationId: args.organizationId,
+      state: args.state,
+      userAccessToken: args.userAccessTokenEncrypted,
+      pages: args.pages,
+      initiatedByUserId: args.initiatedByUserId,
+      createdAt: now,
+      expiresAt: now + PENDING_TTL_MS,
+    });
+  },
+});
+
+export const deletePendingConnection = internalMutation({
+  args: { id: v.id("facebookPendingConnections") },
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.id);
+    if (row) await ctx.db.delete(row._id);
   },
 });
 
 /**
- * Polling fallback. Cron calls this every 5 minutes:
- *   1. listAllActiveConnections.
- *   2. For each: GET /{pageId}/leads?fields=...&since=<lastSyncAt>
- *      using the decrypted access token.
- *   3. For each new lead → ingestLead.
- *   4. updateConnectionStatus(lastSyncAt: now).
- *
- * Webhook is the primary delivery; this catches drops.
+ * Create the contact row for a lead and stamp `contactId` on the
+ * facebookLeads row. Done in a mutation (not the action) so the
+ * insert + the audit-row update happen atomically. Returns the new
+ * contactId so the action can fire the workflow trigger.
  */
-export const pollLeads = internalAction({
+export const insertContactFromLead = internalMutation({
+  args: {
+    organizationId: v.id("organizations"),
+    firstName: v.string(),
+    lastName: v.optional(v.string()),
+    email: v.optional(v.string()),
+    phoneNumber: v.string(),
+    streetAddress: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    zipCode: v.optional(v.string()),
+    company: v.optional(v.string()),
+    dateOfBirth: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    return await ctx.db.insert("contacts", {
+      organizationId: args.organizationId,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      email: args.email,
+      streetAddress: args.streetAddress,
+      city: args.city,
+      state: args.state,
+      zipCode: args.zipCode,
+      company: args.company,
+      dateOfBirth: args.dateOfBirth,
+      notes: args.notes,
+      phoneNumbers: [
+        {
+          number: args.phoneNumber,
+          type: "mobile" as const,
+          isPrimary: true,
+        },
+      ],
+      isRead: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+
+/**
+ * Cleanup cron — drop expired pending OAuth rows so the
+ * facebookPendingConnections table doesn't accumulate stale state.
+ */
+export const cleanupExpiredPending = internalMutation({
   args: {},
-  handler: async (_ctx) => {
-    // SCAFFOLD: real implementation lands in Sprint 1.
-    // Returning quietly here so the cron entry can be enabled in
-    // convex/crons.ts even before creds — it'll just no-op until
-    // we replace this body. Better than crashing the cron loop.
-    return { skipped: "not_yet_configured" };
+  handler: async (ctx) => {
+    const now = Date.now();
+    const expired = await ctx.db
+      .query("facebookPendingConnections")
+      .withIndex("by_expires_at", (q) => q.lt("expiresAt", now))
+      .take(100);
+    for (const row of expired) {
+      await ctx.db.delete(row._id);
+    }
+    return { deleted: expired.length };
   },
 });
 
 // ─────────────────────────────────────────────────────────────────────
-// Type re-exports for callers
+// Type re-exports
 // ─────────────────────────────────────────────────────────────────────
-//
-// Keeps consumers from having to dig through Doc<"facebookConnections">
-// shapes. Add as needed.
 export type FacebookConnectionId = Id<"facebookConnections">;
 export type FacebookLeadId = Id<"facebookLeads">;
-
-// Keep `internal` and `action` referenced even though stubs don't
-// use them, so the imports don't get stripped by tree-shake when
-// the real bodies land.
-void internal;
-void action;

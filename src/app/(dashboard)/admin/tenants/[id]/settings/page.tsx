@@ -42,6 +42,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { updateTenant, UpdateTenantData, addUserToOrganization, removeUserFromOrganization, provisionTenantTwilio, transferNumberFromMaster } from "../../../actions";
 import { DiagnosticsCard } from "@/components/settings/diagnostics-card";
+import { FacebookConnectionsCard } from "@/components/settings/facebook-connections-card";
 import { HoldMusicUpload } from "@/components/settings/hold-music-upload";
 import { SalesGoalsManager } from "@/components/settings/sales-goals-manager";
 import { ImageUpload } from "@/components/settings/image-upload";
@@ -984,6 +985,20 @@ export default function TenantSettingsPage() {
               onToggle={() => toggleRow("holdmusic")}
             >
               <HoldMusicUpload organizationId={tenant._id} />
+            </SettingsRow>
+          )}
+
+          {/* Facebook Lead Ads — connect Pages so leads land as
+              contacts and trigger contact_created workflows. */}
+          {tenant._id && (
+            <SettingsRow
+              icon={<MessageSquare className="h-4 w-4 text-blue-600" />}
+              label="Facebook Lead Ads"
+              summary="Connect Pages to sync Lead Ads as contacts"
+              isExpanded={expandedRow === "facebook"}
+              onToggle={() => toggleRow("facebook")}
+            >
+              <FacebookConnectionsCard organizationId={tenant._id} />
             </SettingsRow>
           )}
 
