@@ -70,21 +70,21 @@ export async function POST(request: NextRequest) {
     // Scopes for Lead Ads (Sprint 1 — polling only):
     //   - pages_show_list       : enumerate user's manageable pages
     //   - pages_read_engagement : read page metadata (name etc.)
+    //   - pages_manage_ads      : list Lead Ads forms on a page
+    //                             (without this, GET /<page>/leadgen_forms
+    //                              returns 403 "Requires pages_manage_ads")
     //   - leads_retrieval       : fetch lead form submissions
     //   - business_management   : Pages owned by a Business need this
-    //   - ads_read              : correlate leads with ads/campaigns (optional)
+    //   - ads_read              : correlate leads with ads/campaigns
     //
-    // INTENTIONALLY NOT REQUESTED YET:
+    // NOT REQUESTED YET (deferred to Sprint 2):
     //   - pages_manage_metadata : needed to auto-subscribe Pages to
     //     leadgen webhook events. Requires being added to the app's
-    //     permissions list in Meta dashboard → Facebook Login for
-    //     Business → Permissions and features. Will reintroduce when
-    //     we ship the webhook receiver in Sprint 2 — until then,
-    //     polling (every 5 min) handles ingest with no real-time
-    //     subscription needed.
+    //     permissions list in Meta dashboard first.
     const scopes = [
       "pages_show_list",
       "pages_read_engagement",
+      "pages_manage_ads",
       "leads_retrieval",
       "business_management",
       "ads_read",
