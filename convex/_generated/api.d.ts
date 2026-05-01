@@ -30,6 +30,7 @@ import type * as dailyUsage from "../dailyUsage.js";
 import type * as documents from "../documents.js";
 import type * as emailAccounts from "../emailAccounts.js";
 import type * as emails from "../emails.js";
+import type * as facebook from "../facebook.js";
 import type * as holdMusic from "../holdMusic.js";
 import type * as http from "../http.js";
 import type * as inspectCallLog from "../inspectCallLog.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   emailAccounts: typeof emailAccounts;
   emails: typeof emails;
+  facebook: typeof facebook;
   holdMusic: typeof holdMusic;
   http: typeof http;
   inspectCallLog: typeof inspectCallLog;

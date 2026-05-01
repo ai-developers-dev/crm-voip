@@ -29,4 +29,25 @@ crons.interval(
   { olderThanMinutes: 60 },
 );
 
+/**
+ * Poll Facebook Lead Ads as a catch-up for missed webhook deliveries.
+ *
+ * Webhook (`/api/facebook/webhook`) is the primary delivery path —
+ * real-time, low-latency. This cron is the safety net: every 5 minutes
+ * it walks every active facebookConnections row, asks Meta for any
+ * leads since the row's `lastSyncAt`, and ingests them through the
+ * same code path the webhook uses.
+ *
+ * Currently the action body is a scaffold (returns { skipped:
+ * "not_yet_configured" }) until the Meta App credentials are set on
+ * Railway. The cron is wired up so the moment FACEBOOK_APP_ID +
+ * FACEBOOK_APP_SECRET are present, real polling kicks in without a
+ * separate deploy.
+ */
+crons.interval(
+  "poll Facebook Lead Ads",
+  { minutes: 5 },
+  internal.facebook.pollLeads,
+);
+
 export default crons;

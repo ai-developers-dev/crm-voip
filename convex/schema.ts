@@ -367,6 +367,63 @@ export default defineSchema({
   // Blocked caller IDs. Twilio doesn't have a server-side block list
   // for inbound voice/SMS — the recommended pattern is to check this
   // table inside the voice/SMS webhook and respond with `<Reject
+  // Facebook Lead Ads — per-tenant connections.
+  //
+  // Each row is one Facebook Page that a tenant has authorized us to
+  // receive leadgen events from. We store an encrypted long-lived
+  // Page Access Token (via src/lib/credentials/crypto.ts), the page
+  // ID for webhook lookups, and bookkeeping for the polling fallback.
+  //
+  // Lifecycle:
+  //   1. Tenant clicks "Connect Facebook" in Settings.
+  //   2. /api/facebook/callback exchanges code → page access token,
+  //      subscribes the page to the `leadgen` topic, inserts here.
+  //   3. /api/facebook/webhook receives leadgen events, looks up the
+  //      row by `pageId`, fires the ingestLead action.
+  //   4. Cron polls `/{pageId}/leads?since=lastSyncAt` as a catch-up.
+  facebookConnections: defineTable({
+    organizationId: v.id("organizations"),
+    pageId: v.string(), // FB Page ID (numeric string from Meta)
+    pageName: v.string(), // human-readable label for the Settings UI
+    pageAccessToken: v.string(), // ENCRYPTED via crypto.encrypt(token, orgId)
+    status: v.union(
+      v.literal("active"),
+      v.literal("disconnected"),
+      v.literal("error"),
+    ),
+    connectedByUserId: v.optional(v.id("users")),
+    connectedAt: v.number(),
+    lastSyncAt: v.optional(v.number()), // epoch ms; cron uses this as `since`
+    formIds: v.optional(v.array(v.string())), // empty = all forms on the page
+    errorMessage: v.optional(v.string()), // last failure (token expired, etc.)
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_page_id", ["pageId"]), // webhook → which tenant owns this page
+
+  // Facebook Lead Ads — per-lead audit log.
+  //
+  // Every lead Meta tells us about lands here, regardless of whether
+  // we successfully created a CRM contact for it. `errorMessage`
+  // captures the rejection reason ("no_phone", "duplicate",
+  // "graph_api_error") so the Settings UI can surface fixable
+  // problems back to the tenant. Dedup is by `leadgenId` — Meta's
+  // unique ID for each form submission.
+  facebookLeads: defineTable({
+    organizationId: v.id("organizations"),
+    leadgenId: v.string(), // unique per submission, used for dedup
+    pageId: v.string(),
+    formId: v.string(),
+    adId: v.optional(v.string()),
+    campaignId: v.optional(v.string()),
+    rawFieldData: v.any(), // full Meta `field_data` array, kept verbatim
+    contactId: v.optional(v.id("contacts")), // null if rejected
+    errorMessage: v.optional(v.string()), // why the lead didn't make it to contacts
+    receivedAt: v.number(),
+  })
+    .index("by_organization", ["organizationId"])
+    .index("by_leadgen_id", ["leadgenId"]) // dedup
+    .index("by_org_received_at", ["organizationId", "receivedAt"]), // recent-leads UI
+
   // reason="busy"/>` (voice) or an empty TwiML (SMS) before any
   // billable work happens. `phoneNumber` is stored in E.164 form so
   // lookup is a single `by_org_phone` index hit.
